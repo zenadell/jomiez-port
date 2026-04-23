@@ -1491,8 +1491,42 @@ app.get('/sitemap.xml', async (req, res) => {
   });
 });
 
+const axios = require('axios');
+
+// --- ⚡️ ROBUST KEEP-ALIVE SYSTEM ---
+
+// 1. Health Check & Ping Endpoint
+app.get('/ping', (req, res) => {
+    console.log(`[KEEP-ALIVE] Ping received at ${new Date().toISOString()}`);
+    res.status(200).send('PONG');
+});
+
+// 2. Turso Database Keep-Alive (Prevents connection timeout)
+setInterval(async () => {
+    try {
+        await db.execute('SELECT 1');
+        console.log('[KEEP-ALIVE] Turso connection is hot 🔥');
+    } catch (e) {
+        console.warn('[KEEP-ALIVE] Turso ping failed:', e.message);
+    }
+}, 45 * 1000); // Every 45 seconds
+
+// 3. Self-Ping Loop (Prevents Render from sleeping)
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+
+setInterval(async () => {
+    try {
+        await axios.get(`${RENDER_URL}/ping`, { timeout: 10000 });
+        console.log(`[KEEP-ALIVE] Self-ping successful: ${RENDER_URL}`);
+    } catch (err) {
+        console.warn(`[KEEP-ALIVE] Self-ping failed (${RENDER_URL}):`, err.message);
+    }
+}, 10 * 60 * 1000); // Every 10 minutes
+
+// Final Start
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`\n🚀 Server is running on port ${PORT}`);
+    console.log(`🔗 External URL: ${RENDER_URL}\n`);
 });
 
 const wss = new WebSocketServer({ server, path: '/api/chaka/stream' });
