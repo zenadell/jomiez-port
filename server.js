@@ -1,5 +1,6 @@
+require('dotenv').config();
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const tursoAdapter = require('./lib/tursoAdapter');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
@@ -10,6 +11,8 @@ const bcrypt = require('bcryptjs');
 const { WebSocketServer } = require('ws');
 const { initChakaStream } = require('./ai/ChakaStream');
 const ApiKeyManager = require('./ai/ApiKeyManager');
+
+const db = tursoAdapter;
 
 // --- Visitor & Lead Analytics Helpers ---
 async function getCountryFromIP(ip) {
@@ -55,14 +58,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Database Setup (Top Level)
-const db = new sqlite3.Database('./database.sqlite', (err) => {
-  if (err) console.error('Error opening database', err.message);
-  else {
-    console.log('Connected to the SQLite database.');
-    global.apiKeyManager = new ApiKeyManager(db);
-  }
-});
+// Database Setup (Turso)
+console.log('Connected to the Turso database.');
+global.apiKeyManager = new ApiKeyManager(db);
+global.apiKeyManager.refreshCache(); // Initial load
 
 // Middleware
 app.use(cors());
@@ -111,7 +110,7 @@ app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'admin',
 // --- AUTH API ---
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    db.get("SELECT * FROM portfolio_users WHERE username = ?", [username], (err, user) => {
         if (err || !user) return res.status(401).json({ error: 'Invalid credentials' });
         if (bcrypt.compareSync(password, user.password)) {
             req.session.user = { id: user.id, username: user.username };
@@ -182,10 +181,11 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS marquee_images (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT, sort_order INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS testimonials (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, author_name TEXT, author_role TEXT, author_image TEXT, rating INTEGER DEFAULT 5, sort_order INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, is_active INTEGER DEFAULT 1, fail_count INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)`);
 
     // Default User
     const hash = bcrypt.hashSync('chaka2025', 10);
-    db.run(`INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)`, ['admin', hash]);
+    db.run(`INSERT OR IGNORE INTO portfolio_users (username, password) VALUES (?, ?)`, ['admin', hash]);
 
     // Default Settings
     const defaults = [

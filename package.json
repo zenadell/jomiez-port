@@ -13,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@libsql/client": "^0.17.2",
     "@lixen/edge-tts": "^1.2.6",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
