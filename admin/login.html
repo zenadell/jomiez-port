@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaka CMS | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #00e0ff;
+            --primary-hover: #00c0dd;
+            --bg: #030712;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f3f4f6;
+            --text-dim: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Background */
+        body::before {
+            content: "";
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 40%;
+            height: 40%;
+            background: radial-gradient(circle, rgba(0, 224, 255, 0.05) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            bottom: -10%;
+            right: -10%;
+            width: 40%;
+            height: 40%;
+            background: radial-gradient(circle, rgba(232, 96, 44, 0.05) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            justify-content: center;
+        }
+
+        .logo-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .header p {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            width: 18px;
+            height: 18px;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px 14px 48px;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 4px rgba(0, 224, 255, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px -5px rgba(0, 224, 255, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo-wrap">
+            <div class="logo-dot"></div>
+            <div class="logo-text">Chaka Live OS</div>
+        </div>
+
+        <div class="header">
+            <h1>Welcome Back</h1>
+            <p>Please enter your credentials to continue</p>
+        </div>
+
+        <div id="error-box" class="error-message"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label>Username</label>
+                <div class="input-wrap">
+                    <i data-lucide="user"></i>
+                    <input type="text" id="username" placeholder="Enter username" required autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-wrap">
+                    <i data-lucide="lock"></i>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login" id="submit-btn">
+                <span>Sign In to Dashboard</span>
+                <i data-lucide="arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="footer">
+            <p>Forgot your password? <a href="mailto:admin@chakastream.io">Contact Support</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    const form = document.getElementById('login-form');
+    const errorBox = document.getElementById('error-box');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        errorBox.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Authenticating...';
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                window.location.href = '/admin';
+            } else {
+                errorBox.textContent = data.error || 'Login failed. Please try again.';
+                errorBox.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Sign In to Dashboard</span><i data-lucide="arrow-right"></i>';
+                lucide.createIcons();
+            }
+        } catch (err) {
+            errorBox.textContent = 'Connection error. Is the server running?';
+            errorBox.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Sign In to Dashboard</span><i data-lucide="arrow-right"></i>';
+            lucide.createIcons();
+        }
+    });
+</script>
+
+</body>
+</html>
