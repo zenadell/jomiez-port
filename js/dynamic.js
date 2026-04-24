@@ -226,7 +226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.hero_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.innerHTML = `<img src="${settings.hero_image}" loading="lazy" alt="Hero" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.innerHTML = `<img src="${settings.hero_image}" loading="lazy" alt="Hero" style="width: 100%; height: auto; min-height: 480px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.style.height = 'auto'; // Remove fixed height constraint
                 }
                 el.classList.remove('skeleton');
             }
