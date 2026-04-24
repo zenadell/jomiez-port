@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const brandingStyle = document.createElement('style');
     brandingStyle.innerHTML = `
         .w-webflow-badge { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
-        [data-hydrated="true"] [data-w-id] { opacity: 1 !important; transform: none !important; }
+        
+        /* Restore Hover Interactions - Only force visible on sections that usually vanish */
+        .section-hero, .section-about, .section-work { opacity: 1 !important; }
         
         /* Mobile Button Fix */
         @media (max-width: 479px) {
@@ -16,18 +18,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 right: 0 !important;
             }
         }
+        
+        /* Marquee Image Fallback */
+        .marquee-image.error {
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
     `;
     document.head.appendChild(brandingStyle);
 
     // Global Image Error Handler (Keep skeleton on broken images)
     window.addEventListener('error', (e) => {
         if (e.target.tagName === 'IMG') {
-            console.warn('[Chaka] Image load failed, restoring skeleton:', e.target.src);
-            e.target.style.opacity = '0';
+            console.warn('[Chaka] Image load failed:', e.target.src);
+            e.target.classList.add('error');
             const parent = e.target.parentElement;
             if (parent) {
                 parent.classList.add('skeleton');
-                parent.style.minHeight = '100px';
+                // Ensure broken images don't collapse or look like "structure"
+                if (parent.classList.contains('marquee-loop') || parent.classList.contains('marquee-loop-wrap')) {
+                     e.target.style.display = 'none'; 
+                } else {
+                     e.target.style.opacity = '0';
+                }
             }
         }
     }, true);
@@ -1054,33 +1067,52 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Ignore loops that are solely for Webflow's cloning logic unless we want to replace them too
                 loop.innerHTML = ''; // Blank it!
                 
-                // Keep the images continuous, maybe repeat them structurally if needed, but flex takes care of it natively usually.
+                // Keep the images continuous
                 marquee.forEach(m => {
+                    const imgWrap = document.createElement('div');
+                    imgWrap.className = 'marquee-image-wrap skeleton';
+                    imgWrap.style.width = '300px';
+                    imgWrap.style.height = '400px';
+                    imgWrap.style.borderRadius = '16px';
+                    imgWrap.style.overflow = 'hidden';
+                    imgWrap.style.flexShrink = '0';
+
                     const img = document.createElement('img');
                     img.src = m.image_url;
                     img.loading = 'eager';
                     img.className = 'marquee-image';
-                    // Apply original inline styling constraints from Webflow
-                    img.style.width = '300px'; 
-                    img.style.height = '400px'; 
+                    img.style.width = '100%'; 
+                    img.style.height = '100%'; 
                     img.style.objectFit = 'cover';
-                    img.style.borderRadius = '16px';
-                    loop.appendChild(img);
+                    img.onload = () => imgWrap.classList.remove('skeleton');
+                    
+                    imgWrap.appendChild(img);
+                    loop.appendChild(imgWrap);
                 });
 
-                // Webflow marquee uses a secondary cloned wrap. Let's add it manually just in case
+                // Webflow marquee uses a secondary cloned wrap
                 const loopWrap = document.createElement('div');
                 loopWrap.className = 'marquee-loop-wrap';
                 marquee.forEach(m => {
+                    const imgWrap = document.createElement('div');
+                    imgWrap.className = 'marquee-image-wrap skeleton';
+                    imgWrap.style.width = '300px';
+                    imgWrap.style.height = '400px';
+                    imgWrap.style.borderRadius = '16px';
+                    imgWrap.style.overflow = 'hidden';
+                    imgWrap.style.flexShrink = '0';
+
                     const img = document.createElement('img');
                     img.src = m.image_url;
                     img.loading = 'eager';
                     img.className = 'marquee-image';
-                    img.style.width = '300px'; 
-                    img.style.height = '400px'; 
+                    img.style.width = '100%'; 
+                    img.style.height = '100%'; 
                     img.style.objectFit = 'cover';
-                    img.style.borderRadius = '16px';
-                    loopWrap.appendChild(img);
+                    img.onload = () => imgWrap.classList.remove('skeleton');
+
+                    imgWrap.appendChild(img);
+                    loopWrap.appendChild(imgWrap);
                 });
                 loop.appendChild(loopWrap);
             });
