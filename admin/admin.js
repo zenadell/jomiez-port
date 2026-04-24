@@ -228,29 +228,41 @@ async function saveActivePanel() {
   const btn = document.querySelector('.topbar .btn-primary');
   const originalText = btn.textContent;
   btn.textContent = 'Saving...';
+  btn.disabled = true;
 
-  // Identify fields in active panel
-  const inputs = activePanel.querySelectorAll('input[type="text"], textarea');
-  for(let input of inputs) {
-    if(input.id) await saveSetting(input.id, input.value);
-  }
-
-  // Identify files in active panel
-  const fileInputs = activePanel.querySelectorAll('input[type="file"]');
-  for(let input of fileInputs) {
-    if(input.files[0]) {
-      const url = await uploadFile(input.files[0]);
-      const key = input.id.replace('_file', '');
-      await saveSetting(key, url);
-      // Update preview if exists
-      const preview = document.getElementById(key + '_preview');
-      if(preview) preview.src = url;
+  try {
+    // Identify fields in active panel
+    const inputs = activePanel.querySelectorAll('input[type="text"], textarea');
+    for(let input of inputs) {
+      if(input.id) await saveSetting(input.id, input.value);
     }
-  }
 
-  btn.textContent = originalText;
-  showToast('✓ Section saved successfully');
-  loadSettings();
+    // Identify files in active panel
+    const fileInputs = activePanel.querySelectorAll('input[type="file"]');
+    for(let input of fileInputs) {
+      if(input.files[0]) {
+        try {
+          const url = await uploadFile(input.files[0]);
+          const key = input.id.replace('_file', '');
+          await saveSetting(key, url);
+          // Update preview if exists
+          const preview = document.getElementById(key + '_preview');
+          if(preview) preview.src = url;
+        } catch(e) {
+          console.error('File upload failed', e);
+          showToast('✗ Error uploading ' + input.id);
+        }
+      }
+    }
+    showToast('✓ Section saved successfully');
+  } catch(e) {
+    console.error('Save failed', e);
+    showToast('✗ Save failed: ' + e.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+    loadSettings();
+  }
 }
 
 function handleImagePreview(event, previewId) {

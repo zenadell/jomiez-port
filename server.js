@@ -545,11 +545,20 @@ app.delete('/api/testimonials/:id', (req, res) => {
   });
 });
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-  res.json({ url: req.file.path });
+app.post('/api/upload', (req, res, next) => {
+  console.log('[Upload] Starting upload request...');
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('[Upload] Multer/Cloudinary Error:', err);
+      return res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+    if (!req.file) {
+      console.warn('[Upload] No file received');
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    console.log('[Upload] Success! URL:', req.file.path);
+    res.json({ url: req.file.path });
+  });
 });
 
 // CLIENT LEADS & AI MEMORY API
