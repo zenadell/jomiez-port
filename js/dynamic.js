@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.about_me_page_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="About" class="about-image" id="db-about-image" style="width: 100%; height: 100%; max-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="About" class="about-image" id="db-about-image" style="width: 100%; height: auto; min-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
                 }
             }
         }
