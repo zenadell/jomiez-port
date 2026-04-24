@@ -1,5 +1,26 @@
 console.log("DYNAMIC SCRIPT LOADED");
 document.addEventListener('DOMContentLoaded', async () => {
+    // 0. IMMEDIATE BRANDING STRIP (Before any fetches)
+    const brandingStyle = document.createElement('style');
+    brandingStyle.innerHTML = `
+        .w-webflow-badge { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
+        [data-hydrated="true"] [data-w-id] { opacity: 1 !important; transform: none !important; }
+    `;
+    document.head.appendChild(brandingStyle);
+
+    // Global Image Error Handler (Keep skeleton on broken images)
+    window.addEventListener('error', (e) => {
+        if (e.target.tagName === 'IMG') {
+            console.warn('[Chaka] Image load failed, restoring skeleton:', e.target.src);
+            e.target.style.opacity = '0';
+            const parent = e.target.parentElement;
+            if (parent) {
+                parent.classList.add('skeleton');
+                parent.style.minHeight = '100px';
+            }
+        }
+    }, true);
+
     console.log("DOM CONTENT LOADED FIRED!");
     const path = window.location.pathname;
 
@@ -74,10 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const marquee = await marqueeRes.json();
         const testimonials = await testimonialsRes.json();
 
-        // Strip Webflow Branding Badge Globally
-        const style = document.createElement('style');
-        style.innerHTML = '.w-webflow-badge { display: none !important; visibility: hidden !important; }';
-        document.head.appendChild(style);
 
         // 0. SEO & METADATA HYDRATION
         const setMeta = (name, value, attr = 'name') => {
@@ -1140,7 +1157,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        // Re-initialize Webflow to bind events to dynamically injected DOM elements (Sliders, Dropdowns, IX2)
         if (window.Webflow) {
             console.log('[Chaka] Re-initializing Webflow engine for dynamic elements...');
             window.Webflow.destroy();
@@ -1149,6 +1165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (ix2 && typeof ix2.init === 'function') {
                 ix2.init();
             }
+            
+            // Fix: Force IX2 to wake up and show content without manual scroll
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                window.scrollTo(window.scrollX, window.scrollY + 1);
+                window.scrollTo(window.scrollX, window.scrollY - 1);
+            }, 500);
         }
 
         // Remove global Skeleton Loader by flagging html as hydrated
