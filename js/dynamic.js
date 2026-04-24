@@ -929,6 +929,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     clone.style.opacity = '1';
                     clone.style.transform = 'none';
 
+                    // Remove all skeletons from the clone immediately
+                    clone.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+
                     // Link
                     const link = clone.querySelector('.services-wrap');
                     if (link) link.href = `/services/${svc.slug}`;
@@ -973,14 +976,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         mobileWrap.style.display = 'none';
                     }
 
-                    // Arrow / Button Fix (Remove skeletons and hide if empty)
+                    // Arrow / Button Fix (Force SVG arrow to show)
                     const svcBtnDefault = clone.querySelector('.services-button.default');
-                    if (svcBtnDefault) {
-                        svcBtnDefault.classList.remove('skeleton');
-                        // If no src is set and it's a placeholder, hide it to show the SVG behind it
-                        if (!svcBtnDefault.getAttribute('src') || svcBtnDefault.getAttribute('src') === "") {
-                            svcBtnDefault.style.display = 'none';
-                        }
+                    const svcBtnActive = clone.querySelector('.services-button.active');
+                    if (svcBtnDefault) svcBtnDefault.style.display = 'none';
+                    if (svcBtnActive) {
+                        svcBtnActive.style.display = 'block';
+                        svcBtnActive.style.opacity = '1';
+                        svcBtnActive.style.visibility = 'visible';
                     }
 
                     list.appendChild(clone);
