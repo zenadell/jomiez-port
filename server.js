@@ -11,6 +11,8 @@ const bcrypt = require('bcryptjs');
 const { WebSocketServer } = require('ws');
 const { initChakaStream } = require('./ai/ChakaStream');
 const ApiKeyManager = require('./ai/ApiKeyManager');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const db = tursoAdapter;
 
@@ -45,18 +47,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// Set up storage for uploaded files
-const storage = multer.diskStorage({
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// 1. Persistent Storage (Images/Media)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'portfolio_uploads',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif', 'svg', 'pdf', 'doc', 'docx'],
+  },
+});
+const upload = multer({ storage: storage });
+
+// 2. Temporary Local Storage (for AI Audio Processing)
+const tempStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dir = './uploads';
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     cb(null, dir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, 'temp_' + Date.now() + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storage });
+const tempUpload = multer({ storage: tempStorage });
 
 // Database Setup (Turso)
 console.log('Connected to the Turso database.');
@@ -530,8 +549,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  // Respond with the public URL
-  res.json({ url: '/uploads/' + req.file.filename });
+  res.json({ url: req.file.path });
 });
 
 // CLIENT LEADS & AI MEMORY API
@@ -564,19 +582,10 @@ app.delete('/api/memory/:id', (req, res) => {
 });
 
 // RESUME / CV API
-const cvUpload = multer({ 
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    const filetypes = /pdf|doc|docx/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (extname) return cb(null, true);
-    cb(new Error("Error: Resume must be PDF or DOC format!"));
-  }
-});
 
-app.post('/api/resume/upload', cvUpload.single('file'), (req, res) => {
+app.post('/api/resume/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const url = '/uploads/' + req.file.filename;
+  const url = req.file.path;
   
   // Save both the URL and a timestamp to settings
   db.run(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?`, 
@@ -1113,7 +1122,7 @@ const groqRateLimiter = new Map(); // IP -> { count, resetTime }
 const GROQ_MAX_RPM = 6; // max 6 requests per minute
 const GROQ_WINDOW_MS = 60000;
 
-app.post('/api/chaka/chat_audio', upload.single('audio'), async (req, res) => {
+app.post('/api/chaka/chat_audio', tempUpload.single('audio'), async (req, res) => {
   if (!req.file && !req.body.textOnly) return res.status(400).json({ error: 'No audio or text provided' });
 
   // Rate limit check
