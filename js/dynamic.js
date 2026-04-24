@@ -943,28 +943,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Hover image (desktop)
                     const hoverImgs = clone.querySelectorAll('.services-image');
+                    const desktopImgWrap = clone.querySelector('.services-image-wrap:not(.display-none-for-desktop)');
+                    
                     if (svc.image_url) {
                         hoverImgs.forEach(img => {
                             img.src = svc.image_url;
                             img.classList.remove('skeleton');
                         });
+                        if (desktopImgWrap) desktopImgWrap.classList.remove('skeleton');
+                    } else {
+                        if (desktopImgWrap) desktopImgWrap.style.display = 'none';
                     }
+
                     // Mobile image
-                    if (svc.hover_image_url) {
-                        const mobileWrap = clone.querySelector('.services-image-wrap.display-none-for-desktop');
-                        if (mobileWrap) {
-                            const mobileImg = mobileWrap.querySelector('.services-image');
-                            if (mobileImg) {
-                                if (mobileImg.tagName === 'IMG') {
-                                    mobileImg.src = svc.hover_image_url;
-                                    mobileImg.removeAttribute('srcset');
-                                } else {
-                                    mobileImg.style.backgroundImage = `url("${svc.hover_image_url}")`;
-                                    mobileImg.style.backgroundSize = 'cover';
-                                    mobileImg.style.backgroundPosition = 'center';
-                                }
-                                mobileImg.classList.remove('skeleton');
+                    const mobileWrap = clone.querySelector('.services-image-wrap.display-none-for-desktop');
+                    if (svc.hover_image_url && mobileWrap) {
+                        const mobileImg = mobileWrap.querySelector('.services-image');
+                        if (mobileImg) {
+                            if (mobileImg.tagName === 'IMG') {
+                                mobileImg.src = svc.hover_image_url;
+                                mobileImg.removeAttribute('srcset');
+                            } else {
+                                mobileImg.style.backgroundImage = `url("${svc.hover_image_url}")`;
+                                mobileImg.style.backgroundSize = 'cover';
                             }
+                            mobileImg.classList.remove('skeleton');
+                        }
+                    } else if (mobileWrap) {
+                        mobileWrap.style.display = 'none';
+                    }
+
+                    // Arrow / Button Fix (Remove skeletons and hide if empty)
+                    const svcBtnDefault = clone.querySelector('.services-button.default');
+                    if (svcBtnDefault) {
+                        svcBtnDefault.classList.remove('skeleton');
+                        // If no src is set and it's a placeholder, hide it to show the SVG behind it
+                        if (!svcBtnDefault.getAttribute('src') || svcBtnDefault.getAttribute('src') === "") {
+                            svcBtnDefault.style.display = 'none';
                         }
                     }
 
