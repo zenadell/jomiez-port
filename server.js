@@ -172,14 +172,293 @@ app.use('/api', (req, res, next) => {
     res.status(401).json({ error: 'Unauthorized' });
 });
 
-// --- PUBLIC ROUTES ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'home.html')));
+// --- SEO: Server-Side Meta Tag Injection ---
+// Injects real title, description, OG tags, canonical URL, and keywords into HTML before serving
+// This ensures Google sees actual content instead of skeleton loaders
+function getSettings() {
+  return new Promise((resolve) => {
+    db.all('SELECT key, value FROM settings', [], (err, rows) => {
+      if (err || !rows) return resolve({});
+      const s = {};
+      rows.forEach(r => s[r.key] = r.value);
+      resolve(s);
+    });
+  });
+}
+
+function injectSEOMeta(html, meta) {
+  const host = meta.host || '';
+  const canonical = `<link rel="canonical" href="${host}${meta.path || '/'}" />`;
+  const robotsMeta = `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`;
+  const keywords = `<meta name="keywords" content="${meta.keywords || 'software development, web development, app development, Jomiez, Jomiez Innovation, coding, programming, hire developer, build website, AI solutions, custom software, mobile app, SaaS, startup, MVP, digital transformation, IT consulting, UI UX design, full stack developer, React, Node.js, Python, cloud computing, DevOps, API development, e-commerce, business solutions, tech company, freelance developer, Templeton, Ezinna Emmanuel Nweke'}" />`;
+  const authorMeta = `<meta name="author" content="Jomiez Innovation" />`;
+  const geoMeta = `<meta name="geo.region" content="NG" />\n    <meta name="geo.placename" content="Nigeria" />`;
+  const langAlts = `<link rel="alternate" hreflang="en" href="${host}${meta.path || '/'}" />\n    <link rel="alternate" hreflang="x-default" href="${host}${meta.path || '/'}" />`;
+  const themeColor = `<meta name="theme-color" content="#0a0a0a" />`;
+  const preconnect = `<link rel="preconnect" href="https://fonts.googleapis.com" />\n    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />`;
+
+  // Build full SEO head injection
+  const seoBlock = `
+    <!-- SEO Meta Tags — Jomiez Innovation -->
+    <title>${meta.title}</title>
+    <meta name="description" content="${meta.description}" />
+    ${keywords}
+    ${authorMeta}
+    ${robotsMeta}
+    ${canonical}
+    ${geoMeta}
+    ${langAlts}
+    ${themeColor}
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${host}${meta.path || '/'}" />
+    <meta property="og:title" content="${meta.title}" />
+    <meta property="og:description" content="${meta.description}" />
+    <meta property="og:image" content="${meta.image || host + '/uploads/og-image.png'}" />
+    <meta property="og:site_name" content="Jomiez Innovation" />
+    <meta property="og:locale" content="en_US" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="${host}${meta.path || '/'}" />
+    <meta name="twitter:title" content="${meta.title}" />
+    <meta name="twitter:description" content="${meta.description}" />
+    <meta name="twitter:image" content="${meta.image || host + '/uploads/og-image.png'}" />
+    <meta name="twitter:creator" content="@jomiez" />`;
+
+  // Replace the existing head content
+  let result = html;
+
+  // Replace title
+  result = result.replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`);
+
+  // Replace or add meta description
+  if (result.includes('name="description"')) {
+    result = result.replace(/<meta[^>]*name="description"[^>]*>/, `<meta name="description" content="${meta.description}" />`);
+  }
+
+  // Replace OG tags
+  result = result.replace(/<meta[^>]*property="og:title"[^>]*>/, `<meta property="og:title" content="${meta.title}" />`);
+  result = result.replace(/<meta[^>]*property="og:description"[^>]*>/, `<meta property="og:description" content="${meta.description}" />`);
+  result = result.replace(/<meta[^>]*property="twitter:title"[^>]*>/, `<meta property="twitter:title" content="${meta.title}" />`);
+  result = result.replace(/<meta[^>]*property="twitter:description"[^>]*>/, `<meta property="twitter:description" content="${meta.description}" />`);
+
+  // Remove stale Webflow domain reference (cosmetic only — keep data-wf-page and data-wf-site for animations!)
+  result = result.replace(/data-wf-domain="[^"]*"/g, '');
+
+  // Inject canonical, robots, keywords, author, theme-color, etc. before </head>
+  const additionalMeta = `${canonical}\n    ${robotsMeta}\n    ${keywords}\n    ${authorMeta}\n    ${geoMeta}\n    ${langAlts}\n    ${themeColor}\n    <meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:creator" content="@jomiez" />\n    <meta property="og:site_name" content="Jomiez Innovation" />\n    <meta property="og:locale" content="en_US" />\n    <meta property="og:url" content="${host}${meta.path || '/'}" />\n    <meta property="og:type" content="website" />\n    <script src="/js/seo-schema.js" defer></script>`;
+
+  result = result.replace('</head>', `    ${additionalMeta}\n</head>`);
+
+  return result;
+}
+
+async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
+  const settings = await getSettings();
+  const host = `${req.protocol}://${req.get('host')}`;
+
+  const meta = {
+    host,
+    path: req.path,
+    title: metaOverrides.title || 'Jomiez Innovation — Software Development, Web & App Solutions',
+    description: metaOverrides.description || 'Jomiez Innovation is a leading software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide. Hire expert developers today.',
+    image: metaOverrides.image || settings.hero_image_url || '',
+    keywords: metaOverrides.keywords || '',
+    ...metaOverrides
+  };
+
+  fs.readFile(filePath, 'utf8', (err, html) => {
+    if (err) return res.status(500).send('Error loading page');
+    const injected = injectSEOMeta(html, meta);
+    res.send(injected);
+  });
+}
+
+// --- PUBLIC ROUTES (SEO-Optimized) ---
+app.get('/', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'home.html'), {
+    title: 'Jomiez Innovation — Top Software Development & Web Solutions Company | Build Websites, Apps & AI Systems',
+    description: 'Jomiez Innovation is a world-class software development company specializing in custom websites, mobile apps, AI integration, SaaS platforms, and digital transformation. Hire expert full-stack developers for your next project. Led by Templeton (Ezinna Emmanuel Nweke).',
+    keywords: 'Jomiez, Jomiez Innovation, software development company, web development, mobile app development, AI development, custom software, hire developer, build website, build app, coding services, programming, full stack developer, React developer, Node.js, Python developer, SaaS development, MVP development, startup solutions, digital transformation, IT consulting, UI UX design, e-commerce development, API development, cloud computing, DevOps, business solutions, tech company, web design, app design, freelance developer, software engineer, Templeton, Ezinna Emmanuel Nweke, best software company, top web developer, hire programmer, build my website, build my app, website builder, app builder, custom web application, enterprise software, fintech development, healthcare software, education technology, affordable web development, professional website design, responsive web design, SEO services, digital marketing, online business solutions, technology partner, innovation, software house, coding agency, development agency, offshore development, nearshore development, remote developer'
+  });
+});
+
+app.get('/about', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'about.html'), {
+    title: 'About Jomiez Innovation — Our Story, Mission & Expert Team | Software Development Leaders',
+    description: 'Learn about Jomiez Innovation, a leading software development company founded by Ezinna Emmanuel Nweke (Templeton). We specialize in building custom software, websites, mobile apps, and AI solutions for businesses worldwide. Discover our mission, values, and the expertise behind our innovative solutions.',
+    keywords: 'about Jomiez, Jomiez Innovation team, Templeton developer, Ezinna Emmanuel Nweke, software company about, web development team, app development company, our story, company mission, tech company values, experienced developers, professional software engineers, innovation leaders, technology experts'
+  });
+});
+
+app.get('/services', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'services.html'), {
+    title: 'Our Services — Web Development, Mobile Apps, AI Solutions, Custom Software | Jomiez Innovation',
+    description: 'Explore our comprehensive software development services: custom web development, mobile app development, AI & automation solutions, UI/UX design, cloud computing, DevOps, SaaS platforms, API development, and digital transformation. Get a free consultation today.',
+    keywords: 'web development services, mobile app development, custom software development, AI development services, machine learning solutions, UI UX design services, cloud computing services, DevOps consulting, SaaS development, API development, e-commerce development, digital transformation services, IT consulting, software architecture, database design, cybersecurity services, progressive web apps, full stack development services, React development, Node.js development, Python development, hire developers, software outsourcing'
+  });
+});
+
+app.get('/works', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'works.html'), {
+    title: 'Our Portfolio — Projects & Case Studies | Web, App & Software Development by Jomiez Innovation',
+    description: 'Browse our portfolio of successfully delivered projects. From custom websites and mobile apps to AI-powered platforms and enterprise software — see how Jomiez Innovation transforms ideas into powerful digital solutions for businesses worldwide.',
+    keywords: 'portfolio, case studies, web development projects, mobile app projects, software development portfolio, client projects, project showcase, website design portfolio, app development showcase, custom software projects, Jomiez portfolio, development agency work'
+  });
+});
+
+app.get('/testimonials', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'testimonials.html'), {
+    title: 'Client Testimonials & Reviews — What Our Clients Say About Jomiez Innovation',
+    description: 'Read real testimonials and reviews from our satisfied clients worldwide. Discover why businesses trust Jomiez Innovation for their software development, web design, mobile app, and AI solution needs. 5-star rated technology partner.',
+    keywords: 'client testimonials, reviews, customer feedback, software development reviews, web development testimonials, app development reviews, satisfied clients, 5 star reviews, trusted developer, reliable software company, client experiences, business reviews'
+  });
+});
+
 app.get('/resume', (req, res) => res.sendFile(path.join(__dirname, 'unique-offerring-pages', 'resume.html')));
-app.get('/works', (req, res) => res.sendFile(path.join(__dirname, 'works.html')));
-app.get('/services', (req, res) => res.sendFile(path.join(__dirname, 'services.html')));
-app.get('/work/:slug', (req, res) => res.sendFile(path.join(__dirname, 'work-detail-page', 'work-detail-page.html')));
-app.get('/services/:slug', (req, res) => res.sendFile(path.join(__dirname, 'unique-offerring-pages', 'service-detail.html')));
+
+app.get('/work/:slug', async (req, res) => {
+  // Try to get the actual work details for dynamic meta
+  const work = await new Promise((resolve) => {
+    db.get('SELECT * FROM works WHERE slug = ?', [req.params.slug], (err, row) => resolve(row || null));
+  });
+
+  const title = work ? `${work.title} — Project Case Study | Jomiez Innovation` : 'Project Details — Portfolio | Jomiez Innovation';
+  const description = work ? (work.description || '').substring(0, 160) + ' — A project by Jomiez Innovation.' : 'Detailed case study of a project by Jomiez Innovation. See our approach, technologies used, and results delivered.';
+
+  serveSEOPage(req, res, path.join(__dirname, 'work-detail-page', 'work-detail-page.html'), {
+    title,
+    description,
+    image: work ? work.thumbnail_url : '',
+    keywords: `${work ? work.title : 'project'}, case study, portfolio, Jomiez Innovation, software development, web development`
+  });
+});
+
+app.get('/services/:slug', async (req, res) => {
+  const service = await new Promise((resolve) => {
+    db.get('SELECT * FROM services WHERE slug = ?', [req.params.slug], (err, row) => resolve(row || null));
+  });
+
+  const title = service ? `${service.title} — Professional ${service.title} Services | Jomiez Innovation` : 'Service Details | Jomiez Innovation';
+  const description = service ? (service.description || '').substring(0, 160) + ' — Expert service by Jomiez Innovation.' : 'Professional software development service by Jomiez Innovation. Learn about our approach and get a free consultation.';
+
+  serveSEOPage(req, res, path.join(__dirname, 'unique-offerring-pages', 'service-detail.html'), {
+    title,
+    description,
+    image: service ? service.image_url : '',
+    keywords: `${service ? service.title : 'service'}, Jomiez Innovation, professional services, software development services`
+  });
+});
+
 app.get('/resume.html', (req, res) => res.redirect('/resume'));
+
+// --- SEO & SEARCH ENGINE TOOLS (Must be BEFORE static middleware) ---
+
+// Robots.txt — Optimized for maximum crawlability
+app.get('/robots.txt', (req, res) => {
+  const host = `${req.protocol}://${req.get('host')}`;
+  res.type('text/plain');
+  res.send(`# Jomiez Innovation — Robots.txt
+# https://jomiez.com
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /uploads/temp_*
+Disallow: /node_modules/
+Disallow: /scratch/
+Disallow: /*.json$
+Disallow: /database.sqlite
+
+# Sitemaps
+Sitemap: ${host}/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# Bing-specific
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# AI Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+`);
+});
+
+// Dynamic Sitemap.xml — Full Coverage with lastmod, priority, images
+app.get('/sitemap.xml', async (req, res) => {
+  const host = `${req.protocol}://${req.get('host')}`;
+  const today = new Date().toISOString().split('T')[0];
+
+  const staticPages = [
+    { path: '', priority: '1.0', changefreq: 'daily', title: 'Home' },
+    { path: '/about', priority: '0.9', changefreq: 'weekly', title: 'About' },
+    { path: '/services', priority: '0.9', changefreq: 'weekly', title: 'Services' },
+    { path: '/works', priority: '0.9', changefreq: 'weekly', title: 'Portfolio' },
+    { path: '/testimonials', priority: '0.8', changefreq: 'weekly', title: 'Testimonials' },
+    { path: '/resume', priority: '0.7', changefreq: 'monthly', title: 'Resume' },
+    { path: '/contact-us', priority: '0.8', changefreq: 'monthly', title: 'Contact' },
+    { path: '/privacy-policy', priority: '0.3', changefreq: 'yearly', title: 'Privacy Policy' },
+    { path: '/license', priority: '0.2', changefreq: 'yearly', title: 'License' },
+    { path: '/change-log', priority: '0.3', changefreq: 'monthly', title: 'Change Log' }
+  ];
+
+  const [services, works] = await Promise.all([
+    new Promise((resolve) => db.all('SELECT slug, title, image_url FROM services', [], (err, rows) => resolve(rows || []))),
+    new Promise((resolve) => db.all('SELECT slug, title, thumbnail_url, date FROM works', [], (err, rows) => resolve(rows || [])))
+  ]);
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+`;
+
+  staticPages.forEach(p => {
+    xml += `  <url>\n    <loc>${host}${p.path}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>\n`;
+  });
+
+  services.forEach(s => {
+    xml += `  <url>\n    <loc>${host}/services/${s.slug}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>`;
+    if (s.image_url) {
+      xml += `\n    <image:image>\n      <image:loc>${s.image_url}</image:loc>\n      <image:title>${(s.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</image:title>\n      <image:caption>${(s.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')} service by Jomiez Innovation</image:caption>\n    </image:image>`;
+    }
+    xml += `\n  </url>\n`;
+  });
+
+  works.forEach(w => {
+    xml += `  <url>\n    <loc>${host}/work/${w.slug}</loc>\n    <lastmod>${w.date || today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>`;
+    if (w.thumbnail_url) {
+      xml += `\n    <image:image>\n      <image:loc>${w.thumbnail_url}</image:loc>\n      <image:title>${(w.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</image:title>\n      <image:caption>${(w.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')} project by Jomiez Innovation</image:caption>\n    </image:image>`;
+    }
+    xml += `\n  </url>\n`;
+  });
+
+  xml += `</urlset>`;
+  res.header('Content-Type', 'application/xml');
+  res.header('Cache-Control', 'public, max-age=3600');
+  res.send(xml);
+});
 
 // Static Files
 
@@ -206,28 +485,37 @@ db.serialize(() => {
     const hash = bcrypt.hashSync('chaka2025', 10);
     db.run(`INSERT OR IGNORE INTO portfolio_users (username, password) VALUES (?, ?)`, ['admin', hash]);
 
-    // Default Settings
+    // Default Settings — Jomiez Innovation Branding
     const defaults = [
-        ['site_logo_text', 'ResumX'],
-        ['hero_eyebrow', 'Architecting the Future of Digital Intelligence'],
-        ['hero_headline', 'Creative Solutions That Drive Real Results With AI Integration.'],
-        ['hero_text', 'Seamlessly blending advanced System Integration with robust Software and Website Development.'],
-        ['company_name', 'ResumX'],
+        ['site_logo_text', 'Jomiez'],
+        ['hero_eyebrow', 'Innovative Software Solutions for the Digital Age'],
+        ['hero_headline', 'We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses.'],
+        ['hero_text', 'From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between.'],
+        ['company_name', 'Jomiez Innovation'],
         ['powered_by_name', 'Chaka'],
         ['powered_by_link', '#'],
-        ['contact_email', 'hello@example.com'],
-        ['contact_phone', '+1 (234) 567-890'],
+        ['contact_email', 'hello@jomiez.com'],
+        ['contact_phone', '+234 000 000 0000'],
         ['hero_active_text', 'Available for new projects'],
-        ['hero_rating_text', 'Loved by founders globally'],
+        ['hero_rating_text', 'Trusted by businesses globally'],
         ['hero_rating_score', '4.9'],
-        ['skills_heading', 'Your Guide to Professional Skills and Experience'],
-        ['tools_heading', 'Key Work Tools'],
+        ['skills_heading', 'Our Professional Skills & Technical Expertise'],
+        ['tools_heading', 'Technologies We Work With'],
         ['label_field_name', 'First Name *'],
         ['label_field_last_name', 'Last Name *'],
         ['label_field_email', 'Email Address *'],
         ['label_field_phone', 'Phone Number *'],
         ['label_field_message', 'Message *'],
-        ['label_submit_button', 'Let’s Connect']
+        ['label_submit_button', 'Let\'s Connect'],
+        ['seo_site_title', 'Jomiez Innovation — Software Development, Web & App Solutions'],
+        ['seo_site_description', 'Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide.'],
+        ['seo_keywords', 'Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke'],
+        ['founder_name', 'Ezinna Emmanuel Nweke'],
+        ['founder_alias', 'Templeton'],
+        ['about_hero_heading', 'Building the Future of Software — One Innovation at a Time'],
+        ['about_hero_subheading', 'We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences.'],
+        ['cta_heading', 'Ready to Build Something Extraordinary? Let\'s Talk.'],
+        ['footer_copyright', '© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez.']
     ];
     defaults.forEach(([k, v]) => db.run(`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`, [k, v]));
 });
@@ -1475,39 +1763,7 @@ app.get('/api/analytics', (req, res) => {
   });
 });
 
-// --- SEO & SEARCH ENGINE TOOLS ---
-
-// Robots.txt
-app.get('/robots.txt', (req, res) => {
-  res.type('text/plain');
-  res.send(`User-agent: *\nAllow: /\nSitemap: ${req.protocol}://${req.get('host')}/sitemap.xml`);
-});
-
-// Dynamic Sitemap.xml
-app.get('/sitemap.xml', async (req, res) => {
-  const host = `${req.protocol}://${req.get('host')}`;
-  const staticPages = ['', '/about', '/services', '/work', '/resume', '/contact-us'];
-  
-  db.all('SELECT slug FROM services', [], (err, services) => {
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
-    
-    // Add Static Pages
-    staticPages.forEach(p => {
-      xml += `  <url><loc>${host}${p}</loc><changefreq>weekly</changefreq><priority>${p === '' ? '1.0' : '0.8'}</priority></url>\n`;
-    });
-    
-    // Add Dynamic Services
-    if (!err && services) {
-      services.forEach(s => {
-        xml += `  <url><loc>${host}/services/${s.slug}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
-      });
-    }
-    
-    xml += `</urlset>`;
-    res.header('Content-Type', 'application/xml');
-    res.send(xml);
-  });
-});
+// --- SEO ROUTES MOVED BEFORE STATIC MIDDLEWARE (see above) ---
 
 const axios = require('axios');
 
