@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     brandingStyle.innerHTML = `
         .w-webflow-badge { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }
         [data-hydrated="true"] [data-w-id] { opacity: 1 !important; transform: none !important; }
+        
+        /* Mobile Button Fix */
+        @media (max-width: 479px) {
+            .primary-button.work {
+                max-width: 240px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                left: 0 !important;
+                right: 0 !important;
+            }
+        }
     `;
     document.head.appendChild(brandingStyle);
 
@@ -1143,7 +1154,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const testSliderWrap = document.querySelector('.testslider-slider'); // Fixed selector
         if (testSliderRightBtn && testSliderWrap) {
             let testimonialInterval = setInterval(() => {
-                testSliderRightBtn.click();
+                // Prevent sliding if Nav Menu is open to avoid reset conflicts
+                const navMenu = document.querySelector('.w-nav-menu');
+                const isMenuOpen = navMenu && (navMenu.classList.contains('w--open') || getComputedStyle(navMenu).visibility !== 'hidden');
+                
+                if (!isMenuOpen) {
+                    testSliderRightBtn.click();
+                }
             }, 10000); // 10 seconds
 
             // Pause on hover
