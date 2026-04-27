@@ -1826,9 +1826,38 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this.socket.send(JSON.stringify(setupMsg));
         }
 
+        disconnect() {
+            console.log("[Chaka] Intentional disconnect requested.");
+            this.intentionalDisconnect = true;
+            this.cleanup();
+        }
+
+        cleanup() {
+            this.isConnected = false;
+            this.stopMic();
+            this.stopCurrentAudio();
+            if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {
+                this.socket.close();
+            }
+            this.socket = null;
+            this.updateUI('disconnected');
+            this.showBubble("Session ended.", 3000);
+        }
+
         async startMic() {
             try {
-                this.micStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 24000 } });
+                // Stop any existing mic session before starting a new one
+                this.stopMic();
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 24000 } });
+                
+                // Check if user clicked stop/disconnect while we were waiting for mic permission
+                if (!this.isConnected) {
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
+
+                this.micStream = stream;
                 this.inputCtx = new AudioContext({ sampleRate: 24000 });
                 const source = this.inputCtx.createMediaStreamSource(this.micStream);
                 

@@ -42,6 +42,14 @@ async function getCountryFromIP(ip) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Redirect Render domain to custom domain
+app.use((req, res, next) => {
+  if (req.hostname === 'jomiez-port.onrender.com') {
+    return res.redirect(301, 'https://jomiez.com' + req.url);
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   console.log(`[REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
