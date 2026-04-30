@@ -39,22 +39,26 @@
 .number-wrap {
     overflow: hidden !important;
     height: 150px !important; 
-    display: flex !important;
+    display: inline-flex !important; /* ONLY AS WIDE AS CONTENTS */
     flex-direction: row !important;
-    flex-wrap: nowrap !important; /* NO WRAPPING */
+    flex-wrap: nowrap !important;
     align-items: flex-start !important;
     justify-content: center !important;
     gap: 0 !important;
-    width: fit-content !important;
+    width: auto !important;
     margin: 0 auto !important;
     white-space: nowrap !important;
+    text-align: center;
+}
+.counter-wrap {
+    text-align: center !important;
 }
 .number, .number-rev {
     display: flex !important;
     flex-direction: column !important;
     height: auto !important;
-    width: auto !important;
-    flex: 0 0 auto !important;
+    width: 65px !important; /* FORCED NARROW WIDTH FOR DIGITS */
+    flex: 0 0 65px !important;
     margin: 0 !important;
     padding: 0 !important;
 }
@@ -68,9 +72,9 @@
     color: #fff !important;
     text-align: center;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
-    letter-spacing: -6px !important; /* EVEN TIGHTER */
+    letter-spacing: -8px !important; /* MAXIMUM TIGHTNESS */
     display: block !important;
-    width: auto !important;
+    width: 100% !important;
 }
 .number-text {
     height: 150px !important;
@@ -78,8 +82,9 @@
     align-items: center !important;
     flex: 0 0 auto !important;
     width: auto !important;
-    margin-left: -10px !important; /* PULL THE SUFFIX IN TIGHT */
+    margin-left: -15px !important; /* PULL SUFFIX EVEN CLOSER */
 }
+
 
 
 
