@@ -41,11 +41,13 @@
     height: 150px !important; 
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important; /* NO WRAPPING */
     align-items: flex-start !important;
     justify-content: center !important;
     gap: 0 !important;
-    width: fit-content !important; /* ONLY AS WIDE AS THE NUMBERS */
-    margin: 0 auto !important; /* CENTER THE WHOLE BLOCK */
+    width: fit-content !important;
+    margin: 0 auto !important;
+    white-space: nowrap !important;
 }
 .number, .number-rev {
     display: flex !important;
