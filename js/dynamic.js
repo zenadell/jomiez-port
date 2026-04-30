@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         footerLogo.src = settings.footer_watermark_image;
                         footerLogo.removeAttribute('srcset');
                     } else {
-                        footerLogo.outerHTML = `<img src="${settings.footer_watermark_image}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" width="120" height="40" />`;
+                        footerLogo.outerHTML = `<img src="${settings.footer_watermark_image}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" style="width:100%;height:auto;object-fit:contain;" />`;
                     }
                     if (footerLogo.classList) footerLogo.classList.remove('skeleton');
                 } else if (settings.site_logo_text) {

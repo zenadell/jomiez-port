@@ -93,6 +93,12 @@
 
 
 /* Fix for compressed footer logo */
+.footer-watemark-wrapper {
+    height: auto !important;
+    min-height: 60px !important;
+}
+img.footer-watemark,
+.footer-watemark img,
 .footer-watemark {
     width: 100% !important;
     height: auto !important;
