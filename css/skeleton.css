@@ -57,24 +57,25 @@
     display: flex !important;
     flex-direction: column !important;
     height: auto !important;
-    width: 58px !important; /* REDUCED FROM 65px TO BRING DIGITS CLOSER */
-    flex: 0 0 58px !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    width: auto !important; /* ALLOW NATURAL CHARACTER WIDTH */
+    min-width: 40px !important;
+    margin-right: -18px !important; /* PULL DIGITS TOGETHER AGGRESSIVELY */
+    flex: 0 0 auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 .counter-title {
     margin: 0 !important;
     padding: 0 !important;
     line-height: 150px !important; 
     height: 150px !important;
-    font-size: 137px !important; /* 2% REDUCTION FROM 140px */
+    font-size: 137.2px !important; /* EXACT 2% REDUCTION FROM 140px (140 * 0.98) */
     font-weight: 800 !important;
     color: #fff !important;
     text-align: center;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
-    letter-spacing: -4px !important; /* SLIGHTLY LOOSENED FOR BETTER READABILITY */
+    letter-spacing: -2px !important; /* LOOSENED SLIGHTLY AS MARGIN HANDLES CLUSTERING */
     display: block !important;
-    width: 100% !important;
 }
 .number-text {
     height: 150px !important;
@@ -82,7 +83,9 @@
     align-items: center !important;
     flex: 0 0 auto !important;
     width: auto !important;
-    margin-left: -4px !important; /* LOOSENED FROM -15px TO GIVE SUFFIX BREATHING ROOM */
+    margin-left: 12px !important; /* PUSH SUFFIX (+) AWAY FROM LAST DIGIT (0) */
+    font-size: 137.2px !important;
+    font-weight: 800 !important;
 }
 
 
