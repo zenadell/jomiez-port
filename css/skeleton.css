@@ -39,19 +39,23 @@
 .number-wrap {
     overflow: hidden !important;
     height: 150px !important; 
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 0 !important; /* NO GAP */
+    width: 100% !important;
 }
 .number, .number-rev {
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     height: auto !important;
     width: auto !important;
+    flex: 0 0 auto !important; /* DON'T STRETCH */
 }
 .counter-title {
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 0 4px !important; /* Very small padding */
     line-height: 150px !important; 
     height: 150px !important;
     font-size: 140px !important; 
@@ -59,13 +63,17 @@
     color: #fff !important;
     text-align: center;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
-    letter-spacing: -2px;
+    letter-spacing: -4px !important; /* Tight letter spacing */
     display: block !important;
+    width: auto !important;
 }
 .number-text {
-    height: 150px;
-    display: flex;
-    align-items: center;
+    height: 150px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex: 0 0 auto !important; /* DON'T STRETCH */
+    width: auto !important;
 }
+
 
 
