@@ -804,7 +804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const digits = [digit, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
                     let digitsHTML = digits.map(d => `<p class="counter-title">${d}</p>`).join('');
                     stripsHTML += `
-                        <div style="-webkit-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0); width: 80px; text-align: center;" class="${className}">
+                        <div style="-webkit-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0); min-width: 0.7em; text-align: center;" class="${className}">
                             ${digitsHTML}
                         </div>
                     `;
