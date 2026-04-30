@@ -310,7 +310,8 @@
             "/works": "Our Portfolio — Projects & Case Studies by Jomiez",
             "/testimonials": "Client Testimonials — What Our Clients Say",
             "/resume": "Resume — Ezinna Emmanuel Nweke (Templeton)",
-            "/contact-us": "Contact Jomiez Innovation — Let's Build Something Great"
+            "/contact-us": "Contact Jomiez Innovation — Let's Build Something Great",
+            "/blog": "Blog & Articles — Jomiez Innovation"
         };
 
         const schema = {
@@ -331,6 +332,75 @@
             "dateModified": new Date().toISOString().split('T')[0]
         };
         injectSchema(schema);
+    }
+
+    // ========== 9. LOCAL BUSINESS SCHEMA (Contact Page) ==========
+    function injectLocalBusinessSchema(settings) {
+        if (PAGE_PATH !== '/contact-us') return;
+        const schema = {
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "name": "Jomiez Innovation",
+            "image": SITE_URL + "/uploads/logo.png",
+            "@id": SITE_URL,
+            "url": SITE_URL,
+            "telephone": settings.contact_phone || "",
+            "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "NG"
+            },
+            "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 9.0820,
+                "longitude": 8.6753
+            },
+            "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": [
+                    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+                ],
+                "opens": "09:00",
+                "closes": "18:00"
+            }
+        };
+        injectSchema(schema);
+    }
+
+    // ========== 10. BLOG POST SCHEMA (Article) ==========
+    async function injectBlogPostSchema() {
+        if (!PAGE_PATH.startsWith('/blog/')) return;
+        const slug = PAGE_PATH.replace('/blog/', '');
+        try {
+            const res = await fetch(`/api/blog/${slug}`);
+            const post = await res.json();
+            if (!post || post.error) return;
+
+            const schema = {
+                "@context": "https://schema.org",
+                "@type": "BlogPosting",
+                "mainEntityOfPage": {
+                    "@type": "WebPage",
+                    "@id": SITE_URL + PAGE_PATH
+                },
+                "headline": post.title,
+                "description": post.excerpt || "",
+                "image": post.thumbnail_url || (SITE_URL + "/uploads/og-image.jpg"),
+                "author": {
+                    "@type": "Person",
+                    "name": post.author || "Jomiez Innovation Team"
+                },
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "Jomiez Innovation",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": SITE_URL + "/uploads/logo.png"
+                    }
+                },
+                "datePublished": post.published_at || new Date().toISOString()
+            };
+            injectSchema(schema);
+        } catch (e) { /* silent */ }
     }
 
     // ========== INIT: Fetch settings and inject all schemas ==========
@@ -356,8 +426,11 @@
         await Promise.all([
             injectServiceSchemas(),
             injectFAQSchema(),
-            injectReviewSchema()
+            injectReviewSchema(),
+            injectBlogPostSchema(),
         ]);
+        
+        injectLocalBusinessSchema(settings);
     }
 
     // Run when DOM is ready

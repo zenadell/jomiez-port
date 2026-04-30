@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const compression = require('compression');
 const tursoAdapter = require('./lib/tursoAdapter');
 const cors = require('cors');
 const multer = require('multer');
@@ -41,6 +42,16 @@ async function getCountryFromIP(ip) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Gzip compression — reduces transfer size by 60-80%
+app.use(compression({
+  level: 6,
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
 
 // Redirect Render domain to custom domain
 app.use((req, res, next) => {
@@ -197,7 +208,7 @@ function getSettings() {
 function injectSEOMeta(html, meta) {
   const host = meta.host || '';
   const canonical = `<link rel="canonical" href="${host}${meta.path || '/'}" />`;
-  const robotsMeta = `<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`;
+  const robotsMeta = `<meta name="robots" content="${meta.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}" />`;
   const keywords = `<meta name="keywords" content="${meta.keywords || 'software development, web development, app development, Jomiez, Jomiez Innovation, coding, programming, hire developer, build website, AI solutions, custom software, mobile app, SaaS, startup, MVP, digital transformation, IT consulting, UI UX design, full stack developer, React, Node.js, Python, cloud computing, DevOps, API development, e-commerce, business solutions, tech company, freelance developer, Templeton, Ezinna Emmanuel Nweke'}" />`;
   const authorMeta = `<meta name="author" content="Jomiez Innovation" />`;
   const geoMeta = `<meta name="geo.region" content="NG" />\n    <meta name="geo.placename" content="Nigeria" />`;
@@ -222,7 +233,11 @@ function injectSEOMeta(html, meta) {
     <meta property="og:url" content="${host}${meta.path || '/'}" />
     <meta property="og:title" content="${meta.title}" />
     <meta property="og:description" content="${meta.description}" />
-    <meta property="og:image" content="${meta.image || host + '/uploads/og-image.png'}" />
+    <meta property="og:image" content="${meta.image || host + '/uploads/og-image.jpg'}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="${meta.title}" />
     <meta property="og:site_name" content="Jomiez Innovation" />
     <meta property="og:locale" content="en_US" />
     <!-- Twitter Card -->
@@ -230,7 +245,8 @@ function injectSEOMeta(html, meta) {
     <meta name="twitter:url" content="${host}${meta.path || '/'}" />
     <meta name="twitter:title" content="${meta.title}" />
     <meta name="twitter:description" content="${meta.description}" />
-    <meta name="twitter:image" content="${meta.image || host + '/uploads/og-image.png'}" />
+    <meta name="twitter:image" content="${meta.image || host + '/uploads/og-image.jpg'}" />
+    <meta name="twitter:image:alt" content="${meta.title}" />
     <meta name="twitter:creator" content="@jomiez" />`;
 
   // Replace the existing head content
@@ -254,9 +270,51 @@ function injectSEOMeta(html, meta) {
   result = result.replace(/data-wf-domain="[^"]*"/g, '');
 
   // Inject canonical, robots, keywords, author, theme-color, etc. before </head>
-  const additionalMeta = `${canonical}\n    ${robotsMeta}\n    ${keywords}\n    ${authorMeta}\n    ${geoMeta}\n    ${langAlts}\n    ${themeColor}\n    <meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:creator" content="@jomiez" />\n    <meta property="og:site_name" content="Jomiez Innovation" />\n    <meta property="og:locale" content="en_US" />\n    <meta property="og:url" content="${host}${meta.path || '/'}" />\n    <meta property="og:type" content="website" />\n    <script src="/js/seo-schema.js" defer></script>`;
+  const resourceHints = `
+    <!-- Performance: Resource Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
+    <link rel="preconnect" href="https://ajax.googleapis.com" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />`;
 
-  result = result.replace('</head>', `    ${additionalMeta}\n</head>`);
+  const gscVerification = `<meta name="google-site-verification" content="YOUR_GSC_VERIFICATION_CODE_HERE" />`;
+
+  const additionalMetaFull = `${resourceHints}
+    ${canonical}
+    ${robotsMeta}
+    ${keywords}
+    ${authorMeta}
+    ${geoMeta}
+    ${langAlts}
+    ${themeColor}
+    ${gscVerification}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@jomiez" />
+    <meta property="og:site_name" content="Jomiez Innovation" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="${host}${meta.path || '/'}" />
+    <meta property="og:type" content="website" />
+    <script src="/js/seo-schema.js" defer></script>`;
+
+  result = result.replace('</head>', `    ${additionalMetaFull}\n</head>`);
+
+  const ga4Script = `
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX', {
+      page_title: document.title,
+      page_location: window.location.href,
+      send_page_view: true
+    });
+  </script>`;
+
+  result = result.replace('</body>', `    ${ga4Script}\n</body>`);
 
   return result;
 }
@@ -324,6 +382,50 @@ app.get('/testimonials', async (req, res) => {
 });
 
 app.get('/resume', (req, res) => res.sendFile(path.join(__dirname, 'unique-offerring-pages', 'resume.html')));
+
+app.get('/contact-us', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'contact-us.html'), {
+    title: 'Contact Us — Start Your Project Today | Jomiez Innovation',
+    description: "Get in touch with the Jomiez Innovation team. We build custom websites, mobile apps, AI solutions, and more. Let's talk.",
+    keywords: 'contact Jomiez, hire developer, software development quote, start a project, get in touch, contact software agency'
+  });
+});
+
+app.get('/contact', (req, res) => res.redirect(301, '/contact-us'));
+
+app.get('/blog', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'blog.html'), {
+    title: 'Blog & Articles — Jomiez Innovation',
+    description: 'Read the latest thoughts, tutorials, and case studies on software development, AI, and digital transformation by the Jomiez Innovation team.',
+    keywords: 'blog, articles, software development blog, tech blog, Jomiez blog'
+  });
+});
+
+app.get('/blog/:slug', async (req, res) => {
+  const post = await new Promise((resolve) => {
+    db.get('SELECT * FROM blog_posts WHERE slug = ?', [req.params.slug], (err, row) => resolve(row || null));
+  });
+
+  const title = post ? `${post.title} — Jomiez Innovation Blog` : 'Blog Post | Jomiez Innovation';
+  const description = post ? (post.excerpt || post.content || '').substring(0, 160) : 'Read this article on the Jomiez Innovation blog.';
+
+  serveSEOPage(req, res, path.join(__dirname, 'blog-detail.html'), {
+    title,
+    description,
+    image: post ? post.thumbnail_url : '',
+    keywords: `${post ? post.title : 'blog post'}, Jomiez Innovation, software development`
+  });
+});
+
+app.get('/style-guide', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'style-guide.html'), { title: 'Style Guide — Jomiez Innovation', description: 'Internal style guide.', robots: 'noindex, nofollow' });
+});
+app.get('/change-log', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'change-log.html'), { title: 'Change Log — Jomiez Innovation', description: 'Website change log.', robots: 'noindex, nofollow' });
+});
+app.get('/license', async (req, res) => {
+  serveSEOPage(req, res, path.join(__dirname, 'license.html'), { title: 'License — Jomiez Innovation', description: 'Licensing information.', robots: 'noindex, nofollow' });
+});
 
 app.get('/work/:slug', async (req, res) => {
   // Try to get the actual work details for dynamic meta
@@ -426,14 +528,16 @@ app.get('/sitemap.xml', async (req, res) => {
     { path: '/testimonials', priority: '0.8', changefreq: 'weekly', title: 'Testimonials' },
     { path: '/resume', priority: '0.7', changefreq: 'monthly', title: 'Resume' },
     { path: '/contact-us', priority: '0.8', changefreq: 'monthly', title: 'Contact' },
+    { path: '/blog', priority: '0.9', changefreq: 'weekly', title: 'Blog' },
     { path: '/privacy-policy', priority: '0.3', changefreq: 'yearly', title: 'Privacy Policy' },
     { path: '/license', priority: '0.2', changefreq: 'yearly', title: 'License' },
     { path: '/change-log', priority: '0.3', changefreq: 'monthly', title: 'Change Log' }
   ];
 
-  const [services, works] = await Promise.all([
+  const [services, works, blogPosts] = await Promise.all([
     new Promise((resolve) => db.all('SELECT slug, title, image_url FROM services', [], (err, rows) => resolve(rows || []))),
-    new Promise((resolve) => db.all('SELECT slug, title, thumbnail_url, date FROM works', [], (err, rows) => resolve(rows || [])))
+    new Promise((resolve) => db.all('SELECT slug, title, thumbnail_url, date FROM works', [], (err, rows) => resolve(rows || []))),
+    new Promise((resolve) => db.all('SELECT slug, title, thumbnail_url, published_at FROM blog_posts', [], (err, rows) => resolve(rows || [])))
   ]);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -462,6 +566,15 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += `\n  </url>\n`;
   });
 
+  blogPosts.forEach(b => {
+    const postDate = b.published_at ? b.published_at.split(' ')[0] : today;
+    xml += `  <url>\n    <loc>${host}/blog/${b.slug}</loc>\n    <lastmod>${postDate}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>`;
+    if (b.thumbnail_url) {
+      xml += `\n    <image:image>\n      <image:loc>${b.thumbnail_url}</image:loc>\n      <image:title>${(b.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</image:title>\n      <image:caption>${(b.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')} article by Jomiez Innovation</image:caption>\n    </image:image>`;
+    }
+    xml += `\n  </url>\n`;
+  });
+
   xml += `</urlset>`;
   res.header('Content-Type', 'application/xml');
   res.header('Cache-Control', 'public, max-age=3600');
@@ -479,6 +592,7 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS site_analytics (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, country TEXT, ip_address TEXT, user_agent TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
     db.run(`CREATE TABLE IF NOT EXISTS client_leads (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, project_scope TEXT, budget TEXT, country TEXT, ip_address TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
     db.run(`CREATE TABLE IF NOT EXISTS ai_memory (id INTEGER PRIMARY KEY AUTOINCREMENT, insight_type TEXT, key TEXT, value TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS blog_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, content TEXT, excerpt TEXT, thumbnail_url TEXT, author TEXT, published_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
     db.run(`CREATE TABLE IF NOT EXISTS works (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, description TEXT, thumbnail_url TEXT, content TEXT, images TEXT, category TEXT, client TEXT, date TEXT, project_link TEXT DEFAULT '')`);
     db.run(`CREATE TABLE IF NOT EXISTS skills (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, icon TEXT DEFAULT 'star', sort_order INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS services (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, description TEXT, content TEXT, image_url TEXT, hover_image_url TEXT, sort_order INTEGER DEFAULT 0)`);
@@ -574,6 +688,49 @@ app.delete('/api/apikeys/:id', (req, res) => {
   db.run('DELETE FROM api_keys WHERE id = ?', [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     global.apiKeyManager.refreshCache();
+    res.json({ success: true, deleted: this.changes });
+  });
+});
+
+// Blog API
+app.get('/api/blog', (req, res) => {
+  db.all('SELECT * FROM blog_posts ORDER BY published_at DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.get('/api/blog/:slug', (req, res) => {
+  db.get('SELECT * FROM blog_posts WHERE slug = ?', [req.params.slug], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Post not found' });
+    res.json(row);
+  });
+});
+
+app.post('/api/blog', (req, res) => {
+  const { slug, title, content, excerpt, thumbnail_url, author } = req.body;
+  db.run(`INSERT INTO blog_posts (slug, title, content, excerpt, thumbnail_url, author) VALUES (?, ?, ?, ?, ?, ?)`,
+    [slug, title, content, excerpt || '', thumbnail_url || '', author || ''],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+});
+
+app.put('/api/blog/:id', (req, res) => {
+  const { slug, title, content, excerpt, thumbnail_url, author } = req.body;
+  db.run(`UPDATE blog_posts SET slug=?, title=?, content=?, excerpt=?, thumbnail_url=?, author=? WHERE id=?`,
+    [slug, title, content, excerpt || '', thumbnail_url || '', author || '', req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, changes: this.changes });
+    });
+});
+
+app.delete('/api/blog/:id', (req, res) => {
+  db.run('DELETE FROM blog_posts WHERE id = ?', [req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true, deleted: this.changes });
   });
 });

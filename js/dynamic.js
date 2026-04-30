@@ -1,4 +1,15 @@
 console.log("DYNAMIC SCRIPT LOADED");
+
+// Helper function — add this near the top of dynamic.js
+function cloudinaryVideoUrl(rawUrl) {
+  if (!rawUrl) return rawUrl;
+  // If it's already a Cloudinary URL, add quality:auto transformation
+  if (rawUrl.includes('res.cloudinary.com')) {
+    return rawUrl.replace('/upload/', '/upload/q_auto,f_auto/');
+  }
+  return rawUrl;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 0. IMMEDIATE BRANDING STRIP (Before any fetches)
     const brandingStyle = document.createElement('style');
@@ -226,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.hero_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.innerHTML = `<img src="${settings.hero_image}" loading="lazy" alt="Hero" style="width: 100%; height: auto; min-height: 480px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.innerHTML = `<img src="${settings.hero_image}" loading="eager" fetchpriority="high" alt="${settings.founder_name || 'Jomiez Innovation founder'} — Software Developer & CEO" width="600" height="480" style="width: 100%; height: auto; min-height: 480px; object-fit: cover; display: block; border-radius: 12px;"/>`;
                     el.style.height = 'auto'; // Remove fixed height constraint
                 }
                 el.classList.remove('skeleton');
@@ -328,7 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.about_hero_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.innerHTML = `<img src="${settings.about_hero_image}" loading="lazy" alt="Hero" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.innerHTML = `<img src="${settings.about_hero_image}" loading="eager" fetchpriority="high" alt="Jomiez Innovation team — Software developers and engineers" width="800" height="600" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px;"/>`;
                 }
                 el.classList.remove('skeleton');
             }
@@ -423,33 +434,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.about_me_page_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="About" class="about-image" id="db-about-image" style="width: 100%; height: auto; min-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="${settings.founder_name || 'Ezinna Emmanuel Nweke'} — Founder & CEO of Jomiez Innovation" class="about-image" id="db-about-image" width="600" height="450" style="width: 100%; height: auto; min-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
                 }
             }
         }
 
-        // About Video Background
+        // About Video Background — only show if user uploaded a video
         if (settings.about_video_url) {
+            const videoSection = document.getElementById('db-about-video-section');
             const videoEl = document.querySelector('.video video');
             if (videoEl) {
-                const sources = videoEl.querySelectorAll('source');
-                sources.forEach(s => s.src = settings.about_video_url);
-                videoEl.load(); // Reload video to apply new source
+                // Clear any existing sources and inject the uploaded one
+                videoEl.querySelectorAll('source').forEach(s => s.remove());
+                const source = document.createElement('source');
+                source.src = cloudinaryVideoUrl(settings.about_video_url);
+                videoEl.appendChild(source);
+                
+                if (settings.about_video_poster) {
+                    videoEl.style.backgroundImage = `url("${settings.about_video_poster}")`;
+                    videoEl.setAttribute('poster', settings.about_video_poster);
+                }
+                
+                videoEl.load();
             }
             // Also update data attributes on wrapper for Webflow scripts
             const wrapper = document.querySelector('.video.w-background-video');
             if (wrapper) {
-                wrapper.setAttribute('data-video-urls', settings.about_video_url);
+                wrapper.setAttribute('data-video-urls', cloudinaryVideoUrl(settings.about_video_url));
+                if (settings.about_video_poster) {
+                    wrapper.setAttribute('data-poster-url', settings.about_video_poster);
+                }
             }
-        }
-        if (settings.about_video_poster) {
-            const videoEl = document.querySelector('.video video');
-            if (videoEl) {
-                videoEl.style.backgroundImage = `url("${settings.about_video_poster}")`;
-            }
-            const wrapper = document.querySelector('.video.w-background-video');
-            if (wrapper) {
-                wrapper.setAttribute('data-poster-url', settings.about_video_poster);
+            // Show the section now that we have a video
+            if (videoSection) {
+                videoSection.style.display = '';
             }
         }
 
@@ -469,9 +487,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // --- Hero Heading ---
-            const servicesWrapper = document.querySelector('.services-wrapper');
-            if (servicesWrapper) {
-                const heroH1 = document.getElementById('db-page-heading') || servicesWrapper.querySelector('.section-heading');
+            const heroWrapper = document.querySelector('.services-wrapper') || document.querySelector('.services-details-wrapper');
+            if (heroWrapper) {
+                const heroH1 = document.getElementById('db-page-heading') || heroWrapper.querySelector('.section-heading');
                 if (heroH1) heroH1.textContent = settings.label_hero_heading || 'Resume';
             }
 
@@ -551,7 +569,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 let avatarHTML;
                 if (profileImg) {
-                    avatarHTML = `<img src="${profileImg}" alt="${fullName}" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 2px solid #E8602C;" />`;
+                    avatarHTML = `<img src="${profileImg}" alt="${fullName} — Jomiez Innovation client" width="68" height="68" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 2px solid #E8602C;" />`;
                 } else {
                     avatarHTML = `<div style="width: 68px; height: 68px; border-radius: 50%; background: transparent; border: 2px solid #E8602C; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #E8602C;">${initials}</div>`;
                 }
@@ -674,7 +692,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         footerLogo.src = settings.footer_watermark_image;
                         footerLogo.removeAttribute('srcset');
                     } else {
-                        footerLogo.outerHTML = `<img src="${settings.footer_watermark_image}" loading="lazy" alt="Logo" class="footer-watemark" />`;
+                        footerLogo.outerHTML = `<img src="${settings.footer_watermark_image}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" width="120" height="40" />`;
                     }
                     if (footerLogo.classList) footerLogo.classList.remove('skeleton');
                 } else if (settings.site_logo_text) {
@@ -797,7 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             imgEl.src = work.thumbnail_url;
                             imgEl.removeAttribute('srcset');
                         } else {
-                            imgEl.innerHTML = `<img src="${work.thumbnail_url}" loading="lazy" alt="${work.title}" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px;" />`;
+                            imgEl.innerHTML = `<img src="${work.thumbnail_url}" loading="lazy" alt="${work.title} — Jomiez Innovation portfolio project" width="800" height="600" style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 12px;" />`;
                         }
                         imgEl.classList.remove('skeleton');
                     }
@@ -830,7 +848,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         heroImg.src = work.thumbnail_url;
                         heroImg.removeAttribute('srcset');
                     } else {
-                        heroImg.innerHTML = `<img src="${work.thumbnail_url}" loading="lazy" alt="${work.title}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />`;
+                        heroImg.innerHTML = `<img src="${work.thumbnail_url}" loading="eager" alt="${work.title} — case study hero image | Jomiez Innovation" width="1200" height="630" style="width: 100%; height: 100%; object-fit: cover; display: block;" />`;
                     }
                     heroImg.classList.remove('skeleton');
                 }
