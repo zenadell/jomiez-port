@@ -43,19 +43,22 @@
     flex-direction: row !important;
     align-items: flex-start !important;
     justify-content: center !important;
-    gap: 0 !important; /* NO GAP */
-    width: 100% !important;
+    gap: 0 !important;
+    width: fit-content !important; /* ONLY AS WIDE AS THE NUMBERS */
+    margin: 0 auto !important; /* CENTER THE WHOLE BLOCK */
 }
 .number, .number-rev {
     display: flex !important;
     flex-direction: column !important;
     height: auto !important;
     width: auto !important;
-    flex: 0 0 auto !important; /* DON'T STRETCH */
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 .counter-title {
     margin: 0 !important;
-    padding: 0 4px !important; /* Very small padding */
+    padding: 0 !important;
     line-height: 150px !important; 
     height: 150px !important;
     font-size: 140px !important; 
@@ -63,7 +66,7 @@
     color: #fff !important;
     text-align: center;
     font-family: 'Plus Jakarta Sans', sans-serif !important;
-    letter-spacing: -4px !important; /* Tight letter spacing */
+    letter-spacing: -6px !important; /* EVEN TIGHTER */
     display: block !important;
     width: auto !important;
 }
@@ -71,9 +74,11 @@
     height: 150px !important;
     display: flex !important;
     align-items: center !important;
-    flex: 0 0 auto !important; /* DON'T STRETCH */
+    flex: 0 0 auto !important;
     width: auto !important;
+    margin-left: -10px !important; /* PULL THE SUFFIX IN TIGHT */
 }
+
 
 
 
