@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // About Video Background — only show if user uploaded a video
         if (settings.about_video_url) {
             const videoSection = document.getElementById('db-about-video-section');
-            const videoEl = document.querySelector('.video video');
+            const videoEl = document.getElementById('fd14d70e-d140-05bc-d9f9-35a2f4f439e1-video') || document.querySelector('.video video');
             if (videoEl) {
                 // Clear any existing sources and inject the uploaded one
                 videoEl.querySelectorAll('source').forEach(s => s.remove());
@@ -461,8 +461,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     videoEl.setAttribute('poster', settings.about_video_poster);
                 }
                 
+                videoEl.setAttribute('muted', '');
+                videoEl.setAttribute('playsinline', '');
+                videoEl.setAttribute('autoplay', '');
+                videoEl.muted = true;
+                videoEl.playsInline = true;
+
                 videoEl.load();
                 // Try to autoplay after source loads
+                const playPromise = videoEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("[DYNAMIC] Autoplay prevented, retrying in 1s...", error);
+                        setTimeout(() => videoEl.play().catch(() => {}), 1000);
+                    });
+                }
+                
                 videoEl.addEventListener('canplay', () => {
                     videoEl.play().catch(() => {});
                 }, { once: true });
@@ -470,9 +484,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Also update data attributes on wrapper for Webflow scripts
             const wrapper = document.querySelector('.video.w-background-video');
             if (wrapper) {
-                wrapper.setAttribute('data-video-urls', cloudinaryVideoUrl(settings.about_video_url));
+                const videoUrl = cloudinaryVideoUrl(settings.about_video_url);
+                wrapper.setAttribute('data-video-urls', videoUrl);
+                wrapper.dataset.videoUrls = videoUrl; // Some scripts use dataset
                 if (settings.about_video_poster) {
                     wrapper.setAttribute('data-poster-url', settings.about_video_poster);
+                    wrapper.dataset.posterUrl = settings.about_video_poster;
                 }
             }
             // Show the section now that we have a video
@@ -787,7 +804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const digits = [digit, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
                     let digitsHTML = digits.map(d => `<p class="counter-title">${d}</p>`).join('');
                     stripsHTML += `
-                        <div style="-webkit-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="${className}">
+                        <div style="-webkit-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0); width: 80px; text-align: center;" class="${className}">
                             ${digitsHTML}
                         </div>
                     `;

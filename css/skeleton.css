@@ -38,9 +38,10 @@
 /* Counter Fixes */
 .number-wrap {
     overflow: hidden !important;
-    height: 60px !important; /* adjust based on font size */
+    height: 120px !important; 
     display: flex;
     align-items: flex-start;
+    justify-content: center; /* Center them if needed */
 }
 .number, .number-rev {
     display: flex;
@@ -48,6 +49,18 @@
 }
 .counter-title {
     margin: 0;
-    line-height: 60px; /* match height */
-    height: 60px;
+    line-height: 120px !important; 
+    height: 120px !important;
+    font-size: 130px !important; /* Slightly larger */
+    font-weight: 800 !important;
+    color: #fff !important;
+    text-align: center;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    letter-spacing: -2px;
 }
+.number-text {
+    height: 120px;
+    display: flex;
+    align-items: center;
+}
+
