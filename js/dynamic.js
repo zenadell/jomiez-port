@@ -798,10 +798,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         // COUNTERS HYDRATION
         const counterWrapper = document.querySelector('.counter-wrapper');
-        if (counterWrapper && counters && counters.length > 0) {
+        if (counterWrapper && counters && Array.isArray(counters) && counters.length > 0) {
             counterWrapper.innerHTML = '';
             counters.forEach(counter => {
-                const valueStr = String(counter.value);
+                const valueStr = String(counter.value || '0');
                 let stripsHTML = '';
                 for (let i = 0; i < valueStr.length; i++) {
                     const digit = valueStr[i];
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const digits = [digit, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
                     let digitsHTML = digits.map(d => `<p class="counter-title">${d}</p>`).join('');
                     stripsHTML += `
-                        <div style="-webkit-transform:translate3d(0, 0%, 0);-moz-transform:translate3d(0, 0%, 0);-ms-transform:translate3d(0, 0%, 0);transform:translate3d(0, 0%, 0); width: auto; flex: 0 0 auto; display: flex; flex-direction: column;" class="${className}">
+                        <div style="transform:translate3d(0, 0%, 0); width: auto; flex: 0 0 auto; display: flex; flex-direction: column;" class="${className}">
                             ${digitsHTML}
                         </div>
                     `;
@@ -823,7 +823,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const wrap = document.createElement('div');
                 wrap.className = 'counter-wrap';
                 wrap.innerHTML = `
-                    <div data-w-id="5fda0a92-8e60-c068-c13b-a086fa73295c" class="number-wrap">
+                    <div class="number-wrap">
                         ${stripsHTML}
                     </div>
                     <p class="counter-text">${counter.label}</p>
