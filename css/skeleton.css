@@ -38,7 +38,7 @@
 /* Counter Fixes */
 .number-wrap {
     overflow: hidden !important;
-    height: 150px !important; 
+    height: 125px !important; 
     display: inline-flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
