@@ -321,6 +321,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (settings.social_facebook) {
             document.querySelectorAll('a[href*="facebook.com"]').forEach(a => a.href = settings.social_facebook);
         }
+        if (settings.social_whatsapp) {
+            document.querySelectorAll('a[href*="wa.me"]').forEach(a => a.href = settings.social_whatsapp);
+        }
+        if (settings.social_github) {
+            document.querySelectorAll('a[href*="github.com"]').forEach(a => a.href = settings.social_github);
+        }
         if (settings.social_instagram) {
             document.querySelectorAll('a[href*="instagram.com"]').forEach(a => a.href = settings.social_instagram);
         }
