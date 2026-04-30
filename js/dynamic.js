@@ -830,6 +830,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
                 counterWrapper.appendChild(wrap);
             });
+
+            // COUNTER SCROLL ANIMATION — triggers counting when section scrolls into view
+            const counterSection = counterWrapper.closest('.section-counter') || counterWrapper.parentElement;
+            if (counterSection) {
+                const allStrips = counterWrapper.querySelectorAll('.number, .number-rev');
+                const counterObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            allStrips.forEach((strip, index) => {
+                                setTimeout(() => {
+                                    strip.style.transform = 'translateY(0%)';
+                                }, index * 120); // stagger each digit
+                            });
+                            counterObserver.disconnect();
+                        }
+                    });
+                }, { threshold: 0.3 });
+                counterObserver.observe(counterSection);
+            }
         }
 
         // SKILLS GRID HYDRATION
