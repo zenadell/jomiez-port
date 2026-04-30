@@ -61,11 +61,6 @@
     flex: 0 0 85px !important;
     margin: 0 !important;
     padding: 0 !important;
-    transform: translateY(-1000%) !important; /* Start showing '0' — JS animation scrolls to target */
-    transition: transform 2s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
-}
-.number-rev {
-    transition: transform 2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.15s !important; /* Slight delay for alternating feel */
 }
 .counter-title {
     margin: 0 !important;

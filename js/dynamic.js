@@ -831,24 +831,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                 counterWrapper.appendChild(wrap);
             });
 
-            // COUNTER SCROLL ANIMATION — triggers counting when section scrolls into view
-            const counterSection = counterWrapper.closest('.section-counter') || counterWrapper.parentElement;
+            // COUNTER SCROLL ANIMATION — fully JS-driven
+            const counterSection = document.querySelector('.section-counter');
+            const allStrips = counterWrapper.querySelectorAll('.number, .number-rev');
+            let counterAnimated = false;
+
+            // 1. Hide all strips immediately (show "0" at bottom of strip)
+            allStrips.forEach(strip => {
+                strip.style.transform = 'translateY(-1000%)';
+                strip.style.transition = 'none';
+            });
+
+            // 2. Function to trigger the count-up animation
+            function animateCounters() {
+                if (counterAnimated) return;
+                counterAnimated = true;
+                // Force reflow so the transition actually animates
+                void counterWrapper.offsetHeight;
+                allStrips.forEach((strip, index) => {
+                    const isRev = strip.classList.contains('number-rev');
+                    const delay = index * 100 + (isRev ? 80 : 0);
+                    setTimeout(() => {
+                        strip.style.transition = 'transform 1.8s cubic-bezier(0.22, 0.61, 0.36, 1)';
+                        strip.style.transform = 'translateY(0%)';
+                    }, delay);
+                });
+            }
+
+            // 3. IntersectionObserver to trigger on scroll
             if (counterSection) {
-                const allStrips = counterWrapper.querySelectorAll('.number, .number-rev');
                 const counterObserver = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
                         if (entry.isIntersecting) {
-                            allStrips.forEach((strip, index) => {
-                                setTimeout(() => {
-                                    strip.style.transform = 'translateY(0%)';
-                                }, index * 120); // stagger each digit
-                            });
+                            animateCounters();
                             counterObserver.disconnect();
                         }
                     });
-                }, { threshold: 0.3 });
+                }, { threshold: 0.1, rootMargin: '200px 0px' });
                 counterObserver.observe(counterSection);
             }
+
+            // 4. Fallback — if observer never fires, show numbers after 3s
+            setTimeout(() => {
+                if (!counterAnimated) {
+                    console.warn('[Counters] Fallback: forcing animation');
+                    animateCounters();
+                }
+            }, 3000);
         }
 
         // SKILLS GRID HYDRATION
