@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let settings = {};
     try {
-        const [settingsRes, worksRes, skillsRes, servicesRes, brandsRes, faqsRes, marqueeRes, testimonialsRes] = await Promise.all([
+        const [settingsRes, worksRes, skillsRes, servicesRes, brandsRes, faqsRes, marqueeRes, testimonialsRes, countersRes] = await Promise.all([
             fetch('/api/settings'),
             fetch('/api/works'),
             fetch('/api/skills'),
@@ -107,7 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             fetch('/api/brands'),
             fetch('/api/faqs'),
             fetch('/api/marquee'),
-            fetch('/api/testimonials')
+            fetch('/api/testimonials'),
+            fetch('/api/counters')
         ]);
         
         console.log('[DYNAMIC] Fetch statuses:', {
@@ -118,7 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             brands: brandsRes.status,
             faqs: faqsRes.status,
             marquee: marqueeRes.status,
-            testimonials: testimonialsRes.status
+            testimonials: testimonialsRes.status,
+            counters: countersRes.status
         });
 
         settings = await settingsRes.json();
@@ -129,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const faqs = await faqsRes.json();
         const marquee = await marqueeRes.json();
         const testimonials = await testimonialsRes.json();
+        const counters = await countersRes.json();
 
 
         // 0. SEO & METADATA HYDRATION
@@ -770,6 +773,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ft.innerHTML = `© Copyright ${dateYear} | ${company} All Rights Reserved. | Powered by <a href="${poweredLink}" target="_blank" style="color: #00e0ff; font-weight: 700; text-decoration: none;">${poweredName}</a>`;
                 });
             }
+        // COUNTERS HYDRATION
+        const counterWrapper = document.querySelector('.counter-wrapper');
+        if (counterWrapper && counters && counters.length > 0) {
+            counterWrapper.innerHTML = '';
+            counters.forEach(counter => {
+                const valueStr = String(counter.value);
+                let stripsHTML = '';
+                for (let i = 0; i < valueStr.length; i++) {
+                    const digit = valueStr[i];
+                    const isRev = (i % 2 !== 0);
+                    const className = isRev ? 'number-rev' : 'number';
+                    const digits = [digit, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+                    let digitsHTML = digits.map(d => `<p class="counter-title">${d}</p>`).join('');
+                    stripsHTML += `
+                        <div style="-webkit-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-moz-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);-ms-transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0);transform:translate3d(0, -1000%, 0) scale3d(1, 1, 1) rotateX(0) rotateY(0) rotateZ(0) skew(0, 0)" class="${className}">
+                            ${digitsHTML}
+                        </div>
+                    `;
+                }
+
+                if (counter.suffix) {
+                    stripsHTML += `<div class="number-text"><p class="counter-title">${counter.suffix}</p></div>`;
+                }
+
+                const wrap = document.createElement('div');
+                wrap.className = 'counter-wrap';
+                wrap.innerHTML = `
+                    <div data-w-id="5fda0a92-8e60-c068-c13b-a086fa73295c" class="number-wrap">
+                        ${stripsHTML}
+                    </div>
+                    <p class="counter-text">${counter.label}</p>
+                `;
+                counterWrapper.appendChild(wrap);
+            });
+        }
+
         // SKILLS GRID HYDRATION
         if (skills.length > 0) {
             const skillsGrid = document.querySelector('.skills-content-wrapper');
@@ -1227,6 +1266,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (testWrapper) {
             // Completely eliminate hardcoded fallback if DB is empty
             testWrapper.style.display = 'none';
+        }
+
+        // 8.5 TESTIMONIALS PAGE HYDRATION (List view)
+        const testCardWrap = document.querySelector('.testimonials-card-wrap');
+        if (testCardWrap && testimonials && testimonials.length > 0) {
+            const originalCards = testCardWrap.querySelectorAll('.testimonials-card');
+            if (originalCards.length > 0) {
+                const template = originalCards[0].cloneNode(true);
+                testCardWrap.innerHTML = ''; // Clear default hardcoded cards
+
+                testimonials.forEach((t, index) => {
+                    const clone = template.cloneNode(true);
+                    
+                    // Assign alternate classes (_01, _02, _03) if Webflow styling depends on it
+                    // The template likely had _01. We'll leave it as is or append an index class.
+                    const numberClass = '_' + String((index % 5) + 1).padStart(2, '0');
+                    clone.className = `testimonials-card ${numberClass}`;
+
+                    const quoteObj = clone.querySelector('.testimonials-summery');
+                    const imgObj = clone.querySelector('.testimonials-image');
+                    const infoObj = clone.querySelector('.testimonials-information');
+
+                    if(quoteObj) quoteObj.textContent = t.message || '';
+                    if(imgObj && t.author_image) {
+                        imgObj.src = t.author_image;
+                        imgObj.removeAttribute('srcset');
+                    }
+                    if(infoObj) {
+                        const name = t.author_name || '';
+                        const role = t.author_role ? `, ${t.author_role}` : '';
+                        infoObj.textContent = `${name}${role}`;
+                    }
+
+                    testCardWrap.appendChild(clone);
+                });
+            }
+        } else if (testCardWrap) {
+            testCardWrap.style.display = 'none';
         }
 
         const testSliderRightBtn = document.querySelector('.testslider-arrow.right');

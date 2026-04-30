@@ -602,6 +602,7 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS testimonials (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, author_name TEXT, author_role TEXT, author_image TEXT, rating INTEGER DEFAULT 5, sort_order INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, is_active INTEGER DEFAULT 1, fail_count INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS counters (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT, value TEXT, suffix TEXT, sort_order INTEGER DEFAULT 0)`);
 
     // Default User
     const hash = bcrypt.hashSync('chaka2025', 10);
@@ -853,6 +854,41 @@ app.put('/api/services/:id', (req, res) => {
 
 app.delete('/api/services/:id', (req, res) => {
   db.run('DELETE FROM services WHERE id = ?', [req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, deleted: this.changes });
+  });
+});
+
+// API for Counters
+app.get('/api/counters', (req, res) => {
+  db.all('SELECT * FROM counters ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+app.post('/api/counters', (req, res) => {
+  const { label, value, suffix, sort_order } = req.body;
+  db.run(`INSERT INTO counters (label, value, suffix, sort_order) VALUES (?, ?, ?, ?)`,
+    [label || '', value || '', suffix || '', sort_order || 0],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ id: this.lastID });
+    });
+});
+
+app.put('/api/counters/:id', (req, res) => {
+  const { label, value, suffix, sort_order } = req.body;
+  db.run(`UPDATE counters SET label=?, value=?, suffix=?, sort_order=? WHERE id=?`,
+    [label || '', value || '', suffix || '', sort_order || 0, req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, changes: this.changes });
+    });
+});
+
+app.delete('/api/counters/:id', (req, res) => {
+  db.run('DELETE FROM counters WHERE id = ?', [req.params.id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true, deleted: this.changes });
   });

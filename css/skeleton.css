@@ -34,3 +34,20 @@
     height: 0 !important;
     width: 0 !important;
 }
+
+/* Counter Fixes */
+.number-wrap {
+    overflow: hidden !important;
+    height: 60px !important; /* adjust based on font size */
+    display: flex;
+    align-items: flex-start;
+}
+.number, .number-rev {
+    display: flex;
+    flex-direction: column;
+}
+.counter-title {
+    margin: 0;
+    line-height: 60px; /* match height */
+    height: 60px;
+}

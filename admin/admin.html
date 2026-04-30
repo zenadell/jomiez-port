@@ -199,6 +199,11 @@
             <div class="field"><label>Upload Video</label><input type="file" id="about_video_file" accept="video/*" onchange="handleVideoUpload(event)"></div>
           </div>
         </div>
+        <div class="card">
+          <div class="card-title">Stats / Counters <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openCounterModal()">+ Add Counter</button></div>
+          <p class="field-hint" style="margin-bottom:16px">Manage the sliding number counters shown on the About page.</p>
+          <div class="skills-list" id="counters-list"></div>
+        </div>
       </div>
 
       <!-- PROJECTS PANEL -->
@@ -652,6 +657,27 @@
     <div style="margin-top:20px;text-align:right">
       <button class="btn btn-outline" style="margin-right:10px" onclick="closeFaqModal()">Cancel</button>
       <button class="btn" onclick="saveFaq()">Save FAQ</button>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTER MODAL -->
+<div class="modal-overlay" id="modal-counter">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2 class="card-title" style="margin-bottom:0">Counter Details</h2>
+      <button class="btn-close-modal" onclick="closeCounterModal()">&times;</button>
+    </div>
+    <input type="hidden" id="counter-id">
+    <div class="form-grid">
+      <div class="field full"><label>Label (e.g. Years Experience)</label><input type="text" id="counter-label" placeholder="Years Experience"></div>
+      <div class="field"><label>Number Value</label><input type="text" id="counter-value" placeholder="21"></div>
+      <div class="field"><label>Suffix (e.g. +, %)</label><input type="text" id="counter-suffix" placeholder="+"></div>
+      <div class="field full"><label>Sort Order</label><input type="number" id="counter-order" placeholder="0"></div>
+    </div>
+    <div style="margin-top:20px;text-align:right">
+      <button class="btn btn-outline" style="margin-right:10px" onclick="closeCounterModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCounter()">Save Counter</button>
     </div>
   </div>
 </div>

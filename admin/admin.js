@@ -1200,3 +1200,97 @@ async function deleteTestimonial(id) {
   await loadTestimonials();
   showToast('Testimonial deleted');
 }
+
+// ===== COUNTERS LOGIC =====
+let countersCache = [];
+async function loadCounters() {
+  try {
+    const res = await fetch('/api/counters');
+    countersCache = await res.json();
+    renderCounters();
+  } catch(e) { console.error('Failed loading counters', e); }
+}
+
+function renderCounters() {
+  const container = document.getElementById('counters-list');
+  if(!container) return;
+  if(countersCache.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:20px 0;text-align:center;">No counters yet. Click "+ Add Counter" to get started.</p>';
+    return;
+  }
+  container.innerHTML = countersCache.map(c => `
+    <div style="background:#f9fafb;padding:12px;border:1px solid #e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:10px">
+      <div style="flex-grow:1;min-width:0">
+        <div style="font-weight:600;font-size:16px;color:#111827;">
+          ${c.value}${c.suffix || ''}
+        </div>
+        <div style="font-size:12px;color:#6b7280;">
+          ${c.label || '(no label)'}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-outline btn-sm" onclick="openCounterModal(${c.id})">Edit</button>
+        <button class="btn btn-sm" style="background:#dc3545;color:#fff;border:none" onclick="deleteCounter(${c.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCounterModal(id) {
+  document.getElementById('counter-id').value = '';
+  document.getElementById('counter-label').value = '';
+  document.getElementById('counter-value').value = '';
+  document.getElementById('counter-suffix').value = '';
+  document.getElementById('counter-order').value = '0';
+
+  if (id) {
+    const c = countersCache.find(x => x.id === id);
+    if (c) {
+      document.getElementById('counter-id').value = c.id;
+      document.getElementById('counter-label').value = c.label || '';
+      document.getElementById('counter-value').value = c.value || '';
+      document.getElementById('counter-suffix').value = c.suffix || '';
+      document.getElementById('counter-order').value = c.sort_order || 0;
+    }
+  }
+  document.getElementById('modal-counter').classList.add('active');
+}
+
+function closeCounterModal() {
+  document.getElementById('modal-counter').classList.remove('active');
+}
+
+async function saveCounter() {
+  const id = document.getElementById('counter-id').value;
+  const payload = {
+    label: document.getElementById('counter-label').value,
+    value: document.getElementById('counter-value').value,
+    suffix: document.getElementById('counter-suffix').value,
+    sort_order: parseInt(document.getElementById('counter-order').value) || 0
+  };
+
+  const url = id ? '/api/counters/' + id : '/api/counters';
+  const method = id ? 'PUT' : 'POST';
+
+  await fetch(url, {
+    method,
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  closeCounterModal();
+  await loadCounters();
+  showToast(id ? '✓ Counter updated' : '✓ Counter added');
+}
+
+async function deleteCounter(id) {
+  if(!confirm('Delete this counter?')) return;
+  await fetch('/api/counters/' + id, { method: 'DELETE' });
+  await loadCounters();
+  showToast('Counter deleted');
+}
+
+// Add to DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    loadCounters();
+});
