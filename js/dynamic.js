@@ -214,6 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 globalHeading.textContent = 'Selected Projects';
             } else if (path.includes('/testimonials')) {
                 globalHeading.textContent = 'Testimonials';
+            } else if (path.includes('/contact')) {
+                globalHeading.textContent = settings.label_contact_heading || 'Contact Us';
             }
         }
 
@@ -448,6 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 videoEl.querySelectorAll('source').forEach(s => s.remove());
                 const source = document.createElement('source');
                 source.src = cloudinaryVideoUrl(settings.about_video_url);
+                source.setAttribute('data-wf-ignore', 'true');
                 videoEl.appendChild(source);
                 
                 if (settings.about_video_poster) {
@@ -456,6 +459,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 
                 videoEl.load();
+                // Try to autoplay after source loads
+                videoEl.addEventListener('canplay', () => {
+                    videoEl.play().catch(() => {});
+                }, { once: true });
             }
             // Also update data attributes on wrapper for Webflow scripts
             const wrapper = document.querySelector('.video.w-background-video');
@@ -803,7 +810,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const template = worksList.querySelector('.work-item.w-dyn-item');
             if (template) {
                 worksList.innerHTML = '';
-                works.forEach(work => {
+                // Home page: max 4 projects. Works page: show all.
+                const isHomePage = window.location.pathname === '/' || window.location.pathname === '/home';
+                const displayWorks = isHomePage ? works.slice(0, 4) : works;
+                displayWorks.forEach(work => {
                     const clone = template.cloneNode(true);
                     
                     const linkEl = clone.querySelector('a');
