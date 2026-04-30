@@ -91,3 +91,11 @@
 
 
 
+
+/* Fix for compressed footer logo */
+.footer-watemark {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 200px !important;
+    object-fit: contain !important;
+}
