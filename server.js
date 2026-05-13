@@ -17,6 +17,12 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const db = tursoAdapter;
 
+// Prevent server crash on database connection issues
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+    // Do not exit, just log it. This keeps the server running if Turso is down.
+});
+
 // --- Visitor & Lead Analytics Helpers ---
 async function getCountryFromIP(ip) {
   return new Promise((resolve) => {
@@ -623,6 +629,8 @@ db.serialize(() => {
         ['hero_active_text', 'Available for new projects'],
         ['hero_rating_text', 'Trusted by businesses globally'],
         ['hero_rating_score', '4.9'],
+        ['hero_media_type', 'image'],
+        ['hero_spline_url', ''],
         ['skills_heading', 'Our Professional Skills & Technical Expertise'],
         ['tools_heading', 'Technologies We Work With'],
         ['label_field_name', 'First Name *'],
@@ -1980,7 +1988,7 @@ app.get('/ping', (req, res) => {
 // 2. Turso Database Keep-Alive (Prevents connection timeout)
 setInterval(async () => {
     try {
-        await db.execute('SELECT 1');
+        db.run('SELECT 1', [], () => {});
         console.log('[KEEP-ALIVE] Turso connection is hot 🔥');
     } catch (e) {
         console.warn('[KEEP-ALIVE] Turso ping failed:', e.message);

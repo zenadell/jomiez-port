@@ -235,18 +235,83 @@ document.addEventListener('DOMContentLoaded', async () => {
             const el = document.getElementById('db-hero-text') || document.querySelector('.home-hero-text');
             if (el) el.textContent = settings.hero_text;
         }
-        if (settings.hero_image) {
-            const el = document.querySelector('.home-hero-image');
-            if (el) {
-                if (el.tagName === 'IMG') {
-                    el.src = settings.hero_image;
-                    el.removeAttribute('srcset');
-                } else {
-                    el.innerHTML = `<img src="${settings.hero_image}" loading="eager" fetchpriority="high" alt="${settings.founder_name || 'Jomiez Innovation founder'} — Software Developer & CEO" width="600" height="480" style="width: 100%; height: auto; min-height: 480px; object-fit: cover; display: block; border-radius: 12px;"/>`;
-                    el.style.height = 'auto'; // Remove fixed height constraint
-                }
-                el.classList.remove('skeleton');
+        // Hero Media (Image or Spline 3D)
+        const heroMediaType = settings.hero_media_type || 'image';
+        const heroImageEl = document.querySelector('.home-hero-image');
+        if (heroMediaType === 'spline' && settings.hero_spline_url && heroImageEl) {
+            // Spline 3D Mode — use mix-blend-mode to make black bg invisible
+            const wrapper = heroImageEl.closest('.home-hero-image-wrapper') || heroImageEl.parentElement;
+            heroImageEl.innerHTML = '';
+            heroImageEl.classList.remove('skeleton');
+            heroImageEl.style.height = 'auto';
+            heroImageEl.style.minHeight = '480px';
+            heroImageEl.style.overflow = 'visible';
+            heroImageEl.style.borderRadius = '0';
+            heroImageEl.style.background = 'transparent';
+            if (wrapper) {
+                wrapper.style.background = 'transparent';
+                wrapper.style.overflow = 'visible';
             }
+            const splineEl = document.createElement('spline-viewer');
+            splineEl.setAttribute('url', settings.hero_spline_url);
+            splineEl.style.width = '100%';
+            splineEl.style.height = '100%';
+            splineEl.style.minHeight = '480px';
+            splineEl.style.display = 'block';
+            splineEl.style.background = 'transparent';
+            splineEl.style.borderRadius = '0';
+            // mix-blend-mode: screen makes black pixels fully transparent
+            splineEl.style.mixBlendMode = 'screen';
+            heroImageEl.appendChild(splineEl);
+        } else if (heroMediaType === 'video' && settings.hero_video && heroImageEl) {
+            // Video Mode — transparent container for alpha-channel videos (WebM)
+            const wrapper = heroImageEl.closest('.home-hero-image-wrapper') || heroImageEl.parentElement;
+            heroImageEl.innerHTML = '';
+            heroImageEl.classList.remove('skeleton');
+            // Force-reset ALL inline styles to eliminate Framer's baked-in border-radius
+            heroImageEl.setAttribute('style', 'width:100%;min-height:480px;display:block;background:transparent!important;overflow:visible!important;border-radius:0!important;border:none!important;');
+            if (wrapper) {
+                wrapper.style.background = 'transparent';
+                wrapper.style.overflow = 'visible';
+                wrapper.style.boxShadow = 'none';
+            }
+            // Inject CSS override to kill any stylesheet backgrounds on the hero container
+            const heroOverride = document.createElement('style');
+            heroOverride.textContent = `
+                .home-hero-image, .home-hero-image-wrapper {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                    border-radius: 0 !important;
+                    overflow: visible !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+            `;
+            document.head.appendChild(heroOverride);
+            const videoEl = document.createElement('video');
+            videoEl.src = settings.hero_video;
+            videoEl.autoplay = true;
+            videoEl.loop = true;
+            videoEl.muted = true;
+            videoEl.playsInline = true;
+            videoEl.setAttribute('playsinline', '');
+            
+            // Apply scale if set (default 100%)
+            const scale = settings.hero_video_size ? (settings.hero_video_size / 100) : 1;
+            videoEl.style.cssText = `width:100%;height:auto;min-height:480px;object-fit:contain;display:block;background:transparent;border-radius:0;border:none;transform:scale(${scale});transform-origin:center;`;
+            
+            heroImageEl.appendChild(videoEl);
+        } else if (settings.hero_image && heroImageEl) {
+            // Standard Image Mode
+            if (heroImageEl.tagName === 'IMG') {
+                heroImageEl.src = settings.hero_image;
+                heroImageEl.removeAttribute('srcset');
+            } else {
+                heroImageEl.innerHTML = `<img src="${settings.hero_image}" loading="eager" fetchpriority="high" alt="${settings.founder_name || 'Jomiez Innovation founder'} — Software Developer & CEO" width="600" height="480" style="width: 100%; height: auto; min-height: 480px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                heroImageEl.style.height = 'auto';
+            }
+            heroImageEl.classList.remove('skeleton');
         }
         if (settings.brands_heading) {
             const el = document.querySelector('.brands-heading');

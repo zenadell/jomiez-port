@@ -197,12 +197,15 @@ async function uploadFile(file) {
 // ===== CORE LOGIC =====
 
 function populateForm() {
-  // Dynamically map all text inputs, textareas, and selects by ID
-  const inputs = document.querySelectorAll('.panel input[type="text"], .panel textarea, .panel select');
+  // Dynamically map all text inputs, textareas, selects, and ranges by ID
+  const inputs = document.querySelectorAll('.panel input[type="text"], .panel textarea, .panel select, .panel input[type="range"]');
   inputs.forEach(input => {
     if (input.id && settingsCache[input.id] !== undefined) {
       input.value = settingsCache[input.id];
-    } else if (input.id && input.tagName !== 'SELECT') {
+      // Update linked value display if exists (for ranges)
+      const valDisplay = document.getElementById(input.id + '_val');
+      if (valDisplay) valDisplay.textContent = input.value;
+    } else if (input.id && input.tagName !== 'SELECT' && input.type !== 'range') {
         input.value = ''; // clear if not in DB
     }
   });
@@ -221,6 +224,9 @@ function populateForm() {
   if (resumeStatus && settingsCache['resume_url']) {
     resumeStatus.textContent = 'Active File: ' + settingsCache['resume_url'].split('/').pop();
   }
+
+  // Sync hero media toggle visibility
+  if (typeof toggleHeroMedia === 'function') toggleHeroMedia();
 }
 
 async function saveActivePanel() {
@@ -231,8 +237,8 @@ async function saveActivePanel() {
   btn.disabled = true;
 
   try {
-    // Identify fields in active panel
-    const inputs = activePanel.querySelectorAll('input[type="text"], textarea');
+    // Identify fields in active panel (text, textarea, select, range)
+    const inputs = activePanel.querySelectorAll('input[type="text"], textarea, select, input[type="range"]');
     for(let input of inputs) {
       if(input.id) await saveSetting(input.id, input.value);
     }
@@ -265,6 +271,26 @@ async function saveActivePanel() {
   }
 }
 
+function toggleHeroMedia() {
+  const sel = document.getElementById('hero_media_type');
+  const imgGroup = document.getElementById('hero_media_image_group');
+  const videoGroup = document.getElementById('hero_media_video_group');
+  const splineGroup = document.getElementById('hero_media_spline_group');
+  if (!sel) return;
+  // Hide all groups first
+  if (imgGroup) imgGroup.style.display = 'none';
+  if (videoGroup) videoGroup.style.display = 'none';
+  if (splineGroup) splineGroup.style.display = 'none';
+  // Show the selected group
+  if (sel.value === 'spline' && splineGroup) {
+    splineGroup.style.display = 'block';
+  } else if (sel.value === 'video' && videoGroup) {
+    videoGroup.style.display = 'block';
+  } else if (imgGroup) {
+    imgGroup.style.display = '';
+  }
+}
+
 function handleImagePreview(event, previewId) {
   const file = event.target.files[0];
   if(file) {
@@ -274,6 +300,19 @@ function handleImagePreview(event, previewId) {
       if(el) { el.src = e.target.result; el.style.opacity = '1'; }
     };
     reader.readAsDataURL(file);
+  }
+}
+
+function handleVideoPreview(event, previewId) {
+  const file = event.target.files[0];
+  if(file) {
+    const url = URL.createObjectURL(file);
+    const el = document.getElementById(previewId);
+    if(el) {
+      el.src = url;
+      el.style.opacity = '1';
+      el.play();
+    }
   }
 }
 

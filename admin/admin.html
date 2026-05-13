@@ -158,12 +158,53 @@
         </div>
         <div class="card">
           <div class="card-title">Media</div>
-          <div class="img-preview-group">
+          <div class="form-grid" style="margin-bottom:16px">
+            <div class="field full">
+              <label>Hero Media Type</label>
+              <select id="hero_media_type" onchange="toggleHeroMedia()" style="width:100%;padding:12px;background:#0A0A0A;border:1px solid #333;color:white;border-radius:6px;">
+                <option value="image">Image (Static Photo)</option>
+                <option value="video">Video (Looping Background)</option>
+                <option value="spline">Spline 3D (Interactive Scene)</option>
+              </select>
+            </div>
+          </div>
+          <!-- Image Upload (shown when type = image) -->
+          <div id="hero_media_image_group" class="img-preview-group">
             <div class="preview-box"><img id="hero_image_preview" src=""></div>
             <div style="flex:1">
               <label>Hero Main Image</label>
               <input type="file" id="hero_image_file" accept="image/*" onchange="handleImagePreview(event, 'hero_image_preview')">
               <p class="logo-sub" style="margin-top:8px">Recommended: AVIF or WEBP (1200x800)</p>
+            </div>
+          </div>
+          <!-- Video Upload (shown when type = video) -->
+          <div id="hero_media_video_group" style="display:none;">
+            <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
+              <div class="preview-box" style="min-width:180px;min-height:120px;background:#111;border-radius:8px;overflow:hidden;">
+                <video id="hero_video_preview" src="" muted loop style="width:100%;height:100%;object-fit:cover;opacity:0;"></video>
+              </div>
+              <div style="flex:1">
+                <label>Hero Video</label>
+                <input type="file" id="hero_video_file" accept="video/mp4,video/webm,video/mov" onchange="handleVideoPreview(event, 'hero_video_preview')">
+                <p class="logo-sub" style="margin-top:8px">Recommended: MP4 or WEBM (1200x800, max 15MB). Video will loop and autoplay without sound.</p>
+              </div>
+            </div>
+            <div class="field full">
+              <label>Hero Video Scale (<span id="hero_video_size_val">100</span>%)</label>
+              <input type="range" id="hero_video_size" min="50" max="200" value="100" step="1" 
+                     oninput="document.getElementById('hero_video_size_val').textContent = this.value"
+                     style="width:100%;margin-top:8px;">
+              <p class="logo-sub">Adjust the size of the video relative to its container.</p>
+            </div>
+          </div>
+          <!-- Spline URL (shown when type = spline) -->
+          <div id="hero_media_spline_group" style="display:none;">
+            <div class="form-grid">
+              <div class="field full">
+                <label>Spline Scene URL</label>
+                <input type="text" id="hero_spline_url" placeholder="https://prod.spline.design/xxxx/scene.splinecode">
+                <p class="logo-sub" style="margin-top:8px">Paste the .splinecode URL from your Spline export. The interactive 3D scene will replace the hero image.</p>
+              </div>
             </div>
           </div>
         </div>
