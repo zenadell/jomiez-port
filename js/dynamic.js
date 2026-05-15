@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             // Inject CSS override to kill any stylesheet backgrounds on the hero container
             const heroOverride = document.createElement('style');
+            const isRemoveBg = settings.hero_video_remove_bg === '1';
             heroOverride.textContent = `
                 .home-hero-image, .home-hero-image-wrapper {
                     background: transparent !important;
@@ -287,8 +288,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     border: none !important;
                     box-shadow: none !important;
                 }
+                .home-hero-image video {
+                    background: transparent !important;
+                    ${isRemoveBg ? 'mix-blend-mode: screen !important;' : ''}
+                }
             `;
             document.head.appendChild(heroOverride);
+            
             const videoEl = document.createElement('video');
             videoEl.src = settings.hero_video;
             videoEl.autoplay = true;
@@ -299,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Apply scale if set (default 100%)
             const scale = settings.hero_video_size ? (settings.hero_video_size / 100) : 1;
-            videoEl.style.cssText = `width:100%;height:auto;min-height:480px;object-fit:contain;display:block;background:transparent;border-radius:0;border:none;transform:scale(${scale});transform-origin:center;`;
+            videoEl.style.cssText = `width:100%;height:auto;min-height:480px;object-fit:contain;display:block;background:transparent!important;border-radius:0;border:none;transform:scale(${scale});transform-origin:center;`;
             
             heroImageEl.appendChild(videoEl);
         } else if (settings.hero_image && heroImageEl) {
@@ -785,12 +791,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // --- Footer Logo ---
             const footerLogo = document.querySelector('.footer-watemark');
             if (footerLogo) {
-                if (settings.footer_watermark_image) {
+                const footerImgSrc = settings.footer_watermark_image || settings.site_logo;
+                if (footerImgSrc) {
                     if (footerLogo.tagName === 'IMG') {
-                        footerLogo.src = settings.footer_watermark_image;
+                        footerLogo.src = footerImgSrc;
                         footerLogo.removeAttribute('srcset');
                     } else {
-                        footerLogo.outerHTML = `<img src="${settings.footer_watermark_image}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" style="width:100%;height:auto;object-fit:contain;" />`;
+                        footerLogo.outerHTML = `<img src="${footerImgSrc}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" style="width:100%;max-width:200px;height:auto;object-fit:contain;" />`;
                     }
                     if (footerLogo.classList) footerLogo.classList.remove('skeleton');
                 } else if (settings.site_logo_text) {

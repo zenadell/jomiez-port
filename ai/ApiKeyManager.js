@@ -9,7 +9,7 @@ class ApiKeyManager {
 
   async refreshCache() {
     return new Promise((resolve, reject) => {
-      this.db.all('SELECT provider, api_key FROM api_keys WHERE is_active = 1', [], (err, rows) => {
+      this.db.all("SELECT provider, api_key FROM api_keys WHERE is_active = '1'", [], (err, rows) => {
         if (err) return reject(err);
         this.keysCache = { gemini: [], groq: [] };
         rows.forEach(row => {

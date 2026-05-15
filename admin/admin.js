@@ -197,15 +197,19 @@ async function uploadFile(file) {
 // ===== CORE LOGIC =====
 
 function populateForm() {
-  // Dynamically map all text inputs, textareas, selects, and ranges by ID
-  const inputs = document.querySelectorAll('.panel input[type="text"], .panel textarea, .panel select, .panel input[type="range"]');
+  // Dynamically map all inputs including checkboxes
+  const inputs = document.querySelectorAll('.panel input[type="text"], .panel textarea, .panel select, .panel input[type="range"], .panel input[type="checkbox"]');
   inputs.forEach(input => {
     if (input.id && settingsCache[input.id] !== undefined) {
-      input.value = settingsCache[input.id];
-      // Update linked value display if exists (for ranges)
-      const valDisplay = document.getElementById(input.id + '_val');
-      if (valDisplay) valDisplay.textContent = input.value;
-    } else if (input.id && input.tagName !== 'SELECT' && input.type !== 'range') {
+      if (input.type === 'checkbox') {
+        input.checked = settingsCache[input.id] === '1';
+      } else {
+        input.value = settingsCache[input.id];
+        // Update linked value display if exists (for ranges)
+        const valDisplay = document.getElementById(input.id + '_val');
+        if (valDisplay) valDisplay.textContent = input.value;
+      }
+    } else if (input.id && input.tagName !== 'SELECT' && input.type !== 'range' && input.type !== 'checkbox') {
         input.value = ''; // clear if not in DB
     }
   });
@@ -237,10 +241,13 @@ async function saveActivePanel() {
   btn.disabled = true;
 
   try {
-    // Identify fields in active panel (text, textarea, select, range)
-    const inputs = activePanel.querySelectorAll('input[type="text"], textarea, select, input[type="range"]');
+    // Identify fields in active panel (text, textarea, select, range, checkbox)
+    const inputs = activePanel.querySelectorAll('input[type="text"], textarea, select, input[type="range"], input[type="checkbox"]');
     for(let input of inputs) {
-      if(input.id) await saveSetting(input.id, input.value);
+      if(input.id) {
+        const val = input.type === 'checkbox' ? (input.checked ? '1' : '0') : input.value;
+        await saveSetting(input.id, val);
+      }
     }
 
     // Identify files in active panel

@@ -14,8 +14,8 @@ const { initChakaStream } = require('./ai/ChakaStream');
 const ApiKeyManager = require('./ai/ApiKeyManager');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
-const db = tursoAdapter;
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./database.sqlite');
 
 // Prevent server crash on database connection issues
 process.on('unhandledRejection', (reason, promise) => {
@@ -104,7 +104,7 @@ const tempStorage = multer.diskStorage({
 const tempUpload = multer({ storage: tempStorage });
 
 // Database Setup (Turso)
-console.log('Connected to the Turso database.');
+console.log('Connected to the local SQLite database.');
 global.apiKeyManager = new ApiKeyManager(db);
 global.apiKeyManager.refreshCache(); // Initial load
 
@@ -594,22 +594,22 @@ app.use(express.static(path.join(__dirname, ''), { extensions: ['html'] }));
 
 // --- DATABASE TABLES INIT ---
 db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`);
-    db.run(`CREATE TABLE IF NOT EXISTS site_analytics (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT, country TEXT, ip_address TEXT, user_agent TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    db.run(`CREATE TABLE IF NOT EXISTS client_leads (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, project_scope TEXT, budget TEXT, country TEXT, ip_address TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    db.run(`CREATE TABLE IF NOT EXISTS ai_memory (id INTEGER PRIMARY KEY AUTOINCREMENT, insight_type TEXT, key TEXT, value TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    db.run(`CREATE TABLE IF NOT EXISTS blog_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, content TEXT, excerpt TEXT, thumbnail_url TEXT, author TEXT, published_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    db.run(`CREATE TABLE IF NOT EXISTS works (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, description TEXT, thumbnail_url TEXT, content TEXT, images TEXT, category TEXT, client TEXT, date TEXT, project_link TEXT DEFAULT '')`);
-    db.run(`CREATE TABLE IF NOT EXISTS skills (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, description TEXT, icon TEXT DEFAULT 'star', sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS services (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, title TEXT, description TEXT, content TEXT, image_url TEXT, hover_image_url TEXT, sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS brands (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, image_url TEXT, sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS faqs (id INTEGER PRIMARY KEY AUTOINCREMENT, question TEXT, answer TEXT, sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS marquee_images (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT, sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS testimonials (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT, author_name TEXT, author_role TEXT, author_image TEXT, rating INTEGER DEFAULT 5, sort_order INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, is_active INTEGER DEFAULT 1, fail_count INTEGER DEFAULT 0)`);
-    db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)`);
-    db.run(`CREATE TABLE IF NOT EXISTS counters (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT, value TEXT, suffix TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS site_analytics (id SERIAL PRIMARY KEY, path TEXT, country TEXT, ip_address TEXT, user_agent TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS client_leads (id SERIAL PRIMARY KEY, name TEXT, email TEXT, project_scope TEXT, budget TEXT, country TEXT, ip_address TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS ai_memory (id SERIAL PRIMARY KEY, insight_type TEXT, key TEXT, value TEXT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS blog_posts (id SERIAL PRIMARY KEY, slug TEXT UNIQUE, title TEXT, content TEXT, excerpt TEXT, thumbnail_url TEXT, author TEXT, published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    db.run(`CREATE TABLE IF NOT EXISTS works (id SERIAL PRIMARY KEY, slug TEXT UNIQUE, title TEXT, description TEXT, thumbnail_url TEXT, content TEXT, images TEXT, category TEXT, client TEXT, date TEXT, project_link TEXT DEFAULT '')`);
+    db.run(`CREATE TABLE IF NOT EXISTS skills (id SERIAL PRIMARY KEY, name TEXT, description TEXT, icon TEXT DEFAULT 'star', sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS services (id SERIAL PRIMARY KEY, slug TEXT UNIQUE, title TEXT, description TEXT, content TEXT, image_url TEXT, hover_image_url TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS brands (id SERIAL PRIMARY KEY, name TEXT, image_url TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS faqs (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS marquee_images (id SERIAL PRIMARY KEY, image_url TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS testimonials (id SERIAL PRIMARY KEY, message TEXT, author_name TEXT, author_role TEXT, author_image TEXT, rating INTEGER DEFAULT 5, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS api_keys (id SERIAL PRIMARY KEY, provider TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, is_active TEXT DEFAULT '1', fail_count INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)`);
+    db.run(`CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, label TEXT, value TEXT, suffix TEXT, sort_order INTEGER DEFAULT 0)`);
 
     // Default User
     const hash = bcrypt.hashSync('chaka2025', 10);
@@ -1320,7 +1320,7 @@ app.post('/api/chaka/chat_text', async (req, res) => {
 
   try {
     const keys = await new Promise((resolve, reject) => {
-      db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = 1", [], (err, rows) => {
+      db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = '1'", [], (err, rows) => {
         if (err) reject(err); else resolve(rows);
       });
     });
@@ -1503,7 +1503,7 @@ MANAGEMENT PROTOCOLS:
     // FINAL FALLBACK: If all Gemini keys exhausted, try Groq LLM
     if (!response) {
       const groqKeys = await new Promise((resolve, reject) => {
-        db.all("SELECT api_key FROM api_keys WHERE provider = 'groq' AND is_active = 1", [], (err, rows) => {
+        db.all("SELECT api_key FROM api_keys WHERE provider = 'groq' AND is_active = '1'", [], (err, rows) => {
           if (err) reject(err); else resolve(rows);
         });
       });
@@ -1650,7 +1650,7 @@ app.post('/api/chaka/chat_audio', tempUpload.single('audio'), async (req, res) =
   try {
     // 1. Get Groq API Key
     const keys = await new Promise((resolve, reject) => {
-      db.all("SELECT api_key FROM api_keys WHERE provider = 'groq' AND is_active = 1", [], (err, rows) => {
+      db.all("SELECT api_key FROM api_keys WHERE provider = 'groq' AND is_active = '1'", [], (err, rows) => {
         if (err) reject(err); else resolve(rows);
       });
     });
@@ -1764,7 +1764,7 @@ MANAGEMENT PROTOCOLS:
     // FALLBACK TO GEMINI IF GROQ RATE LIMITED (TPM limit hit)
     if (!groqSuccess) {
       const gKeys = await new Promise((resolve) => {
-        db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = 1", [], (err, rows) => resolve(rows || []));
+        db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = '1'", [], (err, rows) => resolve(rows || []));
       });
       if (gKeys.length > 0) {
         const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -1985,13 +1985,12 @@ app.get('/ping', (req, res) => {
     res.status(200).send('PONG');
 });
 
-// 2. Turso Database Keep-Alive (Prevents connection timeout)
+// 2. Local Database Keep-Alive
 setInterval(async () => {
     try {
         db.run('SELECT 1', [], () => {});
-        console.log('[KEEP-ALIVE] Turso connection is hot 🔥');
     } catch (e) {
-        console.warn('[KEEP-ALIVE] Turso ping failed:', e.message);
+        console.warn('[KEEP-ALIVE] SQLite ping failed:', e.message);
     }
 }, 45 * 1000); // Every 45 seconds
 
