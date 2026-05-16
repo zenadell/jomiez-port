@@ -629,8 +629,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     resumeContainer.innerHTML = '';
                     resumeContainer.appendChild(img);
                 } else if (settings.resume_url && settings.resume_url !== '#') {
-                    // If a PDF is uploaded, show an embedded viewer
-                    resumeContainer.innerHTML = `<iframe src="${settings.resume_url}" style="width: 100%; height: 1130px; border: none; border-radius: 12px; background: rgba(255,255,255,0.02);" title="Resume Document"></iframe>`;
+                    const url = settings.resume_url.toLowerCase();
+                    const isPDF = url.endsWith('.pdf');
+                    
+                    if (isPDF) {
+                        // If a PDF is uploaded, show an embedded viewer
+                        resumeContainer.innerHTML = `<iframe src="${settings.resume_url}" style="width: 100%; height: 1130px; border: none; border-radius: 12px; background: rgba(255,255,255,0.02);" title="Resume Document"></iframe>`;
+                    } else {
+                        // For .docx, .doc, etc. show a download/preview card
+                        const ext = url.split('.').pop().toUpperCase();
+                        resumeContainer.innerHTML = `
+                            <div style="width: 100%; height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.02); text-align: center; padding: 40px;">
+                                <div style="width: 64px; height: 64px; background: rgba(232,96,44,0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: #E8602C;">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                </div>
+                                <h4 style="font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 12px;">Resume Document (${ext})</h4>
+                                <p style="font-size: 15px; color: rgba(255,255,255,0.6); margin: 0 0 24px; max-width: 400px;">Your resume is available as a ${ext} file. You can download it to view the full details.</p>
+                                <a href="${settings.resume_url}" download class="secondary-button w-inline-block" style="padding: 12px 32px; border-radius: 100px; background: #E8602C; color: #fff; text-decoration: none; font-weight: 600;">Download Resume</a>
+                            </div>
+                        `;
+                    }
                 } else {
                     // Fallback to stylized empty state
                     resumeContainer.innerHTML = emptyStateHTML;
@@ -763,7 +781,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     ${expertiseIcons[item.icon] || expertiseIcons.star}
                                 </div>
                                 <h5 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 8px;">${item.title}</h5>
-                                <p style="font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.6); margin: 0;">${item.description}</p>
+                                <p style="font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.6); margin: 0;">${item.description || item.desc || ''}</p>
                             </div>
                         `).join('');
                     }
