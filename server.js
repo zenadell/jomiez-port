@@ -193,7 +193,7 @@ app.post('/api/contact', async (req, res) => {
 
 // Global API Protection for mutations
 app.use('/api', (req, res, next) => {
-    if (req.method === 'GET' || ['/login', '/check-auth', '/logout', '/contact'].includes(req.path)) return next();
+    if (req.method === 'GET' || ['/login', '/check-auth', '/logout', '/contact', '/chaka/chat_text'].includes(req.path)) return next();
     if (req.session.user) return next();
     res.status(401).json({ error: 'Unauthorized' });
 });
@@ -687,9 +687,9 @@ app.get('/api/apikeys', (req, res) => {
 app.post('/api/apikeys', (req, res) => {
   const { provider, api_key } = req.body;
   if (!provider || !api_key) return res.status(400).json({ error: 'Provider and API key required' });
-  db.run(`INSERT INTO api_keys (provider, api_key) VALUES (?, ?)`, [provider, api_key], function (err) {
+  db.run(`INSERT INTO api_keys (provider, api_key, is_active) VALUES (?, ?, '1')`, [provider, api_key], function (err) {
     if (err) return res.status(500).json({ error: err.message });
-    global.apiKeyManager.refreshCache();
+    global.apiKeyManager && global.apiKeyManager.refreshCache();
     res.json({ id: this.lastID, success: true });
   });
 });
@@ -1320,7 +1320,7 @@ app.post('/api/chaka/chat_text', async (req, res) => {
 
   try {
     const keys = await new Promise((resolve, reject) => {
-      db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = '1'", [], (err, rows) => {
+      db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active = '1' OR is_active = 1 OR is_active IS NULL)", [], (err, rows) => {
         if (err) reject(err); else resolve(rows);
       });
     });
@@ -1472,7 +1472,7 @@ MANAGEMENT PROTOCOLS:
     }
 
     // KEY ROTATION: Try every key × model combination before giving up
-    const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const modelsToTry = ['gemini-flash-lite-latest'];
     let response = null;
     let lastError = null;
 
@@ -1781,7 +1781,7 @@ MANAGEMENT PROTOCOLS:
         }
 
         const fallbackModel = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
+          model: 'gemini-flash-lite-latest',
           systemInstruction: systemPrompt,
           tools: [{ functionDeclarations: [
             { name: "navigate_to", description: "Navigate user browser to URL", parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] } },

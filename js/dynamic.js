@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         settings = await settingsRes.json();
+        window.siteSettings = settings;
         const works = await worksRes.json();
         const skills = await skillsRes.json();
         const services = await servicesRes.json();
@@ -1591,8 +1592,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const res = await fetch('/api/apikeys');
                 const keys = await res.json();
-                this.apiKeys = keys.filter(k => k.provider === 'gemini' && k.is_active === 1).map(k => k.api_key);
-                this.groqKeys = keys.filter(k => k.provider === 'groq' && k.is_active === 1).map(k => k.api_key);
+                this.apiKeys = keys.filter(k => k.provider === 'gemini' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
+                this.groqKeys = keys.filter(k => k.provider === 'groq' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
                 console.log(`[Chaka] Engine: ${this.engine} | Gemini keys: ${this.apiKeys.length} | Groq keys: ${this.groqKeys.length}`);
             } catch(e) { console.warn('[Chaka] Failed to load API keys:', e); }
 
@@ -2020,19 +2021,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isAdmin = window.location.pathname.includes('/admin');
             const mode = isAdmin ? 'ADMIN GOD MODE' : 'PUBLIC VISITOR GUIDE';
 
-            const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+            const modelsToTry = ['gemini-3.1-flash-live-preview'];
             const modelName = `models/${modelsToTry[0]}`;
             
             const isNativeAudio = (this.engine === 'gemini-bidi');
             const genConfig = isNativeAudio 
-                ? { response_modalities: ["AUDIO"], speech_config: { voice_config: { prebuilt_voice_config: { voice_name: "Kore" } } } }
-                : { response_modalities: ["TEXT"] };
+                ? { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }
+                : { responseModalities: ["TEXT"] };
 
             const setupMsg = {
                 setup: {
                     model: modelName,
-                    generation_config: genConfig,
-                    system_instruction: {
+                    generationConfig: genConfig,
+                    systemInstruction: {
                         parts: [{
                             text: `You are Chaka, the Elite Autonomous Admin of this portfolio system.
 YOUR CURRENT MODE: ${mode}
@@ -2058,7 +2059,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         }]
                     },
                     tools: [{
-                        function_declarations: [
+                        functionDeclarations: [
                             {
                                 name: "getSiteContext",
                                 description: "Returns all current site settings, projects, and services. Call this FIRST if you need to see current content before improving it.",
@@ -2245,13 +2246,10 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 } else {
                     // Forward admin tools to server
                     try {
-                        const res = await fetch('/api/chaka/chat_text', {
+                        const res = await fetch('/api/chaka/execute_tool', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                toolCall: { name, args },
-                                isAdmin: true
-                            })
+                            body: JSON.stringify({ name, args })
                         });
                         const data = await res.json();
                         result = data;
