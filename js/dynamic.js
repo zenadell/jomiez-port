@@ -2087,7 +2087,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "navigate_to",
-                                description: "Navigate user browser to URL",
+                                description: "Navigate browser. VALID: /, /about, /works, /services, /contact-us, /resume, /testimonials. NEVER use .html.",
                                 parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] }
                             },
                             {

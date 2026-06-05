@@ -123,6 +123,9 @@ app.use(session({
 // Auth Middleware
 function isAuthenticated(req, res, next) {
     if (req.session.user) return next();
+    // Whitelist public Chaka AI endpoints
+    const publicPaths = ['/api/chaka/chat_text', '/api/chaka/execute_tool', '/api/chaka/knowledge', '/api/chaka/stream'];
+    if (publicPaths.some(p => req.path.startsWith(p))) return next();
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
     res.redirect('/admin/login');
 }
@@ -1296,6 +1299,41 @@ app.post('/api/chaka/tts', async (req, res) => {
 });
 
 // CHAKA KNOWLEDGE BASE & CONTEXT (RAG-enhanced)
+
+// SITE MANIFEST — The AI's complete understanding of the site structure
+function getSiteManifest() {
+  return `SITE MAP (CRITICAL — use ONLY these exact paths for navigation):
+  / = Home page (hero, featured works, services overview)
+  /about = About Me / About Us page
+  /works = Portfolio / Projects listing page
+  /services = All services listing page
+  /contact-us = Contact page with form
+  /resume = Resume / CV page
+  /testimonials = Client testimonials
+  /blog = Blog listing
+  /work/:slug = Individual project detail (e.g. /work/e-commerce-website-design)
+  /services/:slug = Individual service detail (e.g. /services/branding)
+
+WARNING: NEVER use .html extensions in URLs. /work.html does NOT exist. Use /works instead.
+WARNING: The works/portfolio page is /works (plural), NOT /work.
+
+DATABASE TABLES (you can read/write these via tools):
+  - settings: key-value pairs for all site content (hero text, contact info, SEO, etc.)
+  - works: portfolio projects (id, slug, title, description, content, images, category, client, date)
+  - services: professional services (id, slug, title, description, content, image_url)
+  - faqs: frequently asked questions (id, question, answer)
+  - testimonials: client testimonials (id, message, author_name, author_role)
+  - skills: technical skills (id, name, description, icon)
+  - brands: client/partner logos (id, name, image_url)
+  - blog_posts: blog articles (id, slug, title, content, excerpt, thumbnail_url)
+  - counters: stat counters (id, label, value, suffix)
+  - client_leads: CRM leads (id, name, email, project_scope, budget)
+
+API ENDPOINTS:
+  GET /api/settings, /api/works, /api/services, /api/skills, /api/brands, /api/faqs, /api/testimonials, /api/counters, /api/blog
+  POST /api/chaka/execute_tool — execute admin tools (manageWorks, manageServices, updateSiteSetting, etc.)`;
+}
+
 async function getSiteKnowledge(query) {
   // 1. Always include base site settings (small, constant cost)
   const baseCtx = await new Promise((resolve) => {
@@ -1303,8 +1341,9 @@ async function getSiteKnowledge(query) {
       let ctx = "SITE KNOWLEDGE:\n";
       if (settingsRows) {
         const sets = settingsRows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
-        ctx += `- Company: "${sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}.\n`;
+        ctx += `- Company: "${sets.company_name || sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}.\n`;
       }
+      ctx += getSiteManifest() + '\n';
       // Always include service & work titles (lightweight summary)
       db.all("SELECT title FROM services", [], (err2, svcRows) => {
         if (svcRows && svcRows.length) ctx += `- Services: ${svcRows.map(s => s.title).join(', ')}.\n`;
@@ -1370,8 +1409,8 @@ app.post('/api/chaka/chat_text', async (req, res) => {
       },
       {
         name: "navigate_to",
-        description: "Navigate the user's browser to a page on the portfolio. Supported paths: /, /about.html, /work.html, /service.html, /contact-us.html",
-        parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] }
+        description: "Navigate the user's browser to a page. VALID PATHS: / (home), /about, /works (portfolio), /services, /contact-us, /resume, /testimonials, /blog. For project detail: /work/<slug>. For service detail: /services/<slug>. NEVER use .html extensions.",
+        parameters: { type: "OBJECT", properties: { url: { type: "STRING", description: "The path to navigate to, e.g. /works, /about, /contact-us. NEVER add .html" } }, required: ["url"] }
       },
       {
         name: "scroll_to",
@@ -1550,7 +1589,7 @@ MANAGEMENT PROTOCOLS:
           { type: "function", function: { name: "manageWorks", description: "Add, update or delete portfolio PROJECTS (Case Studies). DO NOT use for Services. All content is database-driven. NEVER try to edit HTML. When adding, MUST include: title, description, client, category, thumbnail_url (MUST be high-res LANDSCAPE), images (array of 3 URLs), content (HTML case study).", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, client: { type: "string" }, category: { type: "string" }, thumbnail_url: { type: "string" }, date: { type: "string" }, project_link: { type: "string" }, images: { type: "array", items: { type: "string" } }, content: { type: "string" } } } }, required: ["action"] } } },
           { type: "function", function: { name: "searchImages", description: "Search the web for relevant images. Returns up to 5 image URLs. Prefer high-resolution LANDSCAPE images for thumbnails.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
           { type: "function", function: { name: "manageServices", description: "Add, update or delete site SERVICES (capabilities). DO NOT use this for Projects. When adding, find image URLs via searchImages.", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, image_url: { type: "string" }, hover_image_url: { type: "string" }, content: { type: "string" } } } }, required: ["action"] } } },
-          { type: "function", function: { name: "navigate_to", description: "Navigate the user's browser to a page. Paths: /, /about.html, /work.html, /service.html, /contact-us.html", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+          { type: "function", function: { name: "navigate_to", description: "Navigate browser. VALID PATHS: / (home), /about, /works (portfolio), /services, /contact-us, /resume, /testimonials, /blog. For project detail: /work/<slug>. NEVER use .html.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
           { type: "function", function: { name: "scroll_to", description: "Scroll to a section on the current page.", parameters: { type: "object", properties: { section_concept: { type: "string" } }, required: ["section_concept"] } } },
           { type: "function", function: { name: "showContactMethod", description: "Shows a contact card for WhatsApp, Email, or Phone.", parameters: { type: "object", properties: { method: { type: "string", enum: ["whatsapp", "email", "phone"] } }, required: ["method"] } } },
           { type: "function", function: { name: "captureLead", description: "Save a client inquiry to CRM.", parameters: { type: "object", properties: { name: { type: "string" }, email: { type: "string" }, project_scope: { type: "string" }, budget: { type: "string" } }, required: ["name", "email", "project_scope"] } } }
@@ -1755,7 +1794,7 @@ MANAGEMENT PROTOCOLS:
 
     const groqTools = [
       { type: "function", function: { name: "getSiteContext", description: "Get current site state", parameters: { type: "object", properties: {} } } },
-      { type: "function", function: { name: "navigate_to", description: "Navigate user browser to URL", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+      { type: "function", function: { name: "navigate_to", description: "Navigate browser. VALID: /, /about, /works, /services, /contact-us, /resume, /testimonials. NEVER use .html.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
       { type: "function", function: { name: "scroll_to", description: "Scroll to page section", parameters: { type: "object", properties: { section_concept: { type: "string" } }, required: ["section_concept"] } } },
       { type: "function", function: { name: "updateSiteSetting", description: "Admin: update setting", parameters: { type: "object", properties: { key: { type: "string" }, value: { type: "string" } }, required: ["key", "value"] } } },
       { type: "function", function: { name: "manageWorks", description: "Add/Update/Delete portfolio projects. DO NOT use for services.", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, thumbnail_url: { type: "string" }, images: { type: "array", items: { type: "string" } }, content: { type: "string" } } } }, required: ["action"] } } },
@@ -1816,7 +1855,7 @@ MANAGEMENT PROTOCOLS:
           model: 'gemini-flash-lite-latest',
           systemInstruction: systemPrompt,
           tools: [{ functionDeclarations: [
-            { name: "navigate_to", description: "Navigate user browser to URL", parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] } },
+            { name: "navigate_to", description: "Navigate browser. VALID: /, /about, /works, /services, /contact-us, /resume, /testimonials. NEVER use .html.", parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] } },
             { name: "scroll_to", description: "Scroll to page section", parameters: { type: "OBJECT", properties: { section_concept: { type: "STRING" } }, required: ["section_concept"] } },
             { name: "updateSiteSetting", description: "Admin: update setting", parameters: { type: "OBJECT", properties: { key: { type: "STRING" }, value: { type: "STRING" } }, required: ["key", "value"] } },
             { name: "manageWorks", description: "Add/Update/Delete portfolio projects", parameters: { type: "OBJECT", properties: { action: { type: "STRING" }, id: { type: "NUMBER" }, data: { type: "OBJECT" } }, required: ["action"] } },
