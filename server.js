@@ -16,6 +16,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./database.sqlite');
+const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
 process.on('unhandledRejection', (reason, promise) => {
@@ -1138,7 +1139,10 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
          project_link || '#', slug, content || '', imagesStr], 
         function(err) {
           if (err) return res.status(500).json({ error: err.message });
-          res.json({ executed: true, id: this.lastID, _action: "Project successfully added to portfolio with all details." });
+          const newId = this.lastID;
+          // Sync to vector DB
+          upsertDocument(newId, 'work', title || 'Untitled Project', `${description || ''}\n${content || ''}`, db).catch(e => console.warn('[VectorDB] Work upsert failed:', e.message));
+          res.json({ executed: true, id: newId, _action: "Project successfully added to portfolio with all details." });
         });
     } else if (action === 'update' && id) {
       const updates = Object.entries(data).map(([k, v]) => `${k} = ?`).join(', ');
@@ -1148,11 +1152,16 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
       });
       db.run(`UPDATE works SET ${updates} WHERE id = ?`, [...values, id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+        // Re-sync updated work to vector DB
+        db.get("SELECT title, description, content FROM works WHERE id = ?", [id], (e2, row) => {
+          if (row) upsertDocument(id, 'work', row.title, `${row.description || ''}\n${row.content || ''}`, db).catch(e => console.warn('[VectorDB] Work update sync failed:', e.message));
+        });
         res.json({ executed: true, _action: "Project details updated." });
       });
     } else if (action === 'delete' && id) {
       db.run(`DELETE FROM works WHERE id = ?`, [id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+        deleteDocument(id, 'work').catch(e => console.warn('[VectorDB] Work delete failed:', e.message));
         res.json({ executed: true, _action: "Project deleted." });
       });
     } else {
@@ -1192,7 +1201,9 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
             [title || 'Untitled Service', description || '', content || '', slug, image_url || '', hover_image_url || '', sortOrder], 
             function(err) {
                 if (err) return res.status(500).json({ error: err.message });
-                res.json({ executed: true, id: this.lastID, _action: "Service added." });
+                const newId = this.lastID;
+                upsertDocument(newId, 'service', title || 'Untitled Service', `${description || ''}\n${content || ''}`, db).catch(e => console.warn('[VectorDB] Service upsert failed:', e.message));
+                res.json({ executed: true, id: newId, _action: "Service added." });
             });
       });
     } else if (action === 'update' && id) {
@@ -1200,11 +1211,15 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
       const values = Object.entries(data).map(([k, v]) => v);
       db.run(`UPDATE services SET ${updates} WHERE id = ?`, [...values, id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+        db.get("SELECT title, description, content FROM services WHERE id = ?", [id], (e2, row) => {
+          if (row) upsertDocument(id, 'service', row.title, `${row.description || ''}\n${row.content || ''}`, db).catch(e => console.warn('[VectorDB] Service update sync failed:', e.message));
+        });
         res.json({ executed: true, _action: "Service updated." });
       });
     } else if (action === 'delete' && id) {
       db.run(`DELETE FROM services WHERE id = ?`, [id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+        deleteDocument(id, 'service').catch(e => console.warn('[VectorDB] Service delete failed:', e.message));
         res.json({ executed: true, _action: "Service deleted." });
       });
     }
@@ -1280,28 +1295,45 @@ app.post('/api/chaka/tts', async (req, res) => {
   }
 });
 
-// CHAKA KNOWLEDGE BASE & CONTEXT
-async function getSiteKnowledge() {
-  return new Promise((resolve) => {
+// CHAKA KNOWLEDGE BASE & CONTEXT (RAG-enhanced)
+async function getSiteKnowledge(query) {
+  // 1. Always include base site settings (small, constant cost)
+  const baseCtx = await new Promise((resolve) => {
     db.all("SELECT key, value FROM settings", [], (err, settingsRows) => {
-      db.all("SELECT title, description FROM services", [], (err2, servicesRows) => {
-        db.all("SELECT title, description FROM works", [], (err3, worksRows) => {
-          let ctx = "SITE KNOWLEDGE (Use this to answer questions about the company):\n";
-          if (settingsRows) {
-            const sets = settingsRows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
-            ctx += `- Company Info: We are represented by "${sets.hero_headline || ''}". About us: "${sets.about_hero_heading || ''}". Contact email: ${sets.contact_email || 'N/A'}.\n`;
-          }
-          if (servicesRows && servicesRows.length) {
-            ctx += `- Services offered: ${servicesRows.map(s => s.title + ' (' + s.description + ')').join(' | ')}.\n`;
-          }
-          if (worksRows && worksRows.length) {
-            ctx += `- Portfolio works: ${worksRows.map(w => w.title + (w.description ? ' - ' + w.description.substring(0, 100) + '...' : '')).join(' | ')}.\n`;
-          }
+      let ctx = "SITE KNOWLEDGE:\n";
+      if (settingsRows) {
+        const sets = settingsRows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
+        ctx += `- Company: "${sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}.\n`;
+      }
+      // Always include service & work titles (lightweight summary)
+      db.all("SELECT title FROM services", [], (err2, svcRows) => {
+        if (svcRows && svcRows.length) ctx += `- Services: ${svcRows.map(s => s.title).join(', ')}.\n`;
+        db.all("SELECT title FROM works", [], (err3, wrkRows) => {
+          if (wrkRows && wrkRows.length) ctx += `- Portfolio: ${wrkRows.map(w => w.title).join(', ')}.\n`;
           resolve(ctx);
         });
       });
     });
   });
+
+  // 2. If we have a query, use RAG to find the most relevant documents
+  if (query && query.trim()) {
+    try {
+      const results = await searchVectorDB(query, db, 3);
+      if (results.length > 0) {
+        let ragCtx = "\nRELEVANT DETAILS (retrieved by semantic search for this query):\n";
+        for (const r of results) {
+          const meta = r.item.metadata;
+          ragCtx += `--- [${meta.type.toUpperCase()}] ${meta.title} ---\n${meta.content}\n\n`;
+        }
+        return baseCtx + ragCtx;
+      }
+    } catch (e) {
+      console.warn('[RAG] Vector search failed, falling back to base context:', e.message);
+    }
+  }
+
+  return baseCtx;
 }
 
 app.get('/api/chaka/knowledge', async (req, res) => {
@@ -1422,7 +1454,7 @@ app.post('/api/chaka/chat_text', async (req, res) => {
       }
     ];
 
-    const siteKnowledge = await getSiteKnowledge();
+    const siteKnowledge = await getSiteKnowledge(text);
 
     const systemPrompt = `You are Chaka, the Elite Autonomous Admin of this portfolio system.
 YOUR CURRENT MODE: ${mode}
@@ -1694,7 +1726,7 @@ app.post('/api/chaka/chat_audio', tempUpload.single('audio'), async (req, res) =
     // We MUST truncate the conversation history to the last 4 turns.
     const recentMemory = memory.slice(-4);
 
-    const siteKnowledge = await getSiteKnowledge();
+    const siteKnowledge = await getSiteKnowledge(userText || '');
 
     const systemPrompt = `You are Chaka, the Elite Autonomous Admin of this portfolio system.
 YOUR CURRENT MODE: ${req.body.isAdmin ? 'ADMIN GOD MODE' : 'PUBLIC VISITOR GUIDE'}
@@ -2010,6 +2042,8 @@ setInterval(async () => {
 const server = app.listen(PORT, () => {
     console.log(`\n🚀 Server is running on port ${PORT}`);
     console.log(`🔗 External URL: ${RENDER_URL}\n`);
+    // Sync vector DB on startup (non-blocking)
+    syncDatabaseToVectorDB(db).then(() => console.log('[VectorDB] Initial sync complete.')).catch(e => console.warn('[VectorDB] Initial sync failed:', e.message));
 });
 
 const wss = new WebSocketServer({ server, path: '/api/chaka/stream' });
