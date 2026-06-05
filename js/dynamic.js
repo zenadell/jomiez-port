@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         footerLogo.src = footerImgSrc;
                         footerLogo.removeAttribute('srcset');
                     } else {
-                        footerLogo.outerHTML = `<img src="${footerImgSrc}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" style="width:100%;max-width:200px;height:auto;object-fit:contain;" />`;
+                        footerLogo.outerHTML = `<img src="${footerImgSrc}" loading="lazy" alt="Jomiez Innovation Logo" class="footer-watemark" style="width:100%;height:auto;object-fit:contain;" />`;
                     }
                     if (footerLogo.classList) footerLogo.classList.remove('skeleton');
                 } else if (settings.site_logo_text) {
@@ -1160,6 +1160,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Remove all skeletons from the clone immediately
                     clone.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+
+                    // Replace empty img with svg arrow for default state
+                    const defaultBtnImg = clone.querySelector('img.services-button.default');
+                    const activeBtnSvg = clone.querySelector('svg.services-button.active');
+                    if (defaultBtnImg && activeBtnSvg) {
+                        const defaultSvg = activeBtnSvg.cloneNode(true);
+                        defaultSvg.setAttribute('class', 'services-button default');
+                        defaultBtnImg.parentNode.replaceChild(defaultSvg, defaultBtnImg);
+                    }
 
                     // Link
                     const link = clone.querySelector('.services-wrap');
