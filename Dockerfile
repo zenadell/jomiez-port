@@ -1,17 +1,17 @@
 FROM node:20-slim
 
-# Install system dependencies (Python 3.12, git, curl, build essentials)
+# Install system dependencies (git, curl, build essentials, and python3)
 RUN apt-get update && apt-get install -y \
-    python3.12 \
-    python3.12-venv \
+    python3 \
+    python3-venv \
     python3-pip \
     curl \
     git \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Map python to python3.12
-RUN ln -sf /usr/bin/python3.12 /usr/bin/python
+# Map python to python3
+RUN ln -sf /usr/bin/python3 /usr/bin/python
 
 # Install uv (blazing fast Python package manager)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
