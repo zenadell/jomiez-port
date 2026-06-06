@@ -712,13 +712,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 coreStackLabel.textContent = settings.label_core_stack || 'Core Stack';
             }
 
-            // --- Core Stack Pills (db-core-stack) ---
+            // --- Core Stack Pills (db-core-stack) — CATEGORIZED ---
             const coreStack = document.getElementById('db-core-stack');
-            if (coreStack && settings.resume_core_stack) {
-                const techs = settings.resume_core_stack.split(',').map(t => t.trim()).filter(t => t);
-                coreStack.innerHTML = techs.map(tech => `
-                    <span style="display: inline-flex; align-items: center; padding: 8px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 100px; font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; white-space: nowrap;">${tech}</span>
-                `).join('');
+            if (coreStack) {
+                const categories = [
+                    { key: 'resume_stack_frontend', label: 'Frontend' },
+                    { key: 'resume_stack_backend', label: 'Backend' },
+                    { key: 'resume_stack_ai', label: 'AI / ML' },
+                    { key: 'resume_stack_databases', label: 'Databases' },
+                    { key: 'resume_stack_devops', label: 'DevOps & Tools' },
+                    { key: 'resume_stack_libraries', label: 'APIs & Libraries' },
+                ];
+                const hasCategories = categories.some(c => settings[c.key]);
+
+                if (hasCategories) {
+                    coreStack.innerHTML = categories.map(cat => {
+                        if (!settings[cat.key]) return '';
+                        const techs = settings[cat.key].split(',').map(t => t.trim()).filter(t => t);
+                        if (!techs.length) return '';
+                        return `
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;">${cat.label}</h5>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${techs.map(tech => `<span style="display: inline-flex; align-items: center; padding: 8px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 100px; font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; white-space: nowrap;">${tech}</span>`).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else if (settings.resume_core_stack) {
+                    // Fallback: old flat comma-separated format
+                    const techs = settings.resume_core_stack.split(',').map(t => t.trim()).filter(t => t);
+                    coreStack.innerHTML = techs.map(tech => `
+                        <span style="display: inline-flex; align-items: center; padding: 8px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 100px; font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; white-space: nowrap;">${tech}</span>
+                    `).join('');
+                }
             }
 
             // --- Find Me Online Label (db-label-find-me) ---
