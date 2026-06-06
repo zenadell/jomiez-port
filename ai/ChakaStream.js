@@ -101,9 +101,6 @@ function initChakaStream(wss) {
         const origin = req.headers.origin || req.headers.host || 'public';
         console.log(`[ChakaStream] Connection established. Origin context: ${origin}`);
 
-        // Setup Chat Session lazily once key is verified
-        let chatSession = null;
-
         ws.on('message', async (message) => {
             let data;
             try { data = JSON.parse(message); } catch(e) { return; }
@@ -112,100 +109,37 @@ function initChakaStream(wss) {
 
             if(data.type === 'chaka_prompt') {
                 const userText = data.text;
-                let apiKey;
-
+                // Removed origin.includes('localhost') to prevent insecure admin access during local testing/Render
+                const isAdmin = origin.includes('admin');
+                
                 try {
-                    apiKey = await global.apiKeyManager.getNextKey('gemini');
-                } catch(e) {
-                    return ws.send(JSON.stringify({ type: 'error', message: 'No Gemini API Keys active in Admin.'}));
-                }
-
-                try {
-                    const genAI = new GoogleGenerativeAI(apiKey);
-                    const model = genAI.getGenerativeModel({
-                        model: 'gemini-2.5-flash',
-                        systemInstruction: generateSystemInstructions(origin),
-                        tools: [{ functionDeclarations }]
+                    // Route the prompt to the Python Agent Swarm (Captain)
+                    const response = await fetch('http://127.0.0.1:3001/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: userText, is_admin: isAdmin })
                     });
-
-                    if(!chatSession) {
-                        chatSession = model.startChat({ history: [] });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Swarm backend returned ${response.status}`);
                     }
-
-                    // 1. Send text to Gemini
-                    const result = await chatSession.sendMessage(userText);
-                    const response = result.response;
-                    const calls = response.functionCalls();
-
-                    // 2. Intercept Function Calls
-                    if (calls) {
-                        for (const call of calls) {
-                            let result = {};
-                            
-                            if (call.name === 'getSiteContext') {
-                                // Manual orchestration of site context for Bidi stream
-                                const settings = await new Promise(r => db.all("SELECT key, value FROM settings", [], (err, rows) => r(rows)));
-                                const works = await new Promise(r => db.all("SELECT * FROM works ORDER BY id DESC", [], (err, rows) => r(rows)));
-                                result = { settings, works };
-                                
-                                const funcResult = await chatSession.sendMessage([{
-                                    functionResponse: { name: call.name, response: { result: result } }
-                                }]);
-                                yieldResponseVoice(funcResult.response.text(), ws);
-                            }
-                            else if (call.name === 'updateSiteSetting') {
-                                const { key, value } = call.args;
-                                console.log(`[Chaka God Mode] Updating setting: ${key} -> ${value}`);
-                                await new Promise(r => db.run(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?`, [key, value, value], r));
-                                
-                                const funcResult = await chatSession.sendMessage([{
-                                    functionResponse: { name: call.name, response: { status: "Success", injected: value } }
-                                }]);
-                                yieldResponseVoice(funcResult.response.text(), ws);
-                            }
-                            else if (call.name === 'manageWorks') {
-                                const { action, id, data } = call.args;
-                                if (action === 'add') {
-                                    const { title, description, client, category, thumbnail_url } = data;
-                                    const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                                    await new Promise(r => db.run(`INSERT INTO works (title, description, client, category, thumbnail_url, date, project_link, slug) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-                                        [title, description, client, category, thumbnail_url || '/uploads/default-work.jpg', new Date().toISOString().split('T')[0], '#', slug], r));
-                                }
-                                
-                                const funcResult = await chatSession.sendMessage([{
-                                    functionResponse: { name: call.name, response: { status: `Task ${action} executed successfully.` } }
-                                }]);
-                                yieldResponseVoice(funcResult.response.text(), ws);
-                            }
-                            else if (call.name === 'captureLead') {
-                                const { name, email, project_scope, budget } = call.args;
-                                await new Promise(r => db.run(`INSERT INTO client_leads (name, email, project_scope, budget) VALUES (?, ?, ?, ?)`, [name, email, project_scope, budget || 'Unknown'], r));
-                                
-                                const funcResult = await chatSession.sendMessage([{
-                                    functionResponse: { name: call.name, response: { status: "Lead Saved!" } }
-                                }]);
-                                yieldResponseVoice(funcResult.response.text(), ws);
-                            }
-                            else if (call.name === 'saveUserInsight') {
-                                const { insight_type, key, value } = call.args;
-                                await new Promise(r => db.run(`INSERT INTO ai_memory (insight_type, key, value) VALUES (?, ?, ?)`, [insight_type || 'fact', key, value], r));
-                                
-                                const funcResult = await chatSession.sendMessage([{
-                                    functionResponse: { name: call.name, response: { status: "Memory Stored!" } }
-                                }]);
-                                yieldResponseVoice(funcResult.response.text(), ws);
-                            }
-                        }
-                    } else {
-                        // 3. Just normal conversational response
-                        yieldResponseVoice(response.text(), ws);
+                    
+                    const result = await response.json();
+                    
+                    // If the Swarm requested UI actions (navigate, scroll)
+                    if (result.tools && result.tools.length > 0) {
+                        ws.send(JSON.stringify({
+                            type: 'chaka_ui_commands',
+                            tools: result.tools
+                        }));
                     }
+                    
+                    // Send the Swarm's conversational text to the Edge TTS engine
+                    yieldResponseVoice(result.response || "Sorry, I had trouble processing that.", ws);
 
                 } catch(err) {
                     console.error('[ChakaStream API Error]', err);
                     ws.send(JSON.stringify({ type: 'chaka_response_error' }));
-                    // Try to trigger ApiKeyManager auto-rotation fail tracking here
-                    if(err.status === 429) global.apiKeyManager.reportFailure('gemini', apiKey);
                 }
             }
         });

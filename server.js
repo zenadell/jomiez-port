@@ -1386,311 +1386,37 @@ app.get('/api/chaka/knowledge', async (req, res) => {
 
 // CHAKA TEXT CHAT — Gemini 2.5 Flash REST (completely separate from voice)
 app.post('/api/chaka/chat_text', async (req, res) => {
-  const { text, history, isAdmin } = req.body;
+  const { text, history } = req.body;
   if (!text || !text.trim()) return res.status(400).json({ error: 'No text provided' });
+  const isAdmin = !!req.session.user;
 
   try {
-    const keys = await new Promise((resolve, reject) => {
-      db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active = '1' OR is_active = 1 OR is_active IS NULL)", [], (err, rows) => {
-        if (err) reject(err); else resolve(rows);
-      });
+    const swarmRes = await fetch('http://127.0.0.1:3001/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text.trim(), is_admin: isAdmin })
     });
-    if (keys.length === 0) return res.status(400).json({ error: 'No active Gemini API Key found' });
 
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-    const mode = isAdmin ? 'ADMIN GOD MODE' : 'PUBLIC VISITOR GUIDE';
-
-    const toolDeclarations = [
-      {
-        name: "getSiteContext",
-        description: "Returns all current site settings, projects, and services. Call this FIRST if you need to see current content before improving it.",
-        parameters: { type: "OBJECT", properties: {} }
-      },
-      {
-        name: "navigate_to",
-        description: "Navigate the user's browser to a page. VALID PATHS: / (home), /about, /works (portfolio), /services, /contact-us, /resume, /testimonials, /blog. For project detail: /work/<slug>. For service detail: /services/<slug>. NEVER use .html extensions.",
-        parameters: { type: "OBJECT", properties: { url: { type: "STRING", description: "The path to navigate to, e.g. /works, /about, /contact-us. NEVER add .html" } }, required: ["url"] }
-      },
-      {
-        name: "scroll_to",
-        description: "Scroll the user's viewport to a section on the current page.",
-        parameters: { type: "OBJECT", properties: { section_concept: { type: "STRING", description: "e.g. 'footer', 'hero', 'testimonials', 'contact'" } }, required: ["section_concept"] }
-      },
-      {
-        name: "updateSiteSetting",
-        description: "Updates a global site setting. VALID KEYS: hero_headline (Main H1), hero_eyebrow (small text above H1), hero_text (intro description), hero_image, about_hero_heading, about_me_page_text, contact_email, contact_phone, site_logo_text, footer_cta, company_name.",
-        parameters: { type: "OBJECT", properties: { key: { type: "STRING" }, value: { type: "STRING" } }, required: ["key", "value"] }
-      },
-      {
-        name: "manageWorks",
-        description: "Add, update or delete portfolio PROJECTS (Case Studies). DO NOT use this for Services. DATA HYDRATION: All content is database-driven. NEVER try to edit HTML files or generate CSS. Use the provided tools (manageWorks, manageServices, updateSiteSetting) to modify content. CATEGORY PROTOCOL: SERVICES = Professional capabilities; WORKS = Specific portfolio items. NEVER add a Service into the Works table or vice versa. QUALITY CONTROL: When adding a project, use searchImages for professional UI/Tech imagery. Project content must be RICH HTML (h2, h3, p, ul/li tags covering Overview, Challenge, Solution, Key Features).",
-        parameters: { 
-          type: "OBJECT", 
-          properties: { 
-            action: { type: "STRING", enum: ["add", "update", "delete"] }, 
-            id: { type: "NUMBER", description: "Required for update and delete" },
-            data: { 
-              type: "OBJECT", 
-              properties: { 
-                title: { type: "STRING", description: "Project title" }, 
-                description: { type: "STRING", description: "Short summary shown on cards (1-2 sentences)" }, 
-                client: { type: "STRING", description: "Client or company name" }, 
-                category: { type: "STRING", description: "e.g. Web Design, Branding, AI, Development" }, 
-                thumbnail_url: { type: "STRING", description: "URL for the hero/thumbnail image. MUST be a high-resolution LANDSCAPE image." }, 
-                date: { type: "STRING", description: "Project date YYYY-MM-DD" }, 
-                project_link: { type: "STRING", description: "Live project URL" },
-                images: { type: "ARRAY", items: { type: "STRING" }, description: "Exactly 3 gallery image URLs for the case study detail page" },
-                content: { type: "STRING", description: "Rich HTML case study. Must include <h2>Title</h2>, <h3>Challenge</h3>, <h3>Solution</h3>, <h3>Key Features</h3> sections with <p> and <ul><li> tags" }
-              } 
-            } 
-          }, 
-          required: ["action"] 
-        }
-      },
-      {
-        name: "searchImages",
-        description: "Search the web for relevant images using SerpAPI. Returns up to 5 image URLs. Use this to find thumbnail and gallery images when adding a new project.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            query: { type: "STRING", description: "Search query for images, e.g. 'modern AI dashboard UI design landscape 4k'" }
-          },
-          required: ["query"]
-        }
-      },
-      {
-        name: "manageServices",
-        description: "Add, update or delete site SERVICES (capabilities). DO NOT use this for Projects. When adding a service, find relevant image URLs via searchImages.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            action: { type: "STRING", enum: ["add", "update", "delete"] },
-            id: { type: "NUMBER" },
-            data: {
-              type: "OBJECT",
-              properties: {
-                title: { type: "STRING" },
-                description: { type: "STRING" },
-                image_url: { type: "STRING", description: "Main card image" },
-                hover_image_url: { type: "STRING", description: "Secondary/Detail image" },
-                content: { type: "STRING", description: "HTML content for the detail page" }
-              }
-            }
-          },
-          required: ["action"]
-        }
-      },
-      {
-        name: "captureLead",
-        description: "Save a potential client inquiry to the CRM database.",
-        parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, email: { type: "STRING" }, project_scope: { type: "STRING" }, budget: { type: "STRING" } }, required: ["name", "email", "project_scope"] }
-      },
-      {
-        name: "showContactMethod",
-        description: "Shows a beautiful UI contact card inside the chat for WhatsApp, Email, or Phone Call. Use this when the user asks for a phone number, email address, or whatsapp contact.",
-        parameters: { type: "OBJECT", properties: { method: { type: "STRING", enum: ["whatsapp", "email", "phone"] } }, required: ["method"] }
-      }
-    ];
-
-    const siteKnowledge = await getSiteKnowledge(text);
-
-    const systemPrompt = `You are Chaka, the Elite Autonomous Admin of this portfolio system.
-YOUR CURRENT MODE: ${mode}
-CURRENT PAGE URL: ${req.body.currentUrl || 'Unknown'}
-PERSONALITY: Elite, confident, proactive, and highly intelligent.
-
-${siteKnowledge}
-
-MANAGEMENT PROTOCOLS:
-1. In ADMIN GOD MODE, you are authorized to change ANY site content. 
-2. READ-BEFORE-WRITE: If the user asks to "improve" or "change" something, ALWAYS call getSiteContext first to see the current text.
-3. SCHEMA ENFORCEMENT: 
-   - Main Home Headline key = "hero_headline" (NOT "hero_title")
-   - About Page Text key = "about_me_page_text"
-4. PROJECT CREATION WORKFLOW (CRITICAL):
-   When user asks to add a project, you MUST create a COMPLETE project:
-   a) First, call searchImages with a relevant query to find 4 professional images
-   b) Use the first image as thumbnail_url, and the next 3 as the images array
-   c) Generate a compelling description (1-2 sentences)
-   d) Generate rich HTML content for the case study with these exact sections:
-      <h2>Project Title</h2><p>Overview paragraph</p>
-      <h3>Challenge</h3><p>What problem was solved</p>
-      <h3>Solution</h3><p>How it was solved</p>
-      <h3>Key Features</h3><ul><li>Feature 1</li><li>Feature 2</li><li>Feature 3</li><li>Feature 4</li></ul>
-   e) Fill ALL fields: title, description, client, category, date, project_link, thumbnail_url, images, content
-   NEVER create a project with empty description, content, or default images.
-5. NAVIGATION: Only call navigate_to if explicitly requested or to show a change you just made.
-6. CONTACT CARDS: Use showContactMethod for phone/email/whatsapp requests.`;
-
-    // Parse conversation history for Gemini format
-    let parsedHistory = [];
-    try { if (history) parsedHistory = JSON.parse(history); } catch (e) { }
-
-    const validHistory = parsedHistory.filter(m => m.role === 'user' || m.role === 'assistant');
-    const collapsedHistory = [];
-    for (const msg of validHistory) {
-      const mappedRole = msg.role === 'assistant' ? 'model' : 'user';
-      const lastItem = collapsedHistory[collapsedHistory.length - 1];
-      if (lastItem && lastItem.role === mappedRole) {
-        lastItem.parts[0].text += '\n\n' + msg.content;
-      } else {
-        collapsedHistory.push({
-          role: mappedRole,
-          parts: [{ text: msg.content }]
-        });
-      }
-    }
-
-    // KEY ROTATION: Try every key × model combination before giving up
-    const modelsToTry = ['gemini-flash-lite-latest'];
-    let response = null;
-    let lastError = null;
-
-    for (const modelName of modelsToTry) {
-      for (const keyRow of keys) {
-        try {
-          const genAI = new GoogleGenerativeAI(keyRow.api_key);
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            systemInstruction: systemPrompt,
-            tools: [{ functionDeclarations: toolDeclarations }]
-          });
-          const chat = model.startChat({ history: collapsedHistory });
-          const result = await chat.sendMessage(text.trim());
-          response = result.response;
-          console.log(`[Chaka Text] Success with ${modelName} (key ...${keyRow.api_key.slice(-6)})`);
-          break; // success — stop trying
-        } catch (err) {
-          const errMsg = err.message || '';
-          console.log(`[Chaka Text] ${modelName} (key ...${keyRow.api_key.slice(-6)}) failed: ${errMsg.substring(0, 100)}`);
-          lastError = err;
-          // Continue to next key/model
-        }
-      }
-      if (response) break; // success — stop trying models
-    }
-
-    // FINAL FALLBACK: If all Gemini keys exhausted, try Groq LLM
-    if (!response) {
-      const groqKeys = await new Promise((resolve, reject) => {
-        db.all("SELECT api_key FROM api_keys WHERE provider = 'groq' AND is_active = '1'", [], (err, rows) => {
-          if (err) reject(err); else resolve(rows);
-        });
-      });
-
-      if (groqKeys.length > 0) {
-        console.log('[Chaka Text] All Gemini keys exhausted. Falling back to Groq...');
-        const groqKey = groqKeys[0].api_key;
-
-        const groqTools = [
-          { type: "function", function: { name: "getSiteContext", description: "Returns all current site settings, projects, and services. Call this FIRST before improving content.", parameters: { type: "object", properties: {} } } },
-          { type: "function", function: { name: "updateSiteSetting", description: "Updates a global site setting. VALID KEYS: hero_headline, hero_eyebrow, hero_text, about_hero_heading, about_me_page_text, contact_email, contact_phone, site_logo_text, footer_cta, company_name.", parameters: { type: "object", properties: { key: { type: "string" }, value: { type: "string" } }, required: ["key", "value"] } } },
-          { type: "function", function: { name: "manageWorks", description: "Add, update or delete portfolio PROJECTS (Case Studies). DO NOT use for Services. All content is database-driven. NEVER try to edit HTML. When adding, MUST include: title, description, client, category, thumbnail_url (MUST be high-res LANDSCAPE), images (array of 3 URLs), content (HTML case study).", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, client: { type: "string" }, category: { type: "string" }, thumbnail_url: { type: "string" }, date: { type: "string" }, project_link: { type: "string" }, images: { type: "array", items: { type: "string" } }, content: { type: "string" } } } }, required: ["action"] } } },
-          { type: "function", function: { name: "searchImages", description: "Search the web for relevant images. Returns up to 5 image URLs. Prefer high-resolution LANDSCAPE images for thumbnails.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-          { type: "function", function: { name: "manageServices", description: "Add, update or delete site SERVICES (capabilities). DO NOT use this for Projects. When adding, find image URLs via searchImages.", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, image_url: { type: "string" }, hover_image_url: { type: "string" }, content: { type: "string" } } } }, required: ["action"] } } },
-          { type: "function", function: { name: "navigate_to", description: "Navigate browser. VALID PATHS: / (home), /about, /works (portfolio), /services, /contact-us, /resume, /testimonials, /blog. For project detail: /work/<slug>. NEVER use .html.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
-          { type: "function", function: { name: "scroll_to", description: "Scroll to a section on the current page.", parameters: { type: "object", properties: { section_concept: { type: "string" } }, required: ["section_concept"] } } },
-          { type: "function", function: { name: "showContactMethod", description: "Shows a contact card for WhatsApp, Email, or Phone.", parameters: { type: "object", properties: { method: { type: "string", enum: ["whatsapp", "email", "phone"] } }, required: ["method"] } } },
-          { type: "function", function: { name: "captureLead", description: "Save a client inquiry to CRM.", parameters: { type: "object", properties: { name: { type: "string" }, email: { type: "string" }, project_scope: { type: "string" }, budget: { type: "string" } }, required: ["name", "email", "project_scope"] } } }
-        ];
-
-        const groqMessages = [
-          { role: 'system', content: systemPrompt },
-          ...validHistory.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
-          { role: 'user', content: text.trim() }
-        ];
-
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: groqMessages, tools: groqTools, temperature: 0.7, max_tokens: 200 })
-        });
-
-        if (groqRes.ok) {
-          const groqData = await groqRes.json();
-          const groqMsg = groqData.choices[0].message;
-          let responseText = groqMsg.content || '';
-          let toolCalls = null;
-
-          if (groqMsg.tool_calls && groqMsg.tool_calls.length > 0) {
-            toolCalls = groqMsg.tool_calls.map(t => ({
-              id: t.id || 'tc_' + Math.random().toString(36).substr(2, 9),
-              name: t.function.name,
-              args: JSON.parse(t.function.arguments)
-            }));
-            if (!responseText.trim()) {
-              const primaryTool = toolCalls[0].name;
-              if (primaryTool === 'navigate_to') responseText = "Navigating you there right now.";
-              else if (primaryTool === 'showContactMethod') responseText = "Sure, here's my contact info!";
-              else responseText = "Getting that for you now.";
-            }
-          }
-
-          // Bulletproof: Llama often hallucates tool JSON inline instead of using native calling
-          if (!toolCalls) {
-            try {
-              const jsonMatch = responseText.match(/\{[^}]*"method"\s*:\s*"(whatsapp|email|phone)"[^}]*\}/);
-              if (jsonMatch) {
-                const args = JSON.parse(jsonMatch[0]);
-                toolCalls = [{ id: 'tc_inline_contact', name: 'showContactMethod', args }];
-                responseText = responseText.replace(jsonMatch[0], '').trim() || "Sure, here's my contact info!";
-              }
-            } catch(e) {}
-            try {
-              const urlMatch = responseText.match(/\{[^}]*"url"\s*:\s*"[^"]*"[^}]*\}/);
-              if (urlMatch && !toolCalls) {
-                const args = JSON.parse(urlMatch[0]);
-                if (args.url) {
-                  toolCalls = [{ id: 'tc_inline_nav', name: 'navigate_to', args }];
-                  responseText = responseText.replace(urlMatch[0], '').trim() || "Navigating you there right now.";
-                }
-              }
-            } catch(e) {}
-            try {
-              const scrollMatch = responseText.match(/\{[^}]*"section_concept"\s*:\s*"[^"]*"[^}]*\}/);
-              if (scrollMatch && !toolCalls) {
-                const args = JSON.parse(scrollMatch[0]);
-                toolCalls = [{ id: 'tc_inline_scroll', name: 'scroll_to', args }];
-                responseText = responseText.replace(scrollMatch[0], '').trim() || "Scrolling there now.";
-              }
-            } catch(e) {}
-          }
-
-          if (!responseText && toolCalls) responseText = "On it!";
-          console.log(`[Chaka Text → Groq] User: "${text}" | AI: "${responseText.substring(0, 80)}" | Tools: ${toolCalls ? toolCalls.length : 0}`);
-          return res.json({ text: responseText, toolCalls });
-        }
-      }
-
-      throw lastError || new Error('All API keys and models exhausted');
-    }
-
-    let responseText = '';
+    if (!swarmRes.ok) throw new Error("Swarm API Error: " + await swarmRes.text());
+    const swarmData = await swarmRes.json();
+    
+    let responseText = swarmData.response || "";
     let toolCalls = null;
-
-    if (response.candidates && response.candidates[0]) {
-      const parts = response.candidates[0].content.parts;
-      for (const part of parts) {
-        if (part.text) responseText += part.text;
-        if (part.functionCall) {
-          if (!toolCalls) toolCalls = [];
-          toolCalls.push({
-            id: 'tc_' + Math.random().toString(36).substr(2, 9),
-            name: part.functionCall.name,
-            args: part.functionCall.args
-          });
-        }
+    if (swarmData.tools && swarmData.tools.length > 0) {
+      toolCalls = swarmData.tools;
+      if (!responseText.trim()) {
+        const primaryTool = toolCalls[0].name;
+        if (primaryTool === 'navigate_to') responseText = "Navigating you there right now.";
+        else if (primaryTool === 'scroll_to') responseText = "Scrolling there now.";
+        else responseText = "On it!";
       }
     }
 
-    if (!responseText && toolCalls) responseText = "On it!";
-
-    console.log(`[Chaka Text] User: "${text}" | AI: "${responseText.substring(0, 80)}" | Tools: ${toolCalls ? toolCalls.length : 0}`);
+    console.log(`[Chaka Swarm] User: "${text}" | AI: "${responseText.substring(0, 80)}" | Tools: ${toolCalls ? toolCalls.length : 0}`);
     res.json({ text: responseText, toolCalls });
 
   } catch (e) {
-    console.error('[Chaka Text] Error:', e);
+    console.error('[Chaka Swarm] Error communicating with Python Agent Swarm:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -1786,105 +1512,27 @@ MANAGEMENT PROTOCOLS:
    - Ensure descriptions are professional and concise.
 4. NAVIGATION: Only call navigate_to if explicitly requested or to show a change you just made.`;
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...recentMemory,
-      { role: 'user', content: userText }
-    ];
-
-    const groqTools = [
-      { type: "function", function: { name: "getSiteContext", description: "Get current site state", parameters: { type: "object", properties: {} } } },
-      { type: "function", function: { name: "navigate_to", description: "Navigate browser. VALID: /, /about, /works, /services, /contact-us, /resume, /testimonials. NEVER use .html.", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
-      { type: "function", function: { name: "scroll_to", description: "Scroll to page section", parameters: { type: "object", properties: { section_concept: { type: "string" } }, required: ["section_concept"] } } },
-      { type: "function", function: { name: "updateSiteSetting", description: "Admin: update setting", parameters: { type: "object", properties: { key: { type: "string" }, value: { type: "string" } }, required: ["key", "value"] } } },
-      { type: "function", function: { name: "manageWorks", description: "Add/Update/Delete portfolio projects. DO NOT use for services.", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, thumbnail_url: { type: "string" }, images: { type: "array", items: { type: "string" } }, content: { type: "string" } } } }, required: ["action"] } } },
-      { type: "function", function: { name: "manageServices", description: "Add/Update/Delete services. DO NOT use for projects.", parameters: { type: "object", properties: { action: { type: "string", enum: ["add", "update", "delete"] }, id: { type: "number" }, data: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, image_url: { type: "string" }, content: { type: "string" } } } }, required: ["action"] } } },
-      { type: "function", function: { name: "searchImages", description: "Search for professional images", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-      { type: "function", function: { name: "captureLead", description: "Save CRM lead", parameters: { type: "object", properties: { name: { type: "string" }, email: { type: "string" }, project_scope: { type: "string" } }, required: ["name", "email", "project_scope"] } } },
-      { type: "function", function: { name: "showContactMethod", description: "Show contact card", parameters: { type: "object", properties: { method: { type: "string", enum: ["whatsapp", "email", "phone"] } }, required: ["method"] } } }
-    ];
-
+    // 3. Process LLM Reply (Agent Swarm via Python)
     let aiResponseText = "";
     let toolCallPayload = null;
-    let groqSuccess = false;
 
     try {
-      const llmRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const swarmRes = await fetch('http://127.0.0.1:3001/chat', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'llama-3.1-8b-instant', messages: messages, tools: groqTools, temperature: 0.7, max_tokens: 150 })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
       });
 
-      if (!llmRes.ok) throw new Error(await llmRes.text());
-      const llmData = await llmRes.json();
-      const llmMsg = llmData.choices[0].message;
-      aiResponseText = llmMsg.content || "";
-
-      if (llmMsg.tool_calls && llmMsg.tool_calls.length > 0) {
-        toolCallPayload = llmMsg.tool_calls.map(t => ({
-          id: t.id || 'tc_' + Math.random().toString(36).substr(2, 9),
-          name: t.function.name,
-          args: JSON.parse(t.function.arguments)
-        }));
+      if (!swarmRes.ok) throw new Error("Swarm API Error: " + await swarmRes.text());
+      const swarmData = await swarmRes.json();
+      
+      aiResponseText = swarmData.response || "";
+      if (swarmData.tools && swarmData.tools.length > 0) {
+        toolCallPayload = swarmData.tools;
       }
-      groqSuccess = true;
     } catch (err) {
-      console.warn('[Chaka Audio] Groq LLM failed/rate-limited. Falling back to Gemini...', err.message.substring(0, 100));
-    }
-
-    // FALLBACK TO GEMINI IF GROQ RATE LIMITED (TPM limit hit)
-    if (!groqSuccess) {
-      const gKeys = await new Promise((resolve) => {
-        db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = '1'", [], (err, rows) => resolve(rows || []));
-      });
-      if (gKeys.length > 0) {
-        const { GoogleGenerativeAI } = require('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(gKeys[0].api_key);
-        
-        // Convert history for Gemini
-        const validHistory = recentMemory.filter(m => m.role === 'user' || m.role === 'assistant');
-        const collapsedHistory = [];
-        for (const msg of validHistory) {
-          const mappedRole = msg.role === 'assistant' ? 'model' : 'user';
-          const lastItem = collapsedHistory[collapsedHistory.length - 1];
-          if (lastItem && lastItem.role === mappedRole) lastItem.parts[0].text += '\n\n' + msg.content;
-          else collapsedHistory.push({ role: mappedRole, parts: [{ text: msg.content }] });
-        }
-
-        const fallbackModel = genAI.getGenerativeModel({
-          model: 'gemini-flash-lite-latest',
-          systemInstruction: systemPrompt,
-          tools: [{ functionDeclarations: [
-            { name: "navigate_to", description: "Navigate browser. VALID: /, /about, /works, /services, /contact-us, /resume, /testimonials. NEVER use .html.", parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] } },
-            { name: "scroll_to", description: "Scroll to page section", parameters: { type: "OBJECT", properties: { section_concept: { type: "STRING" } }, required: ["section_concept"] } },
-            { name: "updateSiteSetting", description: "Admin: update setting", parameters: { type: "OBJECT", properties: { key: { type: "STRING" }, value: { type: "STRING" } }, required: ["key", "value"] } },
-            { name: "manageWorks", description: "Add/Update/Delete portfolio projects", parameters: { type: "OBJECT", properties: { action: { type: "STRING" }, id: { type: "NUMBER" }, data: { type: "OBJECT" } }, required: ["action"] } },
-            { name: "manageServices", description: "Add/Update/Delete site services", parameters: { type: "OBJECT", properties: { action: { type: "STRING" }, id: { type: "NUMBER" }, data: { type: "OBJECT" } }, required: ["action"] } },
-            { name: "showContactMethod", description: "Show contact card", parameters: { type: "OBJECT", properties: { method: { type: "STRING", enum: ["whatsapp", "email", "phone"] } }, required: ["method"] } }
-          ]}]
-        });
-
-        const fallbackChat = fallbackModel.startChat({ history: collapsedHistory });
-        const fallbackResult = await fallbackChat.sendMessage(userText.trim());
-        const response = fallbackResult.response;
-
-        if (response.candidates && response.candidates[0]) {
-          const parts = response.candidates[0].content.parts;
-          for (const part of parts) {
-            if (part.text) aiResponseText += part.text;
-            if (part.functionCall) {
-              if (!toolCallPayload) toolCallPayload = [];
-              toolCallPayload.push({
-                id: 'tc_fb_' + Math.random().toString(36).substr(2, 9),
-                name: part.functionCall.name,
-                args: part.functionCall.args
-              });
-            }
-          }
-        }
-      } else {
-        throw new Error("Groq failed and no Gemini keys available for fallback.");
-      }
+      console.error('[Chaka Swarm] Error communicating with Python Agent Swarm:', err);
+      aiResponseText = "Captain here. I am having trouble connecting to the Agent Swarm. Please ensure the Python backend is running on port 3001.";
     }
 
     if (toolCallPayload && toolCallPayload.length > 0) {

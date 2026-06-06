@@ -373,7 +373,7 @@
               </select>
             </div>
             <div class="field">
-              <button class="btn btn-primary" onclick="saveSetting('chaka_live_engine', document.getElementById('chaka_live_engine').value).then(() => showToast('Engine saved! Refresh your site to apply.'))" style="margin-top:20px; width:100%"><i data-lucide="save"></i> Save Engine</button>
+              <button type="button" class="btn btn-primary" onclick="saveSetting('chaka_live_engine', document.getElementById('chaka_live_engine').value).then(() => showToast('Engine saved! Refresh your site to apply.'))" style="margin-top:20px; width:100%"><i data-lucide="save"></i> Save Engine</button>
             </div>
           </div>
           <hr style="border: 0; height: 1px; background: #333; margin: 20px 0;">
@@ -391,7 +391,7 @@
               <input type="text" id="new_api_key_value" placeholder="Paste encryption key (e.g. AIzaSyB...)">
             </div>
           </div>
-          <button class="btn btn-primary" onclick="addApiKey()" style="margin-top:15px;"><i data-lucide="plus"></i> Add Integration Key</button>
+          <button type="button" class="btn btn-primary" onclick="addApiKey()" style="margin-top:15px;"><i data-lucide="plus"></i> Add Integration Key</button>
         </div>
 
         <div class="card" style="margin-top: 30px;">

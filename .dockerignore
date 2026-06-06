@@ -1,0 +1,11 @@
+node_modules
+.venv
+gptcache_data
+*.sqlite
+*.sqlite.bak
+database_backup.json
+.git
+.env
+scratch
+graphify-out
+chaka_vector_index
