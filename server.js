@@ -14,8 +14,7 @@ const { initChakaStream } = require('./ai/ChakaStream');
 const ApiKeyManager = require('./ai/ApiKeyManager');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database.sqlite');
+const db = require('./lib/supabaseAdapter');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues

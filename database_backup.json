@@ -8,10 +8,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-25T09:56:07.330Z",
       "createdAt": "2026-03-15 15:12:13",
-      "tourCompleted": 0,
-      "warnings": 0,
+      "tourCompleted": "0",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": "[\"CVVglYUPHE4GmJsnuGdB\",\"c6nDHuHQ3u6ecKZxTTNM\"]",
       "location": "{\"ip\":\"2605:59c0:ef6:f310:9182:bb5e:1249:d84b\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
       "device": "{\"ip\":\"2605:59c0:ef6:f310:9182:bb5e:1249:d84b\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
@@ -28,10 +28,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-05-14T01:44:29.455Z",
       "createdAt": "2026-03-15 16:23:43",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": "[\"CVVglYUPHE4GmJsnuGdB\",\"c6nDHuHQ3u6ecKZxTTNM\"]",
       "location": "{\"ip\":\"105.112.106.76\",\"city\":\"Asaba\",\"region\":\"Delta\",\"country\":\"Nigeria\",\"latitude\":6.2036,\"longitude\":6.7365,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"105.112.106.76\",\"city\":\"Asaba\",\"region\":\"Delta\",\"country\":\"Nigeria\",\"latitude\":6.2036,\"longitude\":6.7365,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -48,10 +48,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-03-16 02:12:43",
       "createdAt": "2026-03-16 02:12:43",
-      "tourCompleted": 0,
-      "warnings": 0,
+      "tourCompleted": "0",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": null,
       "device": null,
@@ -68,10 +68,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-03-22T11:18:11.426Z",
       "createdAt": "2026-03-16 20:31:57",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"2409:40c1:640c:ed00:6cc4:fbff:fe9b:876e\",\"city\":\"Vadodara\",\"region\":\"Gujarat\",\"country\":\"India\",\"latitude\":22.3008,\"longitude\":73.2043,\"network\":\"Reliance Jio Infocomm Limited\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 15; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.159 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"2409:40c1:640c:ed00:6cc4:fbff:fe9b:876e\",\"city\":\"Vadodara\",\"region\":\"Gujarat\",\"country\":\"India\",\"latitude\":22.3008,\"longitude\":73.2043,\"network\":\"Reliance Jio Infocomm Limited\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 15; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.159 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -88,10 +88,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-05-01T16:00:07.831Z",
       "createdAt": "2026-03-17 10:59:42",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"105.112.102.208\",\"city\":\"Enugu\",\"region\":\"Enugu State\",\"country\":\"Nigeria\",\"latitude\":6.44,\"longitude\":7.4922,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
       "device": "{\"ip\":\"105.112.102.208\",\"city\":\"Enugu\",\"region\":\"Enugu State\",\"country\":\"Nigeria\",\"latitude\":6.44,\"longitude\":7.4922,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
@@ -108,10 +108,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-03-28T14:42:17.375Z",
       "createdAt": "2026-03-28 13:44:46",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -128,10 +128,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-08T13:23:36.233Z",
       "createdAt": "2026-04-08 13:22:48",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"105.120.129.214\",\"city\":\"Aba\",\"region\":\"Abia State\",\"country\":\"Nigeria\",\"latitude\":5.1069,\"longitude\":7.3748,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"105.120.129.214\",\"city\":\"Aba\",\"region\":\"Abia State\",\"country\":\"Nigeria\",\"latitude\":5.1069,\"longitude\":7.3748,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -148,10 +148,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-10T13:48:16.696Z",
       "createdAt": "2026-04-10 13:47:31",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"154.56.114.242\",\"city\":\"Malasiqui\",\"region\":\"Ilocos\",\"country\":\"Philippines\",\"latitude\":15.9211,\"longitude\":120.4116,\"network\":\"KEITH.NET INCORPORATED\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 15; 25028RN03A Build/AP3A.240905.015.A2; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/146.0.7680.177 Mobile Safari/537.36 trill_440604 AppName/trill ByteLocale/en\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"154.56.114.242\",\"city\":\"Malasiqui\",\"region\":\"Ilocos\",\"country\":\"Philippines\",\"latitude\":15.9211,\"longitude\":120.4116,\"network\":\"KEITH.NET INCORPORATED\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 15; 25028RN03A Build/AP3A.240905.015.A2; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/146.0.7680.177 Mobile Safari/537.36 trill_440604 AppName/trill ByteLocale/en\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -168,10 +168,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-11T12:48:09.611Z",
       "createdAt": "2026-04-11 12:45:14",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
       "device": "{\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
@@ -188,10 +188,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-13T16:22:24.702Z",
       "createdAt": "2026-04-11 14:43:01",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"105.112.106.197\",\"city\":\"Enugu\",\"region\":\"Enugu State\",\"country\":\"Nigeria\",\"latitude\":6.44,\"longitude\":7.4922,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"105.112.106.197\",\"city\":\"Enugu\",\"region\":\"Enugu State\",\"country\":\"Nigeria\",\"latitude\":6.44,\"longitude\":7.4922,\"network\":\"Celtel Nigeria Limited t.a ZAIN\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -208,10 +208,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-12T14:38:06.183Z",
       "createdAt": "2026-04-11 20:04:51",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"2605:59c0:ef6:f310:9efa:6f9f:608f:7fd1\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"2605:59c0:ef6:f310:9efa:6f9f:608f:7fd1\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (3G)\",\"userAgent\":\"Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36\",\"os\":\"Linux\",\"browser\":\"Chrome\",\"device\":\"Mobile\"}",
@@ -228,10 +228,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-05-03T18:48:26.723Z",
       "createdAt": "2026-04-12 14:32:25",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"2605:59c0:ef6:f310:7901:f1c2:2d90:ed1d\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Unknown\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 26_4_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/147.0.7727.99 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"2605:59c0:ef6:f310:7901:f1c2:2d90:ed1d\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Unknown\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 26_4_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/147.0.7727.99 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
@@ -248,10 +248,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-14T22:06:50.752Z",
       "createdAt": "2026-04-14 22:01:46",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"197.211.53.86\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.4474,\"longitude\":3.3903,\"network\":\"globacom-as\",\"connection\":\"Unknown\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 26_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/147.0.7727.47 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
       "device": "{\"ip\":\"197.211.53.86\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.4474,\"longitude\":3.3903,\"network\":\"globacom-as\",\"connection\":\"Unknown\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 26_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/147.0.7727.47 Mobile/15E148 Safari/604.1\",\"os\":\"Mac OS\",\"browser\":\"Safari\",\"device\":\"Mobile\"}",
@@ -268,10 +268,10 @@
       "personality": "CHAKA",
       "lastLogin": "2026-04-25T11:43:22.815Z",
       "createdAt": "2026-04-25 09:57:07",
-      "tourCompleted": 1,
-      "warnings": 0,
+      "tourCompleted": "1",
+      "warnings": "0",
       "lastWarningAt": null,
-      "blocked": 0,
+      "blocked": "0",
       "seenPersonalities": null,
       "location": "{\"ip\":\"2605:59c0:ef6:f310:9182:bb5e:1249:d84b\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
       "device": "{\"ip\":\"2605:59c0:ef6:f310:9182:bb5e:1249:d84b\",\"city\":\"Lagos\",\"region\":\"Lagos\",\"country\":\"Nigeria\",\"latitude\":6.45407,\"longitude\":3.39467,\"network\":\"Space Exploration Technologies Corporation\",\"connection\":\"Mobile Data (4G)\",\"userAgent\":\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\",\"os\":\"Mac OS\",\"browser\":\"Chrome\",\"device\":\"Desktop\"}",
@@ -281,358 +281,55 @@
       "ttsVoiceId": "Puck"
     }
   ],
-  "settings": [
+  "skills": [
     {
-      "key": "hero_eyebrow",
-      "value": ""
+      "id": 1,
+      "name": "UI/UX Design",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "star",
+      "sort_order": "0"
     },
     {
-      "key": "hero_headline",
-      "value": ""
+      "id": 2,
+      "name": "Logo Design",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "sparkle",
+      "sort_order": "1"
     },
     {
-      "key": "hero_text",
-      "value": ""
+      "id": 3,
+      "name": "Development",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "hexagon",
+      "sort_order": "2"
     },
     {
-      "key": "hero_image",
-      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1777007659/portfolio_uploads/msqtctzvyt25ftpgzbqs.png"
+      "id": 4,
+      "name": "AI Design",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "circles",
+      "sort_order": "3"
     },
     {
-      "key": "about_hero_heading",
-      "value": ""
+      "id": 5,
+      "name": "Research",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "target",
+      "sort_order": "4"
     },
     {
-      "key": "about_me_page_text",
-      "value": ""
+      "id": 6,
+      "name": "Creative Direction",
+      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
+      "icon": "diamond",
+      "sort_order": "5"
     },
     {
-      "key": "about_video_url",
-      "value": ""
-    },
-    {
-      "key": "about_hero_image",
-      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1777476888/portfolio_uploads/vz25nwacprw2lkygh3hp.png"
-    },
-    {
-      "key": "about_me_page_image",
-      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1778452238/portfolio_uploads/d1odcdqw0hqpvtl5aedk.png"
-    },
-    {
-      "key": "about_video",
-      "value": "https://res.cloudinary.com/dtarc8fob/video/upload/v1777562778/portfolio_uploads/omy6crtljzbml1euzcdd.mp4"
-    },
-    {
-      "key": "brands_heading",
-      "value": ""
-    },
-    {
-      "key": "site_logo",
-      "value": "https://www.image2url.com/r2/default/images/1776574227338-2c011707-4796-478a-9c6f-01609e41e32f.png"
-    },
-    {
-      "key": "seo_title",
-      "value": "development, website, ai, automation, software"
-    },
-    {
-      "key": "seo_desc",
-      "value": ""
-    },
-    {
-      "key": "site_logo_text",
-      "value": ""
-    },
-    {
-      "key": "footer_cta",
-      "value": ""
-    },
-    {
-      "key": "company_name",
-      "value": ""
-    },
-    {
-      "key": "powered_by_name",
-      "value": ""
-    },
-    {
-      "key": "powered_by_link",
-      "value": ""
-    },
-    {
-      "key": "footer_watermark_image",
-      "value": ""
-    },
-    {
-      "key": "contact_email",
-      "value": ""
-    },
-    {
-      "key": "contact_phone",
-      "value": ""
-    },
-    {
-      "key": "new_api_key_value",
-      "value": ""
-    },
-    {
-      "key": "tagline",
-      "value": ""
-    },
-    {
-      "key": "hero_title",
-      "value": "Chaka Live OS is Active!Creative Solutions That Drive Real Results With AI Integration."
-    },
-    {
-      "key": "chaka_live_engine",
-      "value": "gemini-txt-edge"
-    },
-    {
-      "key": "contact_whatsapp",
-      "value": ""
-    },
-    {
-      "key": "serp_api_key",
-      "value": "f065681001b1fb8301d19b180734ebe8d04e593e"
-    },
-    {
-      "key": "resume_text",
-      "value": ""
-    },
-    {
-      "key": "resume_education",
-      "value": ""
-    },
-    {
-      "key": "resume_intro",
-      "value": ""
-    },
-    {
-      "key": "resume_experience",
-      "value": ""
-    },
-    {
-      "key": "resume_url",
-      "value": "/uploads/1776789315940.docx"
-    },
-    {
-      "key": "social_linkedin",
-      "value": ""
-    },
-    {
-      "key": "social_github",
-      "value": ""
-    },
-    {
-      "key": "social_instagram",
-      "value": ""
-    },
-    {
-      "key": "social_twitter",
-      "value": "https://twitter.com"
-    },
-    {
-      "key": "resume_full_name",
-      "value": ""
-    },
-    {
-      "key": "resume_location",
-      "value": ""
-    },
-    {
-      "key": "label_resume_page_title",
-      "value": ""
-    },
-    {
-      "key": "label_hero_heading",
-      "value": ""
-    },
-    {
-      "key": "label_nav_home",
-      "value": ""
-    },
-    {
-      "key": "label_nav_services",
-      "value": ""
-    },
-    {
-      "key": "label_nav_resume",
-      "value": ""
-    },
-    {
-      "key": "label_nav_contact",
-      "value": ""
-    },
-    {
-      "key": "label_view_fullscreen",
-      "value": ""
-    },
-    {
-      "key": "label_download_pdf",
-      "value": ""
-    },
-    {
-      "key": "label_core_stack",
-      "value": ""
-    },
-    {
-      "key": "label_find_me_online",
-      "value": ""
-    },
-    {
-      "key": "label_areas_expertise",
-      "value": ""
-    },
-    {
-      "key": "label_field_name",
-      "value": ""
-    },
-    {
-      "key": "label_field_email",
-      "value": ""
-    },
-    {
-      "key": "label_field_phone",
-      "value": ""
-    },
-    {
-      "key": "label_field_message",
-      "value": ""
-    },
-    {
-      "key": "label_submit_button",
-      "value": ""
-    },
-    {
-      "key": "label_footer_quick_links",
-      "value": ""
-    },
-    {
-      "key": "label_footer_contact",
-      "value": ""
-    },
-    {
-      "key": "label_copyright",
-      "value": ""
-    },
-    {
-      "key": "label_nav_about",
-      "value": ""
-    },
-    {
-      "key": "resume_open_to",
-      "value": ""
-    },
-    {
-      "key": "resume_core_stack",
-      "value": ""
-    },
-    {
-      "key": "resume_expertise",
-      "value": ""
-    },
-    {
-      "key": "resume_image",
-      "value": ""
-    },
-    {
-      "key": "resume_profile_image",
-      "value": ""
-    },
-    {
-      "key": "seo_site_title",
-      "value": "Jomiez Innovation | Ezinna Nweke Emmanuel - AI & Fullstack Developer"
-    },
-    {
-      "key": "seo_site_description",
-      "value": "Professional portfolio of Ezinna Nweke Emmanuel, a leading AI Architect and Fullstack Developer specializing in custom LLM systems, RAG memory, and pixel-perfect digital experiences."
-    },
-    {
-      "key": "seo_site_keywords",
-      "value": "AI Developer, Fullstack Engineer, Ezinna Nweke Emmanuel, Jomiez, React, Node.js, LLM, RAG, Web Design, Portfolio"
-    },
-    {
-      "key": "seo_og_image",
-      "value": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683f07dbb60349840c98fb18_Thumbnail.avif"
-    },
-    {
-      "key": "hero_active_text",
-      "value": ""
-    },
-    {
-      "key": "hero_rating_text",
-      "value": ""
-    },
-    {
-      "key": "hero_rating_score",
-      "value": ""
-    },
-    {
-      "key": "skills_heading",
-      "value": ""
-    },
-    {
-      "key": "tools_heading",
-      "value": ""
-    },
-    {
-      "key": "label_field_last_name",
-      "value": ""
-    },
-    {
-      "key": "seo_keywords",
-      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
-    },
-    {
-      "key": "founder_name",
-      "value": "Ezinna Emmanuel Nweke"
-    },
-    {
-      "key": "founder_alias",
-      "value": "Templeton"
-    },
-    {
-      "key": "about_hero_subheading",
-      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
-    },
-    {
-      "key": "cta_heading",
-      "value": "Ready to Build Something Extraordinary? Let's Talk."
-    },
-    {
-      "key": "footer_copyright",
-      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
-    },
-    {
-      "key": "about_video_poster",
-      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1778452253/portfolio_uploads/x7zeip6ytrrhhanpsa5o.png"
-    },
-    {
-      "key": "social_whatsapp",
-      "value": ""
-    },
-    {
-      "key": "hero_spline_url",
-      "value": ""
-    },
-    {
-      "key": "hero_media_type",
-      "value": "video"
-    },
-    {
-      "key": "hero_video",
-      "value": "https://res.cloudinary.com/dtarc8fob/video/upload/v1778711787/portfolio_uploads/l6s8im6hyjj5cwqtrae5.webm"
-    },
-    {
-      "key": "hero_video_size",
-      "value": "200"
-    },
-    {
-      "key": "hero_video_remove_bg",
-      "value": "0"
-    },
-    {
-      "key": "new_api_key_provider",
-      "value": "gemini"
+      "id": 7,
+      "name": "AI development / Automation ",
+      "description": "Building powerful and capable ai systems, that are capable of anything ",
+      "icon": "code",
+      "sort_order": "7"
     }
   ],
   "site_analytics": [
@@ -46139,8 +45836,3761 @@
       "ip_address": "85.208.96.196, 172.71.146.33, 10.25.193.131",
       "user_agent": "Mozilla/5.0 (compatible; SemrushBot/7~bl; +http://www.semrush.com/bot.html)",
       "created_at": "2026-05-14 10:29:34"
+    },
+    {
+      "id": 5689,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5690,
+      "path": "/about",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5691,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5692,
+      "path": "/resume",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5693,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5694,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5695,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5696,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5697,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5698,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5699,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5700,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3.1 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5701,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5702,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5703,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5704,
+      "path": "/resume",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5705,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5706,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5707,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5708,
+      "path": "/services/marketing-design",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5709,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5710,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5711,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5712,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5713,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5714,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5715,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5716,
+      "path": "/services/ui-ux-design",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5717,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5718,
+      "path": "/services/development",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5719,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5720,
+      "path": "/services/motion-design",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5721,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5722,
+      "path": "/services/3d-design",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5723,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5724,
+      "path": "/services/ai-automation",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5725,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5726,
+      "path": "/services/marketing-design",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5727,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5728,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5729,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5730,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5731,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5732,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5733,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5734,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5735,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5736,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5737,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5738,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5739,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5740,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5741,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "created_at": null
+    },
+    {
+      "id": 5742,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5743,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5744,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5745,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5746,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5747,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5748,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5749,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5750,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5751,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5752,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5753,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5754,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5755,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5756,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5757,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5758,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5759,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5760,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5761,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5762,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5763,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5764,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5765,
+      "path": "/teamwork-preview",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5766,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5767,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5768,
+      "path": "/teamwork-preview",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5769,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5770,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5771,
+      "path": "/teamwork-preview",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5772,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5773,
+      "path": "/teamwork-preview",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5774,
+      "path": "/teamwork-preview",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5775,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5776,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5777,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5778,
+      "path": "/work/project-astra",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5779,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5780,
+      "path": "/home",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5781,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5782,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5783,
+      "path": "/home",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5784,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5785,
+      "path": "/work/project-astra",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5786,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5787,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5788,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5789,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5790,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5791,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5792,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5793,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5794,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5795,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5796,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5797,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5798,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5799,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5800,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5801,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5802,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5803,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5804,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5805,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5806,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5807,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5808,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5809,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5810,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5811,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5812,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5813,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5814,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5815,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5816,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5817,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5818,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5819,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5820,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5821,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5822,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5823,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5824,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5825,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5826,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5827,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5828,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5829,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5830,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5831,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5832,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5833,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5834,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5835,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5836,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5837,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5838,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5839,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5840,
+      "path": "/services/branding",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5841,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5842,
+      "path": "/work/project-apex",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5843,
+      "path": "/",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5844,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5845,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5846,
+      "path": "/work/project-apex",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5847,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5848,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5849,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5850,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5851,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5852,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5853,
+      "path": "/work/project-apex",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5854,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5855,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5856,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5857,
+      "path": "/work/project-apex",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5858,
+      "path": "/work/project-apex",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5859,
+      "path": "/works",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "created_at": null
+    },
+    {
+      "id": 5860,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5861,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5862,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5863,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5864,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5865,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5866,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5867,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
+    },
+    {
+      "id": 5868,
+      "path": "/ping",
+      "country": "Localhost",
+      "ip_address": "::1",
+      "user_agent": "axios/1.15.2",
+      "created_at": null
     }
   ],
+  "settings": [
+    {
+      "key": "hero_eyebrow",
+      "value": ""
+    },
+    {
+      "key": "hero_headline",
+      "value": ""
+    },
+    {
+      "key": "hero_text",
+      "value": ""
+    },
+    {
+      "key": "hero_image",
+      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1777007659/portfolio_uploads/msqtctzvyt25ftpgzbqs.png"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": ""
+    },
+    {
+      "key": "about_me_page_text",
+      "value": "I am a passionate AI & Fullstack Developer with extensive experience in building innovative software solutions. From crafting beautiful user interfaces to engineering powerful backend systems, I bring ideas to life with clean code and creative thinking. My expertise spans web development, mobile applications, AI integration, and digital transformation — helping businesses and startups achieve their goals through technology."
+    },
+    {
+      "key": "about_video_url",
+      "value": ""
+    },
+    {
+      "key": "about_hero_image",
+      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1777476888/portfolio_uploads/vz25nwacprw2lkygh3hp.png"
+    },
+    {
+      "key": "about_me_page_image",
+      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1778452238/portfolio_uploads/d1odcdqw0hqpvtl5aedk.png"
+    },
+    {
+      "key": "about_video",
+      "value": "https://res.cloudinary.com/dtarc8fob/video/upload/v1777562778/portfolio_uploads/omy6crtljzbml1euzcdd.mp4"
+    },
+    {
+      "key": "brands_heading",
+      "value": "Trusted By Leading Brands"
+    },
+    {
+      "key": "site_logo",
+      "value": "https://www.image2url.com/r2/default/images/1776574227338-2c011707-4796-478a-9c6f-01609e41e32f.png"
+    },
+    {
+      "key": "seo_title",
+      "value": "development, website, ai, automation, software"
+    },
+    {
+      "key": "seo_desc",
+      "value": ""
+    },
+    {
+      "key": "site_logo_text",
+      "value": ""
+    },
+    {
+      "key": "footer_cta",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "company_name",
+      "value": ""
+    },
+    {
+      "key": "powered_by_name",
+      "value": ""
+    },
+    {
+      "key": "powered_by_link",
+      "value": ""
+    },
+    {
+      "key": "footer_watermark_image",
+      "value": "https://www.image2url.com/r2/default/images/1776574227338-2c011707-4796-478a-9c6f-01609e41e32f.png"
+    },
+    {
+      "key": "contact_email",
+      "value": ""
+    },
+    {
+      "key": "contact_phone",
+      "value": ""
+    },
+    {
+      "key": "new_api_key_value",
+      "value": ""
+    },
+    {
+      "key": "tagline",
+      "value": ""
+    },
+    {
+      "key": "hero_title",
+      "value": "Chaka Live OS is Active!Creative Solutions That Drive Real Results With AI Integration."
+    },
+    {
+      "key": "chaka_live_engine",
+      "value": "gemini-txt-edge"
+    },
+    {
+      "key": "contact_whatsapp",
+      "value": ""
+    },
+    {
+      "key": "serp_api_key",
+      "value": "f065681001b1fb8301d19b180734ebe8d04e593e"
+    },
+    {
+      "key": "resume_text",
+      "value": "Creative technologist with a passion for building innovative software solutions. Experienced in fullstack development, AI integration, and digital transformation."
+    },
+    {
+      "key": "resume_education",
+      "value": ""
+    },
+    {
+      "key": "resume_intro",
+      "value": "AI & Fullstack Developer"
+    },
+    {
+      "key": "resume_experience",
+      "value": ""
+    },
+    {
+      "key": "resume_url",
+      "value": "/uploads/1776789315940.docx"
+    },
+    {
+      "key": "social_linkedin",
+      "value": ""
+    },
+    {
+      "key": "social_github",
+      "value": ""
+    },
+    {
+      "key": "social_instagram",
+      "value": ""
+    },
+    {
+      "key": "social_twitter",
+      "value": "https://twitter.com"
+    },
+    {
+      "key": "resume_full_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "resume_location",
+      "value": "Nigeria"
+    },
+    {
+      "key": "label_resume_page_title",
+      "value": "Resume | Jomiez Innovation"
+    },
+    {
+      "key": "label_hero_heading",
+      "value": "Resume"
+    },
+    {
+      "key": "label_nav_home",
+      "value": "Home"
+    },
+    {
+      "key": "label_nav_services",
+      "value": "Services"
+    },
+    {
+      "key": "label_nav_resume",
+      "value": "Resume"
+    },
+    {
+      "key": "label_nav_contact",
+      "value": "Contact Me"
+    },
+    {
+      "key": "label_view_fullscreen",
+      "value": "View Fullscreen"
+    },
+    {
+      "key": "label_download_pdf",
+      "value": "Download PDF"
+    },
+    {
+      "key": "label_core_stack",
+      "value": "Core Tech Stack"
+    },
+    {
+      "key": "label_find_me_online",
+      "value": "Find Me Online"
+    },
+    {
+      "key": "label_areas_expertise",
+      "value": "Areas of Expertise"
+    },
+    {
+      "key": "label_field_name",
+      "value": ""
+    },
+    {
+      "key": "label_field_email",
+      "value": ""
+    },
+    {
+      "key": "label_field_phone",
+      "value": ""
+    },
+    {
+      "key": "label_field_message",
+      "value": ""
+    },
+    {
+      "key": "label_submit_button",
+      "value": ""
+    },
+    {
+      "key": "label_footer_quick_links",
+      "value": "Quick Links"
+    },
+    {
+      "key": "label_footer_contact",
+      "value": "Contact Us"
+    },
+    {
+      "key": "label_copyright",
+      "value": "© Copyright 2026 | Jomiez Innovation All Rights Reserved."
+    },
+    {
+      "key": "label_nav_about",
+      "value": "About Me"
+    },
+    {
+      "key": "resume_open_to",
+      "value": "Full-time, Contract, Freelance"
+    },
+    {
+      "key": "resume_core_stack",
+      "value": "JavaScript, TypeScript, React, Next.js, Node.js, Python, Express, MongoDB, PostgreSQL, AI/ML, Figma"
+    },
+    {
+      "key": "resume_expertise",
+      "value": "[{\"title\":\"Fullstack Development\",\"desc\":\"End-to-end web and mobile application development\"},{\"title\":\"AI Integration\",\"desc\":\"Building intelligent systems with machine learning and NLP\"},{\"title\":\"System Architecture\",\"desc\":\"Designing scalable, maintainable software architectures\"},{\"title\":\"UI/UX Design\",\"desc\":\"Creating beautiful, intuitive user experiences\"}]"
+    },
+    {
+      "key": "resume_image",
+      "value": ""
+    },
+    {
+      "key": "resume_profile_image",
+      "value": ""
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation | Ezinna Nweke Emmanuel - AI & Fullstack Developer"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Professional portfolio of Ezinna Nweke Emmanuel, a leading AI Architect and Fullstack Developer specializing in custom LLM systems, RAG memory, and pixel-perfect digital experiences."
+    },
+    {
+      "key": "seo_site_keywords",
+      "value": "AI Developer, Fullstack Engineer, Ezinna Nweke Emmanuel, Jomiez, React, Node.js, LLM, RAG, Web Design, Portfolio"
+    },
+    {
+      "key": "seo_og_image",
+      "value": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683f07dbb60349840c98fb18_Thumbnail.avif"
+    },
+    {
+      "key": "hero_active_text",
+      "value": ""
+    },
+    {
+      "key": "hero_rating_text",
+      "value": ""
+    },
+    {
+      "key": "hero_rating_score",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": ""
+    },
+    {
+      "key": "tools_heading",
+      "value": ""
+    },
+    {
+      "key": "label_field_last_name",
+      "value": ""
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "about_video_poster",
+      "value": "https://res.cloudinary.com/dtarc8fob/image/upload/v1778452253/portfolio_uploads/x7zeip6ytrrhhanpsa5o.png"
+    },
+    {
+      "key": "social_whatsapp",
+      "value": ""
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "hero_media_type",
+      "value": "video"
+    },
+    {
+      "key": "hero_video",
+      "value": "https://res.cloudinary.com/dtarc8fob/video/upload/v1778711787/portfolio_uploads/l6s8im6hyjj5cwqtrae5.webm"
+    },
+    {
+      "key": "hero_video_size",
+      "value": "200"
+    },
+    {
+      "key": "hero_video_remove_bg",
+      "value": "0"
+    },
+    {
+      "key": "new_api_key_provider",
+      "value": "gemini"
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    },
+    {
+      "key": "site_logo_text",
+      "value": "Jomiez"
+    },
+    {
+      "key": "hero_eyebrow",
+      "value": "Innovative Software Solutions for the Digital Age"
+    },
+    {
+      "key": "hero_headline",
+      "value": "We Build Powerful Software, Websites & AI-Driven Solutions That Transform Businesses."
+    },
+    {
+      "key": "hero_text",
+      "value": "From custom web applications and mobile apps to AI integration and digital transformation — Jomiez Innovation delivers world-class technology solutions for startups, enterprises, and everything in between."
+    },
+    {
+      "key": "company_name",
+      "value": "Jomiez Innovation"
+    },
+    {
+      "key": "powered_by_name",
+      "value": "Chaka"
+    },
+    {
+      "key": "powered_by_link",
+      "value": "#"
+    },
+    {
+      "key": "contact_email",
+      "value": "hello@jomiez.com"
+    },
+    {
+      "key": "contact_phone",
+      "value": "+234 000 000 0000"
+    },
+    {
+      "key": "hero_active_text",
+      "value": "Available for new projects"
+    },
+    {
+      "key": "hero_rating_text",
+      "value": "Trusted by businesses globally"
+    },
+    {
+      "key": "hero_rating_score",
+      "value": "4.9"
+    },
+    {
+      "key": "hero_media_type",
+      "value": "image"
+    },
+    {
+      "key": "hero_spline_url",
+      "value": ""
+    },
+    {
+      "key": "skills_heading",
+      "value": "Our Professional Skills & Technical Expertise"
+    },
+    {
+      "key": "tools_heading",
+      "value": "Technologies We Work With"
+    },
+    {
+      "key": "label_field_name",
+      "value": "First Name *"
+    },
+    {
+      "key": "label_field_last_name",
+      "value": "Last Name *"
+    },
+    {
+      "key": "label_field_email",
+      "value": "Email Address *"
+    },
+    {
+      "key": "label_field_phone",
+      "value": "Phone Number *"
+    },
+    {
+      "key": "label_field_message",
+      "value": "Message *"
+    },
+    {
+      "key": "label_submit_button",
+      "value": "Let's Connect"
+    },
+    {
+      "key": "seo_site_title",
+      "value": "Jomiez Innovation — Software Development, Web & App Solutions"
+    },
+    {
+      "key": "seo_site_description",
+      "value": "Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide."
+    },
+    {
+      "key": "seo_keywords",
+      "value": "Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_name",
+      "value": "Ezinna Emmanuel Nweke"
+    },
+    {
+      "key": "founder_alias",
+      "value": "Templeton"
+    },
+    {
+      "key": "about_hero_heading",
+      "value": "Building the Future of Software — One Innovation at a Time"
+    },
+    {
+      "key": "about_hero_subheading",
+      "value": "We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences."
+    },
+    {
+      "key": "cta_heading",
+      "value": "Ready to Build Something Extraordinary? Let's Talk."
+    },
+    {
+      "key": "footer_copyright",
+      "value": "© 2024 Jomiez Innovation. All Rights Reserved. Built with ❤️ by Jomiez."
+    }
+  ],
+  "marquee_images": [
+    {
+      "id": 1,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bcf7d04459be6c6b4_Marquee%20Image%2001.avif",
+      "sort_order": "0"
+    },
+    {
+      "id": 2,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bb886f73ce87f5dcc_Marquee%20Image%2002.avif",
+      "sort_order": "1"
+    },
+    {
+      "id": 3,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bde027dfc7ec6f19d_Marquee%20Image%2003.avif",
+      "sort_order": "2"
+    },
+    {
+      "id": 4,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b2dda0e8d3259164c_Marquee%20Image%2004.avif",
+      "sort_order": "3"
+    },
+    {
+      "id": 5,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b5210745bdb720741_Marquee%20Image%2005.avif",
+      "sort_order": "4"
+    },
+    {
+      "id": 6,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b70e79d2548d85ee9_Marquee%20Image%2006.avif",
+      "sort_order": "5"
+    },
+    {
+      "id": 7,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b1357863b01ff38d4_Marquee%20Image%2007.avif",
+      "sort_order": "6"
+    },
+    {
+      "id": 8,
+      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b67c15d9923e00aff_Marquee%20Image%2008.avif",
+      "sort_order": "7"
+    }
+  ],
+  "testimonials": [
+    {
+      "id": 1,
+      "message": "Working with Temple was an outstanding experience. Their ability to understand our vision and translate it into a clean, functional design exceeded our expectations.",
+      "author_name": "Jane Cooper",
+      "author_role": "Creative Director at Lin & Co",
+      "author_image": "https://plus.unsplash.com/premium_photo-1708275672423-837db6d3d700?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NDF8fGJsYWNrJTIwbWFufGVufDB8fDB8fHww",
+      "rating": "5",
+      "sort_order": "0"
+    },
+    {
+      "id": 2,
+      "message": "Absolutely phenomenal work. Temple delivered on time and exceeded every metric we set.",
+      "author_name": "Michael Chen",
+      "author_role": "Founder, TechNova",
+      "author_image": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683ae685fc75e080b82a5f35_Jane%20Cooper.avif",
+      "rating": "5",
+      "sort_order": "1"
+    },
+    {
+      "id": 3,
+      "message": "A brilliant problem solver. The interface feels natural and perfectly aligned with our brand.",
+      "author_name": "Sarah Jenkins",
+      "author_role": "Head of Product, FlowState",
+      "author_image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1zQ374bP5QCpWwasc_KLsqhAXI_AfRe_SUA&s",
+      "rating": "5",
+      "sort_order": "2"
+    }
+  ],
+  "api_keys": [
+    {
+      "id": 7,
+      "provider": "groq",
+      "api_key": "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",
+      "is_active": "1",
+      "fail_count": "0"
+    },
+    {
+      "id": 10,
+      "provider": "groq",
+      "api_key": "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",
+      "is_active": "1",
+      "fail_count": "0"
+    },
+    {
+      "id": 12,
+      "provider": "groq",
+      "api_key": "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",
+      "is_active": "1",
+      "fail_count": "0"
+    },
+    {
+      "id": 13,
+      "provider": "gemini",
+      "api_key": "AQ.Ab8RN6I8MVXflpnpJ6RsGa5nZX1AR4f3JMm1sPYsJvsrLdTcVQ",
+      "is_active": "1",
+      "fail_count": null
+    },
+    {
+      "id": 14,
+      "provider": "gemini",
+      "api_key": "AQ.Ab8RN6KAgZ7Gh2RUKCE1YDWaAY4Q57DLlmC-Xb9BbmjnaI0ZZw",
+      "is_active": "1",
+      "fail_count": null
+    },
+    {
+      "id": 15,
+      "provider": "gemini",
+      "api_key": "AIzaSyA4Syr7lrLlSpt3ssWm_5gp1Wn7cLwTTXY",
+      "is_active": "1",
+      "fail_count": null
+    },
+    {
+      "id": 16,
+      "provider": "gemini",
+      "api_key": "AIzaSyBR9OoiBWKqKRUiG_qdc6_2c2EX0_WIexo",
+      "is_active": "1",
+      "fail_count": null
+    }
+  ],
+  "portfolio_users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2b$10$3VRX2UZZbG46NVZhLkzl8eKntWS4Twas0vJvWGrMiKXw7nZ8rvkGW"
+    },
+    {
+      "id": 2,
+      "username": "admin",
+      "password": "$2b$10$aREYcvNqT5.4KDoy.vYtcuowBBMFpFscowFzYdlQraZlDO3iCw1/S"
+    },
+    {
+      "id": 3,
+      "username": "admin",
+      "password": "$2b$10$7tuLZkUH0C/0nuVdhoZZEetYoYRgjkJ7z9NVXAZ8UT0vV666VPWiy"
+    },
+    {
+      "id": 4,
+      "username": "admin",
+      "password": "$2b$10$KkGH3lbHJZbqmUEdjBXNhuz0m5H9kCU956CSeSiVU8oCoD8BRWFlG"
+    },
+    {
+      "id": 5,
+      "username": "admin",
+      "password": "$2b$10$h/w6dGZ74XYDbI59AjRL6uJAk5Ery1w31qW412gMreB3I4gD7uKk6"
+    },
+    {
+      "id": 6,
+      "username": "admin",
+      "password": "$2b$10$PbC/vZzehVgUDzJBAUqxEO65n2HVka.A8rc304KR0QKIE49B00DDe"
+    },
+    {
+      "id": 7,
+      "username": "admin",
+      "password": "$2b$10$l.QVEk2XAWs2YMWrcbYKB.K7f6Koi/y07MoKvW9cjDLAXa9BUS7JO"
+    },
+    {
+      "id": 8,
+      "username": "admin",
+      "password": "$2b$10$f7SylmeBFVFZyrXSmOXKduiet5strQ38TlEXxwN2fCugg5TCzcUKW"
+    },
+    {
+      "id": 9,
+      "username": "admin",
+      "password": "$2b$10$vsEigrqBMvHS7xAcn4Eb8.rPQKJrj7m7Q963016ip7RIydRuXg3ri"
+    },
+    {
+      "id": 10,
+      "username": "admin",
+      "password": "$2b$10$T38DkjKWxHnlB38YQUOWnOppKkd8l/ThMHo0w1dYGhlUQ4p3Aoidq"
+    },
+    {
+      "id": 11,
+      "username": "admin",
+      "password": "$2b$10$Zsdq0xjxecaBQKZ1PJKgb.2/Y8TYeOxHEyR/ZoJsUK0iiaUvsBrea"
+    },
+    {
+      "id": 12,
+      "username": "admin",
+      "password": "$2b$10$XaJWuENG1yvUy0BbeRhfle3ugEIHpwXWgrDKpKlmE8z7MKS4muzh2"
+    },
+    {
+      "id": 13,
+      "username": "admin",
+      "password": "$2b$10$wRoj9mpSDe9ItAFHkiHJTO704AKrccgIZ2sJHGyiFlz/k2aGXftTK"
+    },
+    {
+      "id": 14,
+      "username": "admin",
+      "password": "$2b$10$AN9SysgCrDuRhVEooSFXu.NDgOS3eUiv21QgyHa4X.8OFx.4UZx1W"
+    },
+    {
+      "id": 15,
+      "username": "admin",
+      "password": "$2b$10$LILrdSXG.3DRZoFfwSdiHOXL0ljVFIiiG.6B7hqHkOxnBf9T41KwK"
+    }
+  ],
+  "counters": [
+    {
+      "id": 1,
+      "label": "Years Experience",
+      "value": "7",
+      "suffix": "+",
+      "sort_order": "1"
+    },
+    {
+      "id": 2,
+      "label": "Successful Projects",
+      "value": "80",
+      "suffix": "+",
+      "sort_order": "2"
+    },
+    {
+      "id": 3,
+      "label": "Percentage of satisfied clients",
+      "value": "100",
+      "suffix": "%",
+      "sort_order": "3"
+    }
+  ],
+  "ai_memory": [],
   "client_leads": [
     {
       "id": 1,
@@ -46183,8 +49633,56 @@
       "ip_address": "106.219.165.164, 104.23.160.26, 10.28.13.2"
     }
   ],
-  "ai_memory": [],
-  "blog_posts": [],
+  "faqs": [
+    {
+      "id": 1,
+      "question": "What services do you offer?",
+      "answer": "We offer web design, development, AI/ML Integrations, Webflow, e-commerce, SEO, branding, graphic design, and maintenance services to support your online success.",
+      "sort_order": "0"
+    },
+    {
+      "id": 2,
+      "question": "Are you currently available for freelance work?",
+      "answer": "Yes, I’m available for freelance projects! Let’s discuss your needs and create\n                                        something great together. Contact me to get started.",
+      "sort_order": "1"
+    },
+    {
+      "id": 3,
+      "question": "What tools and technologies do you use?",
+      "answer": "I use Webflow, HTML, CSS, JavaScript, Figma, Photoshop, and SEO tools to build\n                                        beautiful, functional websites.",
+      "sort_order": "2"
+    },
+    {
+      "id": 4,
+      "question": "Can we schedule a meeting to discuss a project?",
+      "answer": "Yes, absolutely! Please let me know a convenient time, and we’ll arrange a\n                                        meeting to discuss your project details.",
+      "sort_order": "3"
+    },
+    {
+      "id": 5,
+      "question": "Do you offer complete website design ?",
+      "answer": "Yes, I offer complete website design services, from concept to launch, ensuring\n                                        a functional, visually appealing, and user-friendly site.",
+      "sort_order": "4"
+    },
+    {
+      "id": 6,
+      "question": "Do you guys offer complete website design services?",
+      "answer": "Yes, we provide complete website design services, including planning, design,\n                                        development, and launch to create a fully functional website.",
+      "sort_order": "5"
+    },
+    {
+      "id": 7,
+      "question": "Do you have all-in-one website design options?",
+      "answer": "yes, we offer all-in-one website design solutions that cover everything from\n                                        initial concept to final launch and support.",
+      "sort_order": "6"
+    },
+    {
+      "id": 8,
+      "question": "Do you have comprehensive website design solutions available?",
+      "answer": "Yes, we provide comprehensive website design solutions, including design,\n                                        development, SEO, and ongoing support tailored to your needs.",
+      "sort_order": "7"
+    }
+  ],
   "works": [
     {
       "id": 2,
@@ -46302,57 +49800,19 @@
       "client": "AURAMAX Audio",
       "date": "2025",
       "project_link": ""
-    }
-  ],
-  "skills": [
-    {
-      "id": 1,
-      "name": "UI/UX Design",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "star",
-      "sort_order": 0
     },
     {
-      "id": 2,
-      "name": "Logo Design",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "sparkle",
-      "sort_order": 1
-    },
-    {
-      "id": 3,
-      "name": "Development",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "hexagon",
-      "sort_order": 2
-    },
-    {
-      "id": 4,
-      "name": "AI Design",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "circles",
-      "sort_order": 3
-    },
-    {
-      "id": 5,
-      "name": "Research",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "target",
-      "sort_order": 4
-    },
-    {
-      "id": 6,
-      "name": "Creative Direction",
-      "description": "Creating dynamic and engaging interfaces that facilitate seamless and enjoyable online experiences.",
-      "icon": "diamond",
-      "sort_order": 5
-    },
-    {
-      "id": 7,
-      "name": "AI development / Automation ",
-      "description": "Building powerful and capable ai systems, that are capable of anything ",
-      "icon": "code",
-      "sort_order": 7
+      "id": 12,
+      "slug": "project-apex",
+      "title": "Project Apex",
+      "description": "An AI Multimodal system developed for Google.",
+      "thumbnail_url": "/assets/img/work/placeholder.jpg",
+      "content": "Detailed description of Project Apex, an advanced AI Multimodal system. This project exemplifies cutting-edge artificial intelligence, integrating various data modalities to achieve superior understanding and interaction capabilities. It represents a significant leap forward in AI technology, designed to handle complex tasks across different domains.",
+      "images": "[]",
+      "category": "AI/Machine Learning",
+      "client": "Google",
+      "date": "2023-01-01",
+      "project_link": "https://projectapex.google.com"
     }
   ],
   "services": [
@@ -46363,7 +49823,7 @@
       "description": "Our branding logo MVP design focuses on creating a strong, memorable visual identity that captures your brand's essence with clarity and simplicity.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d7c157981a3a0d6f930c_Branding.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dbc2e45a5650e3c390a9_Branding.jpg",
-      "sort_order": 0,
+      "sort_order": "0",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46373,7 +49833,7 @@
       "description": "Our UI/UX design focuses on creating intuitive, engaging, and user-centered digital experiences that drive interaction and satisfaction.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d5ecb220a767495d0ef4_UI%20UX%20Design.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dbf289b3b2b8d9c75cf1_UI%3AUX%20Design.jpg",
-      "sort_order": 1,
+      "sort_order": "1",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46383,7 +49843,7 @@
       "description": "Our development services deliver fast, scalable, and secure digital solutions tailored to your business needs. We specialize in building responsive websites.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d5a334adc63f90822c1e_Development.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dca631bfa22715260a55_Development.jpg",
-      "sort_order": 2,
+      "sort_order": "2",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46393,7 +49853,7 @@
       "description": "Our motion design service transforms static visuals into engaging, dynamic experiences that captivate audiences and elevate your brand.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d6717f4ed65720b71235_Motion%20Design.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dbb58b7de73b6e783b7f_Brand%20Strategy.jpg",
-      "sort_order": 3,
+      "sort_order": "3",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46403,7 +49863,7 @@
       "description": "Marketing design is the strategic fusion of visual communication and brand messaging aimed at promoting products, services, or ideas to target audiences.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d49c586af86cc1ed3a02_Marketing%20Design.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dc3a18991235836cb148_Marketing%20Design.jpg",
-      "sort_order": 4,
+      "sort_order": "4",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46413,7 +49873,7 @@
       "description": "3D Design is the process of creating three-dimensional digital models or visual representations of objects, environments, and scenes using specialized software.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d4112a5ca5933cef88af_3d%20Design.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dc2d3506891400bfa9d2_3d%20Design.jpg",
-      "sort_order": 5,
+      "sort_order": "5",
       "content": "\n<p>Our branding service is designed to help businesses build a strong, cohesive, and memorable identity. From strategy to visuals, we align every touchpoint with your brand's vision, voice, and values. Whether you're starting from scratch or rebranding, we create designs that not only look great but also connect deeply with your target audience.</p>\n<h6>Brand Strategy & Positioning</h6>\n<p>We define your brand's purpose, values, target audience, market positioning, and competitive edge. This ensures your brand communicates clearly and consistently.</p>\n<h6>Logo Design & Visual Identity</h6>\n<p>From a distinctive logo to color palettes, typography, and iconography, we develop a complete and versatile visual identity that reflects your brand essence.</p>\n<h6>Messaging & Voice</h6>\n<p>We craft your brand's tone, tagline, mission statement, and key messaging to ensure your story is compelling and cohesive.</p>\n<h6>Collateral Design</h6>\n<p>We apply your brand identity across essential materials such as business cards, letterheads, social media graphics, packaging, and more.</p>\n"
     },
     {
@@ -46423,236 +49883,35 @@
       "description": "Tailored AI automation solutions to streamline your workflows and increase productivity.",
       "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852d7c157981a3a0d6f930c_Branding.avif",
       "hover_image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1dc/6852dca631bfa22715260a55_Development.jpg",
-      "sort_order": 6,
+      "sort_order": "6",
       "content": "<p>We build custom AI automation agents that handle repetitive tasks, data extraction, and customer support, allowing your team to focus on high-value strategy.</p>"
     }
   ],
+  "blog_posts": [],
   "brands": [
     {
       "id": 1,
       "name": "CHAKA",
       "image_url": "https://www.image2url.com/r2/default/images/1776573999260-e7d95a02-032e-4a4b-b721-a80d12948236.png",
-      "sort_order": 0
+      "sort_order": "0"
     },
     {
       "id": 2,
       "name": "",
       "image_url": "https://www.image2url.com/r2/default/images/1776574146208-db3546ac-856d-41df-b1dd-48f9a4fe1822.webp",
-      "sort_order": 1
+      "sort_order": "1"
     },
     {
       "id": 3,
       "name": "",
       "image_url": "https://www.image2url.com/r2/default/images/1776574227338-2c011707-4796-478a-9c6f-01609e41e32f.png",
-      "sort_order": 2
+      "sort_order": "2"
     },
     {
       "id": 4,
       "name": "",
       "image_url": "https://www.image2url.com/r2/default/images/1776574359490-1ca26283-7d07-4689-a78b-ef7dcaeab4b8.webp",
-      "sort_order": 3
-    }
-  ],
-  "faqs": [
-    {
-      "id": 1,
-      "question": "What services do you offer?",
-      "answer": "We offer web design, development, AI/ML Integrations, Webflow, e-commerce, SEO, branding, graphic design, and maintenance services to support your online success.",
-      "sort_order": 0
-    },
-    {
-      "id": 2,
-      "question": "Are you currently available for freelance work?",
-      "answer": "Yes, I’m available for freelance projects! Let’s discuss your needs and create\n                                        something great together. Contact me to get started.",
-      "sort_order": 1
-    },
-    {
-      "id": 3,
-      "question": "What tools and technologies do you use?",
-      "answer": "I use Webflow, HTML, CSS, JavaScript, Figma, Photoshop, and SEO tools to build\n                                        beautiful, functional websites.",
-      "sort_order": 2
-    },
-    {
-      "id": 4,
-      "question": "Can we schedule a meeting to discuss a project?",
-      "answer": "Yes, absolutely! Please let me know a convenient time, and we’ll arrange a\n                                        meeting to discuss your project details.",
-      "sort_order": 3
-    },
-    {
-      "id": 5,
-      "question": "Do you offer complete website design ?",
-      "answer": "Yes, I offer complete website design services, from concept to launch, ensuring\n                                        a functional, visually appealing, and user-friendly site.",
-      "sort_order": 4
-    },
-    {
-      "id": 6,
-      "question": "Do you guys offer complete website design services?",
-      "answer": "Yes, we provide complete website design services, including planning, design,\n                                        development, and launch to create a fully functional website.",
-      "sort_order": 5
-    },
-    {
-      "id": 7,
-      "question": "Do you have all-in-one website design options?",
-      "answer": "yes, we offer all-in-one website design solutions that cover everything from\n                                        initial concept to final launch and support.",
-      "sort_order": 6
-    },
-    {
-      "id": 8,
-      "question": "Do you have comprehensive website design solutions available?",
-      "answer": "Yes, we provide comprehensive website design solutions, including design,\n                                        development, SEO, and ongoing support tailored to your needs.",
-      "sort_order": 7
-    }
-  ],
-  "marquee_images": [
-    {
-      "id": 1,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bcf7d04459be6c6b4_Marquee%20Image%2001.avif",
-      "sort_order": 0
-    },
-    {
-      "id": 2,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bb886f73ce87f5dcc_Marquee%20Image%2002.avif",
-      "sort_order": 1
-    },
-    {
-      "id": 3,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6bde027dfc7ec6f19d_Marquee%20Image%2003.avif",
-      "sort_order": 2
-    },
-    {
-      "id": 4,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b2dda0e8d3259164c_Marquee%20Image%2004.avif",
-      "sort_order": 3
-    },
-    {
-      "id": 5,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b5210745bdb720741_Marquee%20Image%2005.avif",
-      "sort_order": 4
-    },
-    {
-      "id": 6,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b70e79d2548d85ee9_Marquee%20Image%2006.avif",
-      "sort_order": 5
-    },
-    {
-      "id": 7,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b1357863b01ff38d4_Marquee%20Image%2007.avif",
-      "sort_order": 6
-    },
-    {
-      "id": 8,
-      "image_url": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683fad6b67c15d9923e00aff_Marquee%20Image%2008.avif",
-      "sort_order": 7
-    }
-  ],
-  "testimonials": [
-    {
-      "id": 1,
-      "message": "Working with Temple was an outstanding experience. Their ability to understand our vision and translate it into a clean, functional design exceeded our expectations.",
-      "author_name": "Jane Cooper",
-      "author_role": "Creative Director at Lin & Co",
-      "author_image": "https://plus.unsplash.com/premium_photo-1708275672423-837db6d3d700?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NDF8fGJsYWNrJTIwbWFufGVufDB8fDB8fHww",
-      "rating": 5,
-      "sort_order": 0
-    },
-    {
-      "id": 2,
-      "message": "Absolutely phenomenal work. Temple delivered on time and exceeded every metric we set.",
-      "author_name": "Michael Chen",
-      "author_role": "Founder, TechNova",
-      "author_image": "https://cdn.prod.website-files.com/6839c3fb17e9af53ee2ff1b6/683ae685fc75e080b82a5f35_Jane%20Cooper.avif",
-      "rating": 5,
-      "sort_order": 1
-    },
-    {
-      "id": 3,
-      "message": "A brilliant problem solver. The interface feels natural and perfectly aligned with our brand.",
-      "author_name": "Sarah Jenkins",
-      "author_role": "Head of Product, FlowState",
-      "author_image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1zQ374bP5QCpWwasc_KLsqhAXI_AfRe_SUA&s",
-      "rating": 5,
-      "sort_order": 2
-    }
-  ],
-  "api_keys": [
-    {
-      "id": 7,
-      "provider": "groq",
-      "api_key": "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",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 8,
-      "provider": "gemini",
-      "api_key": "AIzaSyBTtmhQaqua2f-gmvKSS8FscHlWoDwOv_A",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 9,
-      "provider": "gemini",
-      "api_key": "AIzaSyDLJG4cCElTPx0JNUWWqoAU84ZMqjNCHL4",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 10,
-      "provider": "groq",
-      "api_key": "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",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 12,
-      "provider": "groq",
-      "api_key": "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",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 14,
-      "provider": "gemini",
-      "api_key": "AIzaSyCIGWwbX1O493AVG14__Ipuwx5HE72wFG4",
-      "is_active": 1,
-      "fail_count": 0
-    },
-    {
-      "id": 15,
-      "provider": "gemini",
-      "api_key": "AIzaSyDtIo5JfSu524CGa1dBGly4B5FIY4f303o",
-      "is_active": 1,
-      "fail_count": 0
-    }
-  ],
-  "portfolio_users": [
-    {
-      "id": 1,
-      "username": "admin",
-      "password": "$2b$10$3VRX2UZZbG46NVZhLkzl8eKntWS4Twas0vJvWGrMiKXw7nZ8rvkGW"
-    }
-  ],
-  "counters": [
-    {
-      "id": 1,
-      "label": "Years Experience",
-      "value": "7",
-      "suffix": "+",
-      "sort_order": 1
-    },
-    {
-      "id": 2,
-      "label": "Successful Projects",
-      "value": "80",
-      "suffix": "+",
-      "sort_order": 2
-    },
-    {
-      "id": 3,
-      "label": "Percentage of satisfied clients",
-      "value": "100",
-      "suffix": "%",
-      "sort_order": 3
+      "sort_order": "3"
     }
   ]
 }

@@ -9,7 +9,7 @@ let cachedGeminiKey = null;
 async function getGeminiKey(db) {
   if (cachedGeminiKey) return cachedGeminiKey;
   return new Promise((resolve) => {
-    db.get("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active = '1' OR is_active = 1 OR is_active IS NULL)", [], (err, row) => {
+    db.get("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active = '1' OR is_active IS NULL)", [], (err, row) => {
       if (row) cachedGeminiKey = row.api_key;
       resolve(row ? row.api_key : null);
     });
