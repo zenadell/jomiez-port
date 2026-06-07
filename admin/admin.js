@@ -241,8 +241,8 @@ async function saveActivePanel() {
   btn.disabled = true;
 
   try {
-    // Identify fields in active panel (text, textarea, select, range, checkbox)
-    const inputs = activePanel.querySelectorAll('input[type="text"], textarea, select, input[type="range"], input[type="checkbox"]');
+    // Identify fields in active panel (text, textarea, select, range, checkbox, number)
+    const inputs = activePanel.querySelectorAll('input[type="text"], input[type="number"], textarea, select, input[type="range"], input[type="checkbox"]');
     for(let input of inputs) {
       if(input.id) {
         const val = input.type === 'checkbox' ? (input.checked ? '1' : '0') : input.value;

@@ -234,6 +234,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const headlines = settings.hero_headline.split('\n').map(s => s.trim()).filter(s => s);
                 el.textContent = headlines[0] || settings.hero_headline;
                 if (headlines.length > 1) {
+                    let timing = parseInt(settings.hero_headline_timing);
+                    if (isNaN(timing) || timing < 2) timing = 7;
+                    timing = timing * 1000;
+
                     let hIndex = 0;
                     el.style.transition = 'opacity 0.6s ease-in-out';
                     setInterval(() => {
@@ -243,7 +247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             el.textContent = headlines[hIndex];
                             el.style.opacity = '1';
                         }, 600);
-                    }, 7000);
+                    }, timing);
                 }
             }
         }
