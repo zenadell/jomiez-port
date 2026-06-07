@@ -30,7 +30,7 @@ RUN uv venv /app/.venv
 ENV VIRTUAL_ENV="/app/.venv"
 ENV PATH="/app/.venv/bin:${PATH}"
 
-RUN uv pip install fastapi uvicorn google-genai "google-antigravity[all]>=0.1.0" pydantic "protobuf==7.35.0"
+RUN uv pip install fastapi uvicorn google-genai "google-antigravity[all]>=0.1.0" pydantic "protobuf==7.35.0" openai
 
 # Copy the rest of the application code
 COPY . .
