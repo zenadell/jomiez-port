@@ -1748,8 +1748,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; }
                     .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 12px 0; padding-left: 20px; }
                     .chaka-msg-ai li { margin-bottom: 6px; }
-                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px solid rgba(0,243,255,0.3); transition: 0.2s; }
-                    .chaka-msg-ai a:hover { border-bottom-color: #00f3ff; }
+                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px dashed rgba(0,243,255,0.5); transition: 0.2s; pointer-events: auto; }
+                    .chaka-msg-ai a:hover { border-bottom: 1px solid #00f3ff; background: rgba(0,243,255,0.1); }
+                    /* Special Contact Buttons */
+                    .chaka-msg-ai a[href*="wa.me"] { display: inline-flex; align-items: center; gap: 8px; background: #25D366; color: #fff; padding: 8px 14px; font-size: 14px; border-radius: 12px; text-decoration: none; border: none; font-weight: 600; margin-top: 6px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); pointer-events: auto; transition: all 0.2s; }
+                    .chaka-msg-ai a[href*="wa.me"]:hover { background: #22bf5b; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4); }
+                    .chaka-msg-ai a[href^="tel:"] { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #00f3ff, #0088ff); color: #fff; padding: 8px 14px; font-size: 14px; border-radius: 12px; text-decoration: none; border: none; font-weight: 600; margin-top: 6px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(0, 136, 255, 0.25); pointer-events: auto; transition: all 0.2s; }
+                    .chaka-msg-ai a[href^="tel:"]:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 136, 255, 0.4); }
                     
                     /* Bubble Layouts */
                     .chaka-msg-wrapper { display: flex; gap: 12px; margin-bottom: 4px; width: 100%; }
@@ -1880,6 +1885,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 // Fallback basic formatting
                 formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                // Auto-link raw URLs if marked is not available
+                formattedText = formattedText.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
                 formattedText = '<p>' + formattedText.replace(/\n/g, '<br/>') + '</p>';
             }
             
@@ -1894,6 +1901,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `;
             }
             
+            // Post-process links to make them robust buttons
+            wrapper.querySelectorAll('.chaka-msg-ai a').forEach(a => {
+                a.target = "_blank";
+                
+                // WhatsApp Button Enhancement
+                if (a.href.includes('wa.me')) {
+                    if (a.textContent.includes('wa.me') || a.textContent.includes('http')) {
+                        a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Chat on WhatsApp`;
+                    }
+                    a.addEventListener('click', () => {
+                        setTimeout(() => this.appendChatMessage('ai', 'Redirecting you to our WhatsApp securely... We typically reply within a few minutes!'), 500);
+                    });
+                }
+                
+                // Phone Button Enhancement
+                if (a.href.startsWith('tel:')) {
+                    if (a.textContent.includes('tel:') || a.textContent.match(/[\d\+\-\(\)]+/)) {
+                        a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Call Us Now`;
+                    }
+                    a.addEventListener('click', () => {
+                        setTimeout(() => this.appendChatMessage('ai', 'Initiating phone call...'), 500);
+                    });
+                }
+            });
+
             historyArea.appendChild(wrapper);
             historyArea.scrollTop = historyArea.scrollHeight;
             

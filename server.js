@@ -1340,7 +1340,7 @@ async function getSiteKnowledge(query) {
       let ctx = "SITE KNOWLEDGE:\n";
       if (settingsRows) {
         const sets = settingsRows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
-        ctx += `- Company: "${sets.company_name || sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}.\n`;
+        ctx += `- Company: "${sets.company_name || sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}. WhatsApp: ${sets.social_whatsapp || sets.contact_whatsapp || 'N/A'}.\n`;
       }
       ctx += getSiteManifest() + '\n';
       // Always include service & work titles (lightweight summary)
