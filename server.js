@@ -1346,8 +1346,11 @@ async function getSiteKnowledge(query) {
       // Always include service & work titles (lightweight summary)
       db.all("SELECT title FROM services", [], (err2, svcRows) => {
         if (svcRows && svcRows.length) ctx += `- Services: ${svcRows.map(s => s.title).join(', ')}.\n`;
-        db.all("SELECT title FROM works", [], (err3, wrkRows) => {
-          if (wrkRows && wrkRows.length) ctx += `- Portfolio: ${wrkRows.map(w => w.title).join(', ')}.\n`;
+        db.all("SELECT title, slug FROM works", [], (err3, wrkRows) => {
+          if (wrkRows && wrkRows.length) {
+             const links = wrkRows.map(w => w.slug ? `[${w.title}](/work/${w.slug})` : w.title);
+             ctx += `- Portfolio: ${links.join(', ')}.\n`;
+          }
           resolve(ctx);
         });
       });
@@ -1385,15 +1388,22 @@ app.get('/api/chaka/knowledge', async (req, res) => {
 
 // CHAKA TEXT CHAT — Gemini 2.5 Flash REST (completely separate from voice)
 app.post('/api/chaka/chat_text', async (req, res) => {
-  const { text, history } = req.body;
+  const { text, history, currentUrl } = req.body;
   if (!text || !text.trim()) return res.status(400).json({ error: 'No text provided' });
   const isAdmin = !!req.session.user;
 
   try {
+    // Inject site knowledge context for non-admin interactions
+    let fullContextText = text.trim();
+    if (!isAdmin) {
+      const knowledge = await getSiteKnowledge();
+      fullContextText = `Current URL: ${currentUrl || '/'}\nSite Knowledge Base:\n${knowledge}\n\nUser Message: ${text.trim()}`;
+    }
+
     const swarmRes = await fetch('http://127.0.0.1:3001/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text.trim(), is_admin: isAdmin })
+      body: JSON.stringify({ message: fullContextText, is_admin: isAdmin, history: history || "[]" })
     });
 
     if (!swarmRes.ok) throw new Error("Swarm API Error: " + await swarmRes.text());

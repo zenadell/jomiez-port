@@ -61,7 +61,9 @@ knowledge_config = LocalAgentConfig(
 )
 
 public_captain_config = LocalAgentConfig(
-    system_instruction="""You are Chaka, the Elite Autonomous Guide.
+    system_instruction="""You are Chaka, the Elite Autonomous Guide for this portfolio website.
+You represent the owner of this portfolio. You are NOT a generic AI. Do NOT introduce yourself as a large language model trained by Google or anyone else.
+Your purpose is to help visitors navigate the site, answer questions about the owner's skills/services/portfolio based strictly on the provided context, and guide them to contact the owner for work.
 You cannot modify the database or codebase. Answer questions clearly based on the portfolio information.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
@@ -70,7 +72,7 @@ You cannot modify the database or codebase. Answer questions clearly based on th
 )
 
 captain_config = LocalAgentConfig(
-    system_instruction="""You are Chaka, the Elite Autonomous Admin Captain.
+    system_instruction="""You are Chaka, the Elite Autonomous Admin Captain for this portfolio website.
 You are equipped with powerful Tools. 
 1. The 'execute_sql' tool queries the local SQLite DB to manage works, settings, etc.
 2. The MCP graphify tools let you query the AST knowledge graph of the codebase.
@@ -85,6 +87,7 @@ You are equipped with powerful Tools.
 class ChatRequest(BaseModel):
     message: str
     is_admin: bool = False
+    history: str = "[]"
 
 import logging
 from google import genai
@@ -170,7 +173,29 @@ async def chat_endpoint(request: ChatRequest):
 
     try:
         async with Agent(active_config) as agent:
-            response = await agent.chat(request.message)
+            # Parse history if provided
+            history_messages = []
+            try:
+                hist = json.loads(request.history)
+                for h in hist:
+                    # Antigravity agents use ModelRole (USER or MODEL) instead of 'user' / 'assistant' strings
+                    # We inject history into the context
+                    pass
+            except:
+                pass
+            
+            # Simple approach: If there's history, append it to the context
+            full_prompt = request.message
+            if request.history and request.history != "[]":
+                try:
+                    hist = json.loads(request.history)
+                    if len(hist) > 0:
+                        hist_str = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in hist[-5:]]) # last 5 turns
+                        full_prompt = f"Previous Conversation Context:\n{hist_str}\n\n" + full_prompt
+                except:
+                    pass
+
+            response = await agent.chat(full_prompt)
             text = await response.text()
             
             # 3. Cache the output for future public visitors
