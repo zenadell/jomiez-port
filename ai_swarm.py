@@ -160,18 +160,20 @@ from openai import OpenAI
 
 @app.post("/agent/execute")
 async def execute_agent(request: AgentRequest):
-    # Fetch NVIDIA key
+    # Fetch Gemini key (switching away from NVIDIA since it's down)
     conn = sqlite3.connect('database.sqlite')
     cursor = conn.cursor()
-    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'nvidia' AND is_active = '1'")
+    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'gemini' ORDER BY id DESC LIMIT 1")
     row = cursor.fetchone()
     conn.close()
     
     if not row:
-        return {"summary": "Error: NVIDIA API key not found in database. Add it in Admin."}
+        return {"summary": "Error: Gemini API key not found in database. Add it in Admin."}
         
-    nv_key = row[0]
-    client = OpenAI(api_key=nv_key, base_url="https://integrate.api.nvidia.com/v1", timeout=120.0)
+    gemini_key = row[0]
+    
+    # Use Gemini's new OpenAI-compatible endpoint for drop-in replacement!
+    client = OpenAI(api_key=gemini_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/", timeout=120.0)
     
     tools = [
         {
@@ -228,27 +230,27 @@ async def execute_agent(request: AgentRequest):
     ]
     
     messages = [
-        {"role": "system", "content": "You are Nemotron, an elite, autonomous software engineering agent running inside the Jomiez Innovation backend. You have tools to read/write files, list directories, and execute SQL queries on database.sqlite. Your goal is to fulfill the admin's request. Use absolute paths or paths relative to the current directory."},
+        {"role": "system", "content": "You are Gemini, an elite, autonomous software engineering agent running inside the Jomiez Innovation backend. You have tools to read/write files, list directories, and execute SQL queries on database.sqlite. Your goal is to fulfill the admin's request. Use absolute paths or paths relative to the current directory."},
         {"role": "user", "content": request.command}
     ]
     
     summary_log = []
     
     for step in range(6): # Max 6 loops for safety
-        logging.info(f"[Agent] Step {step+1}/6 — calling Nemotron...")
+        logging.info(f"[Agent] Step {step+1}/6 — calling Gemini Engineering Agent...")
         try:
             completion = client.chat.completions.create(
-              model="nvidia/nemotron-3-ultra-550b-a55b",
+              model="gemini-2.5-pro",
               messages=messages,
               temperature=0.2,
-              max_tokens=4096,
+              max_tokens=8192,
               tools=tools,
               tool_choice="auto"
             )
             logging.info(f"[Agent] Step {step+1} — response received.")
         except Exception as e:
-            logging.error(f"[Agent] Nemotron API Error: {str(e)}")
-            return {"summary": f"Nemotron API Error: {str(e)}"}
+            logging.error(f"[Agent] API Error: {str(e)}")
+            return {"summary": f"API Error: {str(e)}"}
             
         message = completion.choices[0].message
         
