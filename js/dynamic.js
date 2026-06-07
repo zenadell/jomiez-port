@@ -1871,7 +1871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         appendChatMessage(role, text) {
             const historyArea = document.getElementById('chaka-chat-history');
             const wrapper = document.createElement('div');
-            wrapper.className = \`chaka-msg-wrapper \${role === 'user' ? 'user' : 'ai'}\`;
+            wrapper.className = `chaka-msg-wrapper ${role === 'user' ? 'user' : 'ai'}`;
             
             // Render markdown (if marked.js loaded, else basic fallback)
             let formattedText = '';
@@ -1879,19 +1879,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 formattedText = marked.parse(text);
             } else {
                 // Fallback basic formatting
-                formattedText = text.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
-                formattedText = '<p>' + formattedText.replace(/\\n/g, '<br/>') + '</p>';
+                formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedText = '<p>' + formattedText.replace(/\n/g, '<br/>') + '</p>';
             }
             
             if (role === 'user') {
-                wrapper.innerHTML = \`<div class="chaka-msg-user">\${formattedText}</div>\`;
+                wrapper.innerHTML = `<div class="chaka-msg-user">${formattedText}</div>`;
             } else {
-                wrapper.innerHTML = \`
+                wrapper.innerHTML = `
                     <div class="chaka-msg-avatar">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
                     </div>
-                    <div class="chaka-msg-ai">\${formattedText}</div>
-                \`;
+                    <div class="chaka-msg-ai">${formattedText}</div>
+                `;
             }
             
             historyArea.appendChild(wrapper);
