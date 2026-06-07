@@ -110,6 +110,9 @@
       <div class="nav-item" onclick="showSection('apikeys')">
         <i data-lucide="key" class="nav-icon"></i> AI API Keys
       </div>
+      <div class="nav-item" onclick="showSection('agent')">
+        <i data-lucide="cpu" class="nav-icon"></i> Agent Console
+      </div>
       <div class="nav-item" onclick="showSection('leads')">
         <i data-lucide="brain-circuit" class="nav-icon"></i> AI Insights & Leads
       </div>
@@ -385,6 +388,7 @@
               <select id="new_api_key_provider" style="width: 100%; padding: 12px; background: #0A0A0A; border: 1px solid #333; color: white; border-radius: 6px;">
                 <option value="gemini">Gemini (Primary Voice & Realtime)</option>
                 <option value="groq">Groq (Text Query Fallback)</option>
+                <option value="nvidia">NVIDIA (Nemotron Orchestrator & Agents)</option>
               </select>
             </div>
             <div class="field full">
@@ -399,6 +403,27 @@
           <div class="card-title">Active Global Integration Nodes</div>
           <div id="api_keys_list" style="margin-top: 20px; display: grid; gap: 10px;">
              <!-- RENDERED DYNAMICALLY -->
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT CONSOLE PANEL -->
+      <div id="panel-agent" class="panel">
+        <div class="card">
+          <div class="card-title">Autonomous Engineering Console (Nemotron)</div>
+          <p class="logo-sub" style="margin-bottom:20px;">Issue complex engineering commands. Nemotron will autonomously read the codebase, execute modifications, and commit the changes.</p>
+          <div class="form-grid">
+            <div class="field full">
+              <label>Agent Command</label>
+              <textarea id="agent_command" rows="4" placeholder="e.g., 'Build an About Us page using the existing template style'"></textarea>
+            </div>
+          </div>
+          <div style="display:flex; gap: 10px; margin-top:15px;">
+            <button type="button" class="btn btn-primary" onclick="executeAgentCommand()"><i data-lucide="play"></i> Execute Agent</button>
+            <button type="button" class="btn btn-outline" style="color: #ffaa00; border-color: #ffaa00;" onclick="undoLastAgentAction()"><i data-lucide="rotate-ccw"></i> Undo Last Action</button>
+          </div>
+          <div id="agent_logs" style="margin-top: 20px; background: #000; color: #0f0; padding: 15px; font-family: monospace; border-radius: 6px; min-height: 100px; max-height: 300px; overflow-y: auto;">
+            [System] Agent idle. Waiting for commands...
           </div>
         </div>
       </div>

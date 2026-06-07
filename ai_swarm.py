@@ -153,6 +153,154 @@ class RenderSemanticCache:
 
 semantic_cache = RenderSemanticCache()
 
+class AgentRequest(BaseModel):
+    command: str
+
+from openai import OpenAI
+
+@app.post("/agent/execute")
+async def execute_agent(request: AgentRequest):
+    # Fetch NVIDIA key
+    conn = sqlite3.connect('database.sqlite')
+    cursor = conn.cursor()
+    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'nvidia' AND is_active = '1'")
+    row = cursor.fetchone()
+    conn.close()
+    
+    if not row:
+        return {"summary": "Error: NVIDIA API key not found in database. Add it in Admin."}
+        
+    nv_key = row[0]
+    client = OpenAI(api_key=nv_key, base_url="https://integrate.api.nvidia.com/v1")
+    
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "Reads the content of a file. Use this to understand the existing templates and CSS.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"filepath": {"type": "string"}},
+                    "required": ["filepath"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "write_file",
+                "description": "Writes or overwrites a file with new code.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "filepath": {"type": "string"},
+                        "content": {"type": "string", "description": "The full file content to save."}
+                    },
+                    "required": ["filepath", "content"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_directory",
+                "description": "Lists the files and folders in a given directory path.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                    "required": ["path"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "execute_sql",
+                "description": "Executes a SQL query on the backend database (database.sqlite) and returns the JSON result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                    "required": ["query"]
+                }
+            }
+        }
+    ]
+    
+    messages = [
+        {"role": "system", "content": "You are Nemotron, an elite, autonomous software engineering agent running inside the Jomiez Innovation backend. You have tools to read/write files, list directories, and execute SQL queries on database.sqlite. Your goal is to fulfill the admin's request. Use absolute paths or paths relative to the current directory."},
+        {"role": "user", "content": request.command}
+    ]
+    
+    summary_log = []
+    
+    for step in range(6): # Max 6 loops for safety
+        try:
+            completion = client.chat.completions.create(
+              model="nvidia/nemotron-3-ultra-550b-a55b",
+              messages=messages,
+              temperature=0.2,
+              max_tokens=4096,
+              tools=tools,
+              tool_choice="auto"
+            )
+        except Exception as e:
+            return {"summary": f"Nemotron API Error: {str(e)}"}
+            
+        message = completion.choices[0].message
+        
+        # We must convert message object to dict for appending back to messages in some versions of openai sdk, or just append the object
+        msg_dict = {"role": "assistant"}
+        if message.content: msg_dict["content"] = message.content
+        if message.tool_calls:
+            msg_dict["tool_calls"] = [{"id": t.id, "type": "function", "function": {"name": t.function.name, "arguments": t.function.arguments}} for t in message.tool_calls]
+            
+        messages.append(msg_dict)
+        
+        if message.tool_calls:
+            for tool_call in message.tool_calls:
+                fn_name = tool_call.function.name
+                args = json.loads(tool_call.function.arguments)
+                
+                if fn_name == "read_file":
+                    try:
+                        with open(args['filepath'], 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        summary_log.append(f"Read {args['filepath']}")
+                    except Exception as e:
+                        content = f"Error: {str(e)}"
+                elif fn_name == "write_file":
+                    try:
+                        with open(args['filepath'], 'w', encoding='utf-8') as f:
+                            f.write(args['content'])
+                        content = f"Successfully wrote to {args['filepath']}"
+                        summary_log.append(f"Modified {args['filepath']}")
+                    except Exception as e:
+                        content = f"Error: {str(e)}"
+                elif fn_name == "list_directory":
+                    try:
+                        import os
+                        files = os.listdir(args['path'])
+                        content = json.dumps(files)
+                    except Exception as e:
+                        content = f"Error: {str(e)}"
+                elif fn_name == "execute_sql":
+                    try:
+                        # Reusing the existing global execute_sql function
+                        content = execute_sql(args['query'])
+                        summary_log.append(f"Queried DB")
+                    except Exception as e:
+                        content = f"Error: {str(e)}"
+                else:
+                    content = "Unknown tool"
+                    
+                messages.append({"role": "tool", "tool_call_id": tool_call.id, "name": fn_name, "content": content})
+        else:
+            summary_log.append(f"Finished: {message.content[:50]}...")
+            break
+
+    return {"summary": " | ".join(summary_log)}
+
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     # Fetch API key from DB dynamically

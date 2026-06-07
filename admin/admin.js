@@ -1340,3 +1340,63 @@ async function deleteCounter(id) {
 document.addEventListener('DOMContentLoaded', () => {
     loadCounters();
 });
+
+// ----------------------------------------------------
+// AUTONOMOUS ENGINEERING AGENT (NEMOTRON) LOGIC
+// ----------------------------------------------------
+
+async function executeAgentCommand() {
+  const cmd = document.getElementById('agent_command').value.trim();
+  if(!cmd) return showToast('Please enter a command for the agent.');
+  
+  const logsEl = document.getElementById('agent_logs');
+  const btn = document.querySelector('[onclick="executeAgentCommand()"]');
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader"></i> Running...';
+  
+  logsEl.innerHTML = '[System] Booting Nemotron Autonomous Engine...<br>[System] Committing current state for safe Undo...<br>[System] Sending command to Nemotron 3 Ultra (550B)...<br>';
+  
+  try {
+    const res = await fetch('/api/agent/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: cmd })
+    });
+    
+    const data = await res.json();
+    if(data.success) {
+      logsEl.innerHTML += '<br>[Nemotron] Task completed successfully.<br>[Summary] ' + (data.summary || 'Files updated.');
+      showToast('Agent completed task.');
+    } else {
+      logsEl.innerHTML += '<br>[Error] ' + (data.error || 'Unknown error');
+      showToast('Agent encountered an error.');
+    }
+  } catch(e) {
+    logsEl.innerHTML += '<br>[Fatal Error] ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="play"></i> Execute Agent';
+    if(window.lucide) window.lucide.createIcons();
+  }
+}
+
+async function undoLastAgentAction() {
+  if(!confirm('Are you sure you want to rollback the repository to the state BEFORE the last Agent action?')) return;
+  
+  const logsEl = document.getElementById('agent_logs');
+  logsEl.innerHTML += '<br>[System] Initiating Git Rollback...';
+  
+  try {
+    const res = await fetch('/api/agent/undo', { method: 'POST' });
+    const data = await res.json();
+    if(data.success) {
+      logsEl.innerHTML += '<br>[System] Rollback successful. Codebase restored.';
+      showToast('Codebase rolled back successfully.');
+    } else {
+      logsEl.innerHTML += '<br>[Error] Rollback failed: ' + (data.error || 'Unknown error');
+      showToast('Rollback failed.');
+    }
+  } catch(e) {
+    logsEl.innerHTML += '<br>[Fatal Error] ' + e.message;
+  }
+}

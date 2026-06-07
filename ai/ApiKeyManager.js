@@ -2,16 +2,16 @@ class ApiKeyManager {
   constructor(db) {
     this.db = db;
     // Simple memory cache so we don't query DB on every single socket event
-    this.keysCache = { gemini: [], groq: [] };
+    this.keysCache = { gemini: [], groq: [], nvidia: [] };
     this.lastRefreshed = 0;
-    this.currentIndex = { gemini: 0, groq: 0 };
+    this.currentIndex = { gemini: 0, groq: 0, nvidia: 0 };
   }
 
   async refreshCache() {
     return new Promise((resolve, reject) => {
       this.db.all("SELECT provider, api_key FROM api_keys WHERE is_active = '1' OR is_active IS NULL", [], (err, rows) => {
         if (err) return reject(err);
-        this.keysCache = { gemini: [], groq: [] };
+        this.keysCache = { gemini: [], groq: [], nvidia: [] };
         rows.forEach(row => {
           if (this.keysCache[row.provider]) {
             this.keysCache[row.provider].push(row.api_key);

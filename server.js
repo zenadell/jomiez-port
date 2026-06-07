@@ -705,6 +705,41 @@ app.delete('/api/apikeys/:id', (req, res) => {
   });
 });
 
+// -----------------------------------------------------------------
+// AUTONOMOUS ENGINEERING AGENT (NEMOTRON)
+// -----------------------------------------------------------------
+const { exec: execCmd } = require('child_process');
+
+app.post('/api/agent/undo', (req, res) => {
+    execCmd('git reset --hard HEAD~1', (err, stdout, stderr) => {
+        if (err) {
+            console.error('[Agent Undo] Git error:', stderr);
+            return res.status(500).json({ success: false, error: stderr });
+        }
+        res.json({ success: true, message: stdout });
+    });
+});
+
+app.post('/api/agent/execute', async (req, res) => {
+    const command = req.body.command;
+    if (!command) return res.status(400).json({ success: false, error: "No command provided" });
+    
+    // 1. Commit current state for Undo
+    execCmd('git add -A && git commit -m "Auto-backup before Nemotron execution"', (err) => {
+        // We ignore error if there's nothing to commit
+        
+        // 2. Call the Python Agent Orchestrator on port 3001
+        require('axios').post('http://localhost:3001/agent/execute', { command })
+            .then(response => {
+                res.json({ success: true, summary: response.data.summary });
+            })
+            .catch(error => {
+                console.error('[Agent Execute] Python error:', error.message);
+                res.status(500).json({ success: false, error: error.message });
+            });
+    });
+});
+
 // Blog API
 app.get('/api/blog', (req, res) => {
   db.all('SELECT * FROM blog_posts ORDER BY published_at DESC', [], (err, rows) => {
