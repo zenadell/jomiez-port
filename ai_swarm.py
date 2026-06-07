@@ -171,7 +171,7 @@ async def execute_agent(request: AgentRequest):
         return {"summary": "Error: NVIDIA API key not found in database. Add it in Admin."}
         
     nv_key = row[0]
-    client = OpenAI(api_key=nv_key, base_url="https://integrate.api.nvidia.com/v1")
+    client = OpenAI(api_key=nv_key, base_url="https://integrate.api.nvidia.com/v1", timeout=120.0)
     
     tools = [
         {
@@ -235,6 +235,7 @@ async def execute_agent(request: AgentRequest):
     summary_log = []
     
     for step in range(6): # Max 6 loops for safety
+        logging.info(f"[Agent] Step {step+1}/6 — calling Nemotron...")
         try:
             completion = client.chat.completions.create(
               model="nvidia/nemotron-3-ultra-550b-a55b",
@@ -244,7 +245,9 @@ async def execute_agent(request: AgentRequest):
               tools=tools,
               tool_choice="auto"
             )
+            logging.info(f"[Agent] Step {step+1} — response received.")
         except Exception as e:
+            logging.error(f"[Agent] Nemotron API Error: {str(e)}")
             return {"summary": f"Nemotron API Error: {str(e)}"}
             
         message = completion.choices[0].message
