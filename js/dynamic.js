@@ -1610,6 +1610,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         get apiKey() { return this.apiKeys[this.currentKeyIndex]; }
 
         async init() {
+            if (!window.marked) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+                document.head.appendChild(script);
+            }
+
             try {
                 this.injectUI();
                 console.log('[Chaka] Orb injected successfully.');
@@ -1637,82 +1643,125 @@ document.addEventListener('DOMContentLoaded', async () => {
         injectUI() {
             const uiHTML = `
                 <!-- Proactive Welcome Popup -->
-                <div id="chaka-welcome-popup" style="position:fixed;bottom:110px;right:30px;width:300px;background:rgba(20,20,20,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,0.5);z-index:999998;transform:scale(0.9) translateY(20px);opacity:0;pointer-events:none;transition:all 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #00f3ff, #0088ff);display:flex;align-items:center;justify-content:center;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                <div id="chaka-welcome-popup" style="position:fixed;bottom:110px;right:30px;width:320px;background:rgba(20, 20, 22, 0.85);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:24px;box-shadow:0 24px 48px rgba(0,0,0,0.5);z-index:999998;transform:scale(0.9) translateY(20px);opacity:0;pointer-events:none;transition:all 0.5s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+                        <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg, #00f3ff, #0088ff);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(0,136,255,0.3);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
                         </div>
                         <div>
-                            <div style="color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:15px;">Chaka AI Guide</div>
-                            <div style="color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;font-size:12px;">Online & Ready</div>
+                            <div style="color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;">Chaka Live OS</div>
+                            <div style="color:#00f3ff;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;">Online & Ready</div>
                         </div>
                     </div>
-                    <div style="color:#e0e0e0;font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;margin-bottom:16px;">
+                    <div style="color:#a0a0a0;font-family:'Inter',sans-serif;font-size:14.5px;line-height:1.6;margin-bottom:20px;">
                         Hi there! I'm Chaka. Would you like me to guide you around the site?
                     </div>
-                    <div style="display:flex;gap:10px;">
-                        <button id="chaka-btn-yes" style="flex:1;background:linear-gradient(135deg, #00f3ff, #0088ff);color:#111;border:none;padding:10px;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">Yes, Please</button>
-                        <button id="chaka-btn-no" style="flex:1;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.1);padding:10px;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:500;font-size:14px;cursor:pointer;">No Thanks</button>
+                    <div style="display:flex;gap:12px;">
+                        <button id="chaka-btn-yes" style="flex:1;background:linear-gradient(135deg, #00f3ff, #0088ff);color:#fff;border:none;padding:12px;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;">Yes, Please</button>
+                        <button id="chaka-btn-no" style="flex:1;background:rgba(255,255,255,0.05);color:#fff;border:1px solid rgba(255,255,255,0.1);padding:12px;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:background 0.2s;">No Thanks</button>
                     </div>
                 </div>
 
                 <!-- Live Chat Modal -->
-                <div id="chaka-chat-modal" style="position:fixed;bottom:110px;right:30px;width:360px;height:550px;background:rgba(15, 15, 15, 0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.1);border-radius:24px;box-shadow:0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);z-index:999997;display:flex;flex-direction:column;transform:scale(0.95) translateY(30px);opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1);overflow:hidden;">
+                <div id="chaka-chat-modal" style="position:fixed;bottom:110px;right:30px;width:380px;height:600px;max-height:80vh;background:rgba(18, 18, 22, 0.75);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid rgba(255,255,255,0.08);border-radius:28px;box-shadow:0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);z-index:999997;display:flex;flex-direction:column;transform:scale(0.95) translateY(30px);opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1);overflow:hidden;">
+                    
                     <!-- Chat Header -->
-                    <div style="flex:0 0 auto;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);">
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <div style="position:relative;">
-                                <div style="width:10px;height:10px;border-radius:50%;background:#00f3ff;box-shadow:0 0 10px #00f3ff;"></div>
-                                <div id="chaka-ping" style="position:absolute;top:0;left:0;width:10px;height:10px;border-radius:50%;background:#00f3ff;animation:ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                    <div style="flex:0 0 auto;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);">
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <div style="position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #00f3ff, #0088ff);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,136,255,0.3);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                                <div id="chaka-ping" style="position:absolute;bottom:0;right:0;width:12px;height:12px;border-radius:50%;background:#00ff88;border:2px solid #111;"></div>
                             </div>
-                            <span style="color:#fff;font-family:'Plus Jakarta Sans', sans-serif;font-weight:600;font-size:16px;letter-spacing:0.3px;">Chaka Live OS</span>
+                            <div>
+                                <div style="color:#fff;font-family:'Plus Jakarta Sans', sans-serif;font-weight:700;font-size:16px;">Chaka Live OS</div>
+                                <div style="color:rgba(255,255,255,0.5);font-family:'Inter', sans-serif;font-size:12px;font-weight:500;">AI Assistant</div>
+                            </div>
                         </div>
-                        <button id="chaka-close-chat" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:24px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:0.2s;">&times;</button>
+                        <button id="chaka-close-chat" style="background:rgba(255,255,255,0.05);border:none;color:rgba(255,255,255,0.8);cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.2s;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                     </div>
                     
                     <!-- Chat History Area -->
-                    <div id="chaka-chat-history" style="flex:1 1 auto;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;">
+                    <div id="chaka-chat-history" class="chaka-scrollbar" style="flex:1 1 auto;padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;scroll-behavior:smooth;">
                         <!-- Initial Message -->
-                        <div class="chaka-msg-ai">
-                            Hello! I'm Chaka. I can guide you through the portfolio, navigate pages, and answer any questions. How can I help?
+                        <div class="chaka-msg-wrapper ai">
+                            <div class="chaka-msg-avatar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                            </div>
+                            <div class="chaka-msg-ai">
+                                <p>Hello! I'm Chaka. I can guide you through the portfolio, navigate pages, and answer any questions. How can I help?</p>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Chat Input Area -->
-                    <div style="flex:0 0 auto;padding:16px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.3);">
-                        <form id="chaka-chat-form" style="display:flex;gap:10px;align-items:center;">
-                            <input type="text" id="chaka-chat-input" placeholder="Type..." autocomplete="off" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:12px 18px;color:#fff;font-family:'Inter', sans-serif;font-size:14px;outline:none;transition:all 0.3s;box-shadow:inset 0 2px 4px rgba(0,0,0,0.2);"/>
-                            <button type="submit" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.05);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.2s;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <div style="flex:0 0 auto;padding:20px 24px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.2);">
+                        <form id="chaka-chat-form" style="display:flex;gap:12px;align-items:flex-end;">
+                            <div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:2px;display:flex;transition:all 0.3s;" id="chaka-input-wrapper">
+                                <textarea id="chaka-chat-input" placeholder="Message Chaka..." rows="1" style="flex:1;background:transparent;border:none;padding:12px 16px;color:#fff;font-family:'Inter', sans-serif;font-size:14.5px;line-height:1.5;outline:none;resize:none;max-height:120px;min-height:44px;"></textarea>
+                            </div>
+                            <button type="submit" id="chaka-send-btn" style="background:linear-gradient(135deg, #00f3ff, #0088ff);border:none;width:48px;height:48px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;flex-shrink:0;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             </button>
                         </form>
+                        <div style="text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.3);font-family:'Inter',sans-serif;">
+                            AI can make mistakes. Check important info.
+                        </div>
                     </div>
                 </div>
 
                 <!-- Existing Orb Framework -->
                 <div id="chaka-orb-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
                     <canvas id="chaka-vis" style="width: 120px; height: 30px; opacity: 0; transition: opacity 0.5s; mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);"></canvas>
-                    <div id="chaka-status-bubble" style="display: none; background: rgba(0,0,0,0.85); border: 1px solid #333; color: white; padding: 10px 16px; border-radius: 20px; font-family:'Inter', sans-serif; font-size: 13px; backdrop-filter: blur(10px); max-width: 300px; line-height: 1.4;">
+                    <div id="chaka-status-bubble" style="display: none; background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); color: white; padding: 12px 20px; border-radius: 24px; font-family:'Inter', sans-serif; font-size: 13px; backdrop-filter: blur(10px); max-width: 300px; line-height: 1.4;">
                         System Ready
                     </div>
-                    <div id="chaka-orb" title="Click to chat or connect voice" style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #00e0ff, #0077ff); cursor: pointer; box-shadow: 0 0 20px rgba(0,224,255,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="chaka-icon">
+                    <div id="chaka-orb" title="Click to chat or connect voice" style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0088ff); cursor: pointer; box-shadow: 0 10px 30px rgba(0,136,255,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="chaka-icon">
                             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line>
                         </svg>
                     </div>
                 </div>
+                
                 <!-- Render Styles -->
                 <style>
-                    #chaka-orb:hover { transform: scale(1.08); box-shadow: 0 0 35px rgba(0,224,255,0.7); }
-                    @keyframes pulse { 75%, 100% { transform: scale(2.5); opacity: 0; } }
-                    #chaka-chat-input:focus { border-color: #00f3ff; box-shadow: 0 0 10px rgba(0,243,255,0.2), inset 0 2px 4px rgba(0,0,0,0.2) !important; }
-                    #chaka-chat-history::-webkit-scrollbar { width: 6px; }
-                    #chaka-chat-history::-webkit-scrollbar-track { background: transparent; }
-                    #chaka-chat-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-                    #chaka-close-chat:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
-                    .chaka-msg-user { align-self: flex-end; background: rgba(255,255,255,0.1); padding: 12px 16px; border-radius: 16px 16px 4px 16px; max-width: 85%; color: #fff; font-family: 'Inter', sans-serif; font-size: 14.5px; line-height: 1.5; }
-                    .chaka-msg-ai { align-self: flex-start; background: rgba(0, 243, 255, 0.1); border: 1px solid rgba(0, 243, 255, 0.2); padding: 14px 18px; border-radius: 18px 18px 18px 4px; max-width: 85%; color: #e0e0e0; font-family: 'Inter', sans-serif; font-size: 14.5px; line-height: 1.5; }
-                    .chaka-orb-active { animation: pulse_chaka 2s infinite; background: linear-gradient(135deg, #ff0055, #ff7700) !important; box-shadow: 0 0 20px rgba(255,0,85,0.6) !important; }
+                    #chaka-orb:hover { transform: scale(1.05) translateY(-5px); box-shadow: 0 15px 35px rgba(0,136,255,0.5); }
+                    #chaka-btn-yes:hover, #chaka-send-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,136,255,0.3); }
+                    #chaka-btn-no:hover { background: rgba(255,255,255,0.1) !important; }
+                    #chaka-close-chat:hover { background: rgba(255,255,255,0.15) !important; transform: rotate(90deg); }
+                    
+                    #chaka-input-wrapper:focus-within { border-color: #00f3ff; box-shadow: 0 0 0 2px rgba(0,243,255,0.2), inset 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.08); }
+                    
+                    .chaka-scrollbar::-webkit-scrollbar { width: 6px; }
+                    .chaka-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                    .chaka-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+                    .chaka-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+                    
+                    /* Markdown Formatting inside AI Bubbles */
+                    .chaka-msg-ai { color: #e4e4e7; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.6; letter-spacing: -0.01em; word-break: break-word; }
+                    .chaka-msg-ai p { margin: 0 0 12px 0; }
+                    .chaka-msg-ai p:last-child { margin: 0; }
+                    .chaka-msg-ai strong { color: #fff; font-weight: 600; }
+                    .chaka-msg-ai code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00f3ff; border: 1px solid rgba(255,255,255,0.05); }
+                    .chaka-msg-ai pre { background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; overflow-x: auto; margin: 12px 0; border: 1px solid rgba(255,255,255,0.05); }
+                    .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; }
+                    .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 12px 0; padding-left: 20px; }
+                    .chaka-msg-ai li { margin-bottom: 6px; }
+                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px solid rgba(0,243,255,0.3); transition: 0.2s; }
+                    .chaka-msg-ai a:hover { border-bottom-color: #00f3ff; }
+                    
+                    /* Bubble Layouts */
+                    .chaka-msg-wrapper { display: flex; gap: 12px; margin-bottom: 4px; width: 100%; }
+                    .chaka-msg-wrapper.user { justify-content: flex-end; }
+                    .chaka-msg-wrapper.ai { justify-content: flex-start; align-items: flex-start; }
+                    
+                    .chaka-msg-user { background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 4px 20px; max-width: 80%; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.05); }
+                    .chaka-msg-user p { margin: 0; }
+                    
+                    .chaka-msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0088ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,136,255,0.2); margin-top: 2px; }
+                    
+                    .chaka-orb-active { animation: pulse_chaka 2s infinite; background: linear-gradient(135deg, #ff0055, #ff7700) !important; box-shadow: 0 0 30px rgba(255,0,85,0.6) !important; }
                     @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(255,0,85, 0.7); } 70% { box-shadow: 0 0 0 25px rgba(255,0,85, 0); } 100% { box-shadow: 0 0 0 0 rgba(255,0,85, 0); } }
                 </style>
             `;
@@ -1730,14 +1779,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
             
+            // Auto-resize textarea
+            const chatInput = document.getElementById('chaka-chat-input');
+            chatInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            
+            // Enter to submit (Shift+Enter for newline)
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    document.getElementById('chaka-chat-form').dispatchEvent(new Event('submit'));
+                }
+            });
+            
             // Chat Input Submit
             document.getElementById('chaka-chat-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const input = document.getElementById('chaka-chat-input');
-                const text = input.value.trim();
+                const text = chatInput.value.trim();
                 if (text) {
                     this.sendTextMessage(text);
-                    input.value = '';
+                    chatInput.value = '';
+                    chatInput.style.height = 'auto';
                 }
             });
 
@@ -1796,6 +1860,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 modal.style.opacity = '1';
                 modal.style.pointerEvents = 'auto';
                 modal.style.transform = 'scale(1) translateY(0)';
+                setTimeout(() => document.getElementById('chaka-chat-input').focus(), 100);
             } else {
                 modal.style.opacity = '0';
                 modal.style.pointerEvents = 'none';
@@ -1805,19 +1870,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         appendChatMessage(role, text) {
             const historyArea = document.getElementById('chaka-chat-history');
-            const div = document.createElement('div');
+            const wrapper = document.createElement('div');
+            wrapper.className = \`chaka-msg-wrapper \${role === 'user' ? 'user' : 'ai'}\`;
             
-            // Render basic markdown if any
-            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Render markdown (if marked.js loaded, else basic fallback)
+            let formattedText = '';
+            if (window.marked) {
+                formattedText = marked.parse(text);
+            } else {
+                // Fallback basic formatting
+                formattedText = text.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
+                formattedText = '<p>' + formattedText.replace(/\\n/g, '<br/>') + '</p>';
+            }
             
             if (role === 'user') {
-                div.className = 'chaka-msg-user';
-                div.innerHTML = formattedText;
+                wrapper.innerHTML = \`<div class="chaka-msg-user">\${formattedText}</div>\`;
             } else {
-                div.className = 'chaka-msg-ai';
-                div.innerHTML = formattedText;
+                wrapper.innerHTML = \`
+                    <div class="chaka-msg-avatar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                    </div>
+                    <div class="chaka-msg-ai">\${formattedText}</div>
+                \`;
             }
-            historyArea.appendChild(div);
+            
+            historyArea.appendChild(wrapper);
             historyArea.scrollTop = historyArea.scrollHeight;
             
             // Persist to session memory array, but avoid double writing if loading from memory
