@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "concurrently \"node server.js\" \"python3 ai_swarm.py\""
   },
   "keywords": [
     "jomiez",
@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
     "compression": "^1.8.1",
+    "concurrently": "^10.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
