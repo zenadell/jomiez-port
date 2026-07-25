@@ -78,7 +78,7 @@ Make sure the links are fully clickable in your markdown output.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
     tools=[navigate_to, scroll_to], # No execute_sql, no mcp_servers
-    model="gemini-2.5-flash"
+    model="gemini-3.1-flash-lite"
 )
 
 captain_config = LocalAgentConfig(
@@ -91,7 +91,7 @@ You are equipped with powerful Tools.
     capabilities=types.CapabilitiesConfig(enable_subagents=True),
     tools=[navigate_to, scroll_to, execute_sql],
     mcp_servers=mcp_servers,
-    model="gemini-2.5-flash"
+    model="gemini-3.1-flash-lite"
 )
 
 class ChatRequest(BaseModel):
@@ -160,20 +160,36 @@ from openai import OpenAI
 
 @app.post("/agent/execute")
 async def execute_agent(request: AgentRequest):
-    # Fetch Gemini key (switching away from NVIDIA since it's down)
+    # Try DeepSeek first (unlimited), fall back to Gemini 3.1 Flash Lite
     conn = sqlite3.connect('database.sqlite')
     cursor = conn.cursor()
-    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'gemini' ORDER BY id DESC LIMIT 1")
-    row = cursor.fetchone()
+    
+    # Check for DeepSeek key first
+    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'deepseek' AND is_active = '1' ORDER BY id DESC LIMIT 1")
+    ds_row = cursor.fetchone()
+    
+    # Then get Gemini key as fallback
+    cursor.execute("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND is_active = '1' ORDER BY id DESC LIMIT 1")
+    gem_row = cursor.fetchone()
     conn.close()
     
-    if not row:
-        return {"summary": "Error: Gemini API key not found in database. Add it in Admin."}
-        
-    gemini_key = row[0]
+    # Build provider list: DeepSeek first (unlimited), Gemini second
+    providers = []
+    if ds_row:
+        providers.append({
+            "name": "DeepSeek v4 Pro",
+            "client": OpenAI(api_key=ds_row[0], base_url="https://api.deepseek.com/v1", timeout=120.0),
+            "model": "deepseek-chat"
+        })
+    if gem_row:
+        providers.append({
+            "name": "Gemini 2.5 Flash",
+            "client": OpenAI(api_key=gem_row[0], base_url="https://generativelanguage.googleapis.com/v1beta/openai/", timeout=120.0),
+            "model": "gemini-2.5-flash"
+        })
     
-    # Use Gemini's new OpenAI-compatible endpoint for drop-in replacement!
-    client = OpenAI(api_key=gemini_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/", timeout=120.0)
+    if not providers:
+        return {"summary": "Error: No API keys found (DeepSeek or Gemini). Add one in Admin."}
     
     tools = [
         {
@@ -230,35 +246,61 @@ async def execute_agent(request: AgentRequest):
     ]
     
     messages = [
-        {"role": "system", "content": "You are Gemini, an elite, autonomous software engineering agent running inside the Jomiez Innovation backend. You have tools to read/write files, list directories, and execute SQL queries on database.sqlite. Your goal is to fulfill the admin's request. Use absolute paths or paths relative to the current directory."},
+        {"role": "system", "content": "You are Chaka Engine, an elite, autonomous software engineering agent running inside the Jomiez Innovation backend. You have tools to read/write files, list directories, and execute SQL queries on database.sqlite. Your goal is to fulfill the admin's request. Use absolute paths or paths relative to the current directory."},
         {"role": "user", "content": request.command}
     ]
     
     summary_log = []
+    active_provider = None
     
     for step in range(6): # Max 6 loops for safety
-        logging.info(f"[Agent] Step {step+1}/6 — calling Gemini Engineering Agent...")
-        try:
-            completion = client.chat.completions.create(
-              model="gemini-2.5-pro",
-              messages=messages,
-              temperature=0.2,
-              max_tokens=8192,
-              tools=tools,
-              tool_choice="auto"
-            )
-            logging.info(f"[Agent] Step {step+1} — response received.")
-        except Exception as e:
-            logging.error(f"[Agent] API Error: {str(e)}")
-            return {"summary": f"API Error: {str(e)}"}
+        last_error = None
+        for provider in providers:
+            logging.info(f"[Agent] Step {step+1}/6 — trying {provider['name']}...")
+            try:
+                completion = provider["client"].chat.completions.create(
+                  model=provider["model"],
+                  messages=messages,
+                  temperature=0.2,
+                  max_tokens=8192,
+                  tools=tools,
+                  tool_choice="auto"
+                )
+                active_provider = provider
+                logging.info(f"[Agent] Step {step+1} — response received from {provider['name']}.")
+                last_error = None
+                break  # Success, stop trying providers
+            except Exception as e:
+                last_error = str(e)
+                logging.warning(f"[Agent] {provider['name']} failed: {last_error}")
+                continue  # Try next provider
+        
+        if last_error:
+            logging.error(f"[Agent] All providers failed: {last_error}")
+            return {"summary": f"API Error: All providers failed. Last error: {last_error}"}
             
         message = completion.choices[0].message
         
-        # We must convert message object to dict for appending back to messages in some versions of openai sdk, or just append the object
+        # Build the assistant message dict, preserving thought_signature for Gemini 3.x
         msg_dict = {"role": "assistant"}
         if message.content: msg_dict["content"] = message.content
         if message.tool_calls:
             msg_dict["tool_calls"] = [{"id": t.id, "type": "function", "function": {"name": t.function.name, "arguments": t.function.arguments}} for t in message.tool_calls]
+        
+        # Gemini 3.x requires thought_signature to be echoed back for tool call continuations
+        # Check multiple possible locations where the SDK might store it
+        thought_sig = None
+        try:
+            # OpenAI SDK may put extra fields in model_extra or provider_specific_fields
+            if hasattr(message, 'model_extra') and message.model_extra:
+                thought_sig = message.model_extra.get('thought_signature')
+            if not thought_sig and hasattr(completion, 'model_extra') and completion.model_extra:
+                thought_sig = completion.model_extra.get('thought_signature')
+        except:
+            pass
+        
+        if thought_sig:
+            msg_dict["thought_signature"] = thought_sig
             
         messages.append(msg_dict)
         
