@@ -1657,8 +1657,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const res = await fetch('/api/apikeys');
                 const keys = await res.json();
                 this.apiKeys = keys.filter(k => k.provider === 'gemini' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
+                // Live WebSocket requires standard AIzaSy... keys (AQ. tokens don't work with wss:// endpoint)
+                this.liveKeys = this.apiKeys.filter(k => k.startsWith('AIza'));
                 this.groqKeys = keys.filter(k => k.provider === 'groq' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
-                console.log(`[Chaka] Engine: ${this.engine} | Gemini keys: ${this.apiKeys.length} | Groq keys: ${this.groqKeys.length}`);
+                console.log(`[Chaka] Engine: ${this.engine} | Gemini keys: ${this.apiKeys.length} | Live keys: ${this.liveKeys.length} | Groq keys: ${this.groqKeys.length}`);
             } catch(e) { console.warn('[Chaka] Failed to load API keys:', e); }
 
             // Fetch dynamic site knowledge for the AI's system prompt (Voice mode)
@@ -2014,8 +2016,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
                 } else {
-                    if (this.apiKeys.length === 0) {
-                        this.showBubble("No Gemini API Key found. Add one in Admin.", 5000);
+                    if (!this.liveKeys || this.liveKeys.length === 0) {
+                        this.showBubble("No valid Gemini API Key for live mode. Add an AIzaSy... key in Admin.", 5000);
                         return;
                     }
                 }
@@ -2068,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // WEBSOCKET (GEMINI BIDI)
         // ========================
         async connectWebSocket() {
-            const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+            const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.liveKeys[this.currentKeyIndex]}`;
             try {
                 this.socket = new WebSocket(url);
             } catch (e) {
@@ -2169,8 +2171,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         rotateKeyAndRetry() {
             this.currentKeyIndex++;
-            if (this.currentKeyIndex >= this.apiKeys.length) {
-                console.error("[Chaka] All API keys exhausted.");
+            if (this.currentKeyIndex >= this.liveKeys.length) {
+                console.error("[Chaka] All live API keys exhausted.");
                 this.showBubble("All API keys failed. Check Admin.", 5000);
                 this.currentKeyIndex = 0;
                 this.cleanup();
