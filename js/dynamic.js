@@ -1335,38 +1335,42 @@ document.addEventListener('DOMContentLoaded', async () => {
                 marquee.innerHTML = '';
                 
                 brands.forEach(b => {
-                    if (b.image_url) {
-                        const clone = template.cloneNode(true);
-                        const svg = clone.querySelector('svg');
-                        if (svg) {
-                            const wrapper = document.createElement('div');
-                            wrapper.style.display = 'flex';
-                            wrapper.style.alignItems = 'center';
-                            wrapper.style.justifyContent = 'center';
-                            wrapper.style.gap = '15px';
-                            wrapper.className = svg.className.baseVal || svg.className || 'brands-logo';
-                            
+                    // Render if the brand has a name OR an image (or both)
+                    if (!b.image_url && !b.name) return;
+
+                    const clone = template.cloneNode(true);
+                    const svg = clone.querySelector('svg');
+                    if (svg) {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.justifyContent = 'center';
+                        wrapper.style.gap = '15px';
+                        wrapper.className = svg.className.baseVal || svg.className || 'brands-logo';
+                        
+                        if (b.image_url) {
                             const img = document.createElement('img');
                             img.src = b.image_url;
+                            img.alt = b.name || 'Brand logo';
                             img.style.maxHeight = '65px';
                             img.style.maxWidth = '180px';
                             img.style.objectFit = 'contain';
                             img.style.display = 'block';
                             wrapper.appendChild(img);
-                            
-                            if (b.name) {
-                                const text = document.createElement('span');
-                                text.textContent = b.name;
-                                text.style.fontWeight = '700'; 
-                                text.style.fontSize = '1.85rem';
-                                text.style.color = 'currentColor'; 
-                                text.style.letterSpacing = '1px';
-                                wrapper.appendChild(text);
-                            }
-                            svg.replaceWith(wrapper);
                         }
-                        marquee.appendChild(clone);
+                        
+                        if (b.name) {
+                            const text = document.createElement('span');
+                            text.textContent = b.name;
+                            text.style.fontWeight = '700'; 
+                            text.style.fontSize = '1.85rem';
+                            text.style.color = 'currentColor'; 
+                            text.style.letterSpacing = '1px';
+                            wrapper.appendChild(text);
+                        }
+                        svg.replaceWith(wrapper);
                     }
+                    marquee.appendChild(clone);
                 });
             });
         }
