@@ -183,9 +183,9 @@ async def execute_agent(request: AgentRequest):
         })
     if gem_row:
         providers.append({
-            "name": "Gemini 2.5 Flash",
+            "name": "Gemini 3.1 Flash Lite",
             "client": OpenAI(api_key=gem_row[0], base_url="https://generativelanguage.googleapis.com/v1beta/openai/", timeout=120.0),
-            "model": "gemini-2.5-flash"
+            "model": "gemini-3.1-flash-lite"
         })
     
     if not providers:
