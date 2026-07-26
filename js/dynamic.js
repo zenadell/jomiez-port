@@ -1915,14 +1915,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        appendChatMessage(role, text) {
+        appendChatMessage(role, text, isRawHtml = false) {
             const historyArea = document.getElementById('chaka-chat-history');
             const wrapper = document.createElement('div');
             wrapper.className = `chaka-msg-wrapper ${role === 'user' ? 'user' : 'ai'}`;
             
-            // Render markdown (if marked.js loaded, else basic fallback)
+            // Render markdown (if marked.js loaded, else basic fallback) — skip if raw HTML
             let formattedText = '';
-            if (window.marked) {
+            if (isRawHtml) {
+                formattedText = text;
+            } else if (window.marked) {
                 formattedText = marked.parse(text);
             } else {
                 // Fallback basic formatting
@@ -2463,7 +2465,52 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         result = { executed: false, error: `Section "${concept}" not found on current page` };
                     }
                 } else if (name === 'showContactMethod') {
-                    this.appendChatMessage('assistant', `Opening ${args.method} contact option...`);
+                    const method = (args.method || '').toLowerCase();
+                    const s = window.siteSettings || {};
+                    
+                    const contactMap = {
+                        'whatsapp': { url: s.social_whatsapp, label: 'Chat on WhatsApp', icon: '💬', color: '#25D366' },
+                        'phone': { url: s.contact_phone ? `tel:${s.contact_phone.replace(/\s/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, icon: '📞', color: '#4A90D9' },
+                        'call': { url: s.contact_phone ? `tel:${s.contact_phone.replace(/\s/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, icon: '📞', color: '#4A90D9' },
+                        'email': { url: s.contact_email ? `mailto:${s.contact_email}` : null, label: `Email ${s.contact_email || 'us'}`, icon: '✉️', color: '#EA4335' },
+                        'instagram': { url: s.social_instagram, label: 'Instagram', icon: '📸', color: '#E1306C' },
+                        'linkedin': { url: s.social_linkedin, label: 'LinkedIn', icon: '💼', color: '#0077B5' },
+                        'github': { url: s.social_github, label: 'GitHub', icon: '🐙', color: '#6e5494' }
+                    };
+                    
+                    const contact = contactMap[method];
+                    
+                    if (contact && contact.url) {
+                        // Create a clickable contact card in the chat
+                        const cardHtml = `<div style="margin:8px 0;">
+                            <a href="${contact.url}" target="_blank" rel="noopener" 
+                               style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:${contact.color}22;border:1px solid ${contact.color}55;border-radius:12px;color:white;text-decoration:none;transition:all 0.2s ease;cursor:pointer;"
+                               onmouseover="this.style.background='${contact.color}44';this.style.transform='scale(1.02)'"
+                               onmouseout="this.style.background='${contact.color}22';this.style.transform='scale(1)'">
+                                <span style="font-size:28px;">${contact.icon}</span>
+                                <div>
+                                    <div style="font-weight:700;font-size:15px;">${contact.label}</div>
+                                    <div style="font-size:12px;opacity:0.7;">Tap to open</div>
+                                </div>
+                                <span style="margin-left:auto;font-size:20px;">→</span>
+                            </a>
+                        </div>`;
+                        this.appendChatMessage('assistant', cardHtml, true);
+                        
+                        // Auto-open if args.auto_open is true
+                        if (args.auto_open) {
+                            window.open(contact.url, '_blank');
+                        }
+                        
+                        result = { executed: true, method, url: contact.url, displayed: true };
+                    } else {
+                        // Method not found or no URL configured
+                        const available = Object.entries(contactMap)
+                            .filter(([k, v]) => v.url)
+                            .map(([k]) => k);
+                        this.appendChatMessage('assistant', `Sorry, ${method || 'that'} contact isn't configured yet. Available: ${available.join(', ')}`);
+                        result = { executed: false, error: `Contact method "${method}" not available`, available };
+                    }
                 } else {
                     // Forward admin tools to server
                     try {
