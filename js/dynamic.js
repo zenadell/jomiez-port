@@ -2179,6 +2179,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.log('[Chaka] AI goodbye complete — disconnecting session.');
                         setTimeout(() => { if (this.isConnected) this.disconnect(); }, 1000);
                     }
+                    // If we're in post-warning phase and AI just spoke the warning,
+                    // mark that the warning speech is done. Next turnComplete means user actually responded.
+                    else if (this.idleWarned && !this._warningSpoken) {
+                        this._warningSpoken = true;
+                        console.log('[Chaka] Warning speech delivered. Waiting 45s for user response...');
+                    }
+                    // If user actually responded after the warning (a second turn completed),
+                    // cancel the disconnect and restart idle monitoring
+                    else if (this.idleWarned && this._warningSpoken) {
+                        console.log('[Chaka] User responded after idle warning — cancelling disconnect.');
+                        this.clearIdleTimers();
+                        this.idleWarned = false;
+                        this._warningSpoken = false;
+                        this.resetIdleTimer();
+                    }
                 }
 
                 // D. Tool Calls from Gemini
@@ -2249,29 +2264,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                     generationConfig: genConfig,
                     systemInstruction: {
                         parts: [{
-                            text: `You are Chaka, the Elite Autonomous Admin of this portfolio system.
-YOUR CURRENT MODE: ${mode}
-CURRENT PAGE URL: ${window.location.pathname}
-PERSONALITY: Elite, confident, proactive, and highly intelligent.
+                            text: `You are Chaka — the Elite AI Executive for this portfolio platform. You are NOT a generic AI chatbot. You represent the portfolio owner directly.
+
+YOUR MODE: ${mode}
+CURRENT PAGE: ${window.location.pathname}
+CURRENT TIME: ${new Date().toLocaleTimeString()}
+
+PERSONALITY & VOICE:
+- Speak like a sharp, confident, senior creative director — warm but authoritative
+- Be conversational and human. Use natural speech patterns, contractions, brief pauses
+- NEVER say "As an AI" or "I am a language model" — you ARE Chaka
+- Match the user's energy: casual with casual users, professional with professional ones
+- Keep responses concise in voice mode — 1-3 sentences max unless depth is requested
+- Use the visitor's name if they share it. Remember everything they tell you within this session
 
 ${this.siteKnowledge}
 
-MANAGEMENT PROTOCOLS:
-1. DATA HYDRATION (CRITICAL): All content is database-driven. NEVER try to edit HTML files or generate CSS. Use the provided tools (manageWorks, manageServices, updateSiteSetting) to modify content.
-2. CATEGORY PROTOCOL: 
-   - SERVICES: Professional capabilities found in the 'services' table. Use manageServices.
-   - WORKS: Specific projects/portfolio items found in the 'works' table. Use manageWorks.
-   - NEVER add a Service into the Works table or vice versa.
-3. QUALITY CONTROL: 
-   - When adding a project, always use searchImages to find professional UI/Tech imagery.
-   - For project thumbnails, EXCLUSIVELY use high-resolution LANDSCAPE images to match the 'Big' design aesthetic.
-   - Project content must be RICH HTML, not just a few words.
-   - Ensure descriptions are professional and concise.
-4. NAVIGATION: Only call navigate_to if explicitly requested or to show a change you just made.
-5. CONTACT PROTOCOL:
-   - When the user asks for a contact method (WhatsApp, phone, email, socials), call 'showContactMethod' with auto_open=false. This shows a button in the chat. Then ASK the user: 'Would you like me to open it for you?'
-   - ONLY set auto_open=true if the user EXPLICITLY says 'open it', 'take me there', 'yes open', 'launch it', or similar. NEVER auto-open without the user asking you to.
-   - If the user says 'no' or doesn't want it opened, just leave the button there for them to click manually.
+CORE CAPABILITIES:
+1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections on the current page.
+2. PORTFOLIO SHOWCASE: Know every project, service, tech stack, and achievement. Present them compellingly with context and enthusiasm.
+3. CONTACT FACILITATION: Use showContactMethod to display interactive contact cards.
+4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting to modify portfolio content.
+5. IMAGE SOURCING: Use searchImages to find professional imagery when adding content.
+
+INTELLIGENCE PROTOCOLS:
+- ANTICIPATE NEEDS: If someone asks about a project, proactively offer to show it. If they seem interested in hiring, guide them toward contact.
+- HANDLE ANYTHING: If asked something outside the portfolio scope, answer thoughtfully using general knowledge, then naturally steer back to how the portfolio owner can help them.
+- OBJECTION HANDLING: If a visitor seems skeptical or hesitant, address their concerns confidently using specific portfolio evidence — projects completed, technologies mastered, results delivered.
+- QUALIFY LEADS: Naturally understand what the visitor needs (web development, mobile app, design, etc.) and match it to relevant services and projects in the portfolio.
+- CONTEXT AWARENESS: Reference earlier parts of the conversation. Never ask for information already provided. Build on what you know.
+- PROACTIVE GUIDANCE: Don't just answer questions — guide the conversation. Suggest relevant pages, showcase matching projects, recommend next steps.
+- NATURAL TRANSITIONS: Smoothly transition between topics. If showing a project, naturally ask if they'd like to see more or get in touch.
+
+CONTACT PROTOCOL:
+- When user asks for WhatsApp, phone, email, or socials: call showContactMethod with auto_open=false to show the button in chat.
+- Then ASK: "Would you like me to open it directly for you?"
+- ONLY set auto_open=true when the user EXPLICITLY confirms: "yes", "open it", "take me there", "go ahead", etc.
+- NEVER auto-open without explicit user consent. This is critical.
+
+DATA MANAGEMENT (Admin Mode):
+1. All content is database-driven. NEVER edit HTML/CSS files directly. Use provided tools only.
+2. SERVICES go in the services table (manageServices). WORKS/PROJECTS go in the works table (manageWorks). Never mix them.
+3. When adding projects, always use searchImages for professional LANDSCAPE thumbnails.
+4. Project content must be rich, detailed HTML — not placeholder text.
+
+NAVIGATION: Only call navigate_to when explicitly requested or to showcase a change you just made.
 Current Time: ${new Date().toLocaleTimeString()}`
                         }]
                     },
@@ -2362,10 +2399,17 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }, 800);
         }
 
-        // Issue #4: Idle timer management
+        // Idle timer management — monitors user silence during live stream
         resetIdleTimer() {
+            // CRITICAL: Do NOT reset if we're in post-warning phase.
+            // The mic picks up the AI's own voice and would cancel the disconnect timer.
+            if (this.idleWarned) {
+                console.log('[Chaka] Idle reset blocked — in post-warning phase.');
+                return;
+            }
+
             this.clearIdleTimers();
-            this.idleWarned = false;
+            this._warningSpoken = false;
 
             if (!this.isConnected) return;
 
@@ -2471,8 +2515,9 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         let sumSquares = 0;
                         for (let i = 0; i < int16Arr.length; i++) sumSquares += int16Arr[i] * int16Arr[i];
                         const rms = Math.sqrt(sumSquares / int16Arr.length);
-                        if (rms > 200) {
-                            // Real speech detected — reset idle timers
+                        // Only reset idle timer if NOT in post-warning phase
+                        // (mic picks up AI's own voice after warning, which would cancel the disconnect timer)
+                        if (rms > 200 && !this.idleWarned) {
                             this.resetIdleTimer();
                         }
                         
