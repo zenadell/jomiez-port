@@ -2415,13 +2415,44 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 let result = { executed: true };
                 
                 if (name === 'navigate_to') {
-                    window.location.href = args.url;
+                    // If live stream is active, do soft navigation to preserve the WebSocket
+                    if (this.isConnected && this.socket && this.socket.readyState === WebSocket.OPEN) {
+                        try {
+                            result = await this.softNavigate(args.url);
+                        } catch(e) {
+                            console.error('[Chaka] Soft navigate failed, falling back:', e);
+                            window.location.href = args.url;
+                            return;
+                        }
+                    } else {
+                        window.location.href = args.url;
+                        return;
+                    }
                 } else if (name === 'scroll_to') {
-                    const el = document.querySelector(`[data-section="${args.section_concept}"]`) || document.body;
-                    el.scrollIntoView({ behavior: 'smooth' });
+                    const sectionMap = {
+                        'hero': '.hero-section, .section-hero, [data-section="hero"]',
+                        'about': '.about-section, .section-about, [data-section="about"]',
+                        'services': '.services-section, .section-services, [data-section="services"]',
+                        'works': '.work-section, .section-works, [data-section="works"]',
+                        'projects': '.work-section, .section-works, [data-section="works"]',
+                        'contact': '.contact-section, .section-contact, [data-section="contact"]',
+                        'testimonials': '.testimonial-section, [data-section="testimonials"]',
+                        'footer': 'footer, .footer',
+                        'brands': '.brands-section, .brands-logo-marquee',
+                        'skills': '.skills-section, [data-section="skills"]',
+                        'faq': '.faq-section, [data-section="faq"]'
+                    };
+                    const concept = (args.section_concept || '').toLowerCase();
+                    const selector = sectionMap[concept] || `[data-section="${concept}"]`;
+                    const el = document.querySelector(selector);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                        result = { executed: true, scrolledTo: concept };
+                    } else {
+                        result = { executed: false, error: `Section "${concept}" not found on current page` };
+                    }
                 } else if (name === 'showContactMethod') {
                     this.appendChatMessage('assistant', `Opening ${args.method} contact option...`);
-                    // Logic to show modal/card
                 } else {
                     // Forward admin tools to server
                     try {
@@ -2439,15 +2470,81 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 // Send tool result back if using Bidi socket
                 if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                     this.socket.send(JSON.stringify({
-                        tool_response: {
-                            function_responses: [{
-                                response: { result },
+                        toolResponse: {
+                            functionResponses: [{
+                                response: { result: JSON.stringify(result) },
                                 id: call.id
                             }]
                         }
                     }));
                 }
             }
+        }
+
+        /**
+         * Soft navigate — fetches the target page and swaps content without
+         * a full page reload, keeping the live WebSocket stream alive.
+         */
+        async softNavigate(url) {
+            console.log(`[Chaka] Soft navigating to: ${url}`);
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
+            
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Extract the new page wrapper content
+            const newWrapper = doc.querySelector('.page-wrapper');
+            const currentWrapper = document.querySelector('.page-wrapper');
+            
+            if (!newWrapper || !currentWrapper) {
+                throw new Error('Could not find .page-wrapper in source or target page');
+            }
+            
+            // Preserve the Chaka UI elements before swapping
+            const chakaOrb = document.getElementById('chaka-orb');
+            const chakaPanel = document.getElementById('chaka-chat-panel');
+            const chakaOrbParent = chakaOrb ? chakaOrb.parentNode : null;
+            const chakaPanelParent = chakaPanel ? chakaPanel.parentNode : null;
+            
+            // Swap the page content
+            currentWrapper.className = newWrapper.className;
+            currentWrapper.innerHTML = newWrapper.innerHTML;
+            
+            // Re-attach Chaka UI if they were inside the wrapper
+            if (chakaOrb && !document.getElementById('chaka-orb')) {
+                (chakaOrbParent || document.body).appendChild(chakaOrb);
+            }
+            if (chakaPanel && !document.getElementById('chaka-chat-panel')) {
+                (chakaPanelParent || document.body).appendChild(chakaPanel);
+            }
+            
+            // Update browser URL
+            history.pushState({ chakaNav: true }, '', url);
+            
+            // Update page title if available
+            const newTitle = doc.querySelector('title');
+            if (newTitle) document.title = newTitle.textContent;
+            
+            // Re-initialize Webflow animations on new content
+            if (window.Webflow) {
+                try { window.Webflow.destroy(); } catch(e) {}
+                try { window.Webflow.ready(); } catch(e) {}
+                try { window.Webflow.require('ix2').init(); } catch(e) {}
+            }
+            
+            // Re-run dynamic hydration on new content
+            if (typeof window.hydrateDynamicContent === 'function') {
+                window.hydrateDynamicContent();
+            }
+            
+            // Scroll to top of new page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            console.log(`[Chaka] Soft navigation to ${url} complete — live stream preserved.`);
+            return { executed: true, navigatedTo: url, method: 'soft' };
         }
     }
 
