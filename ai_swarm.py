@@ -39,10 +39,12 @@ def scroll_to(section_concept: str) -> str:
     RequestContext.ui_actions.append({"name": "scroll_to", "args": {"section_concept": section_concept}})
     return f"Scrolling to {section_concept}"
 
-def showContactMethod(method: str, auto_open: bool = True) -> str:
-    """Opens and launches a contact method directly for the user (whatsapp, phone, email, instagram, linkedin, github). Call this immediately whenever the user asks to contact, call, chat on WhatsApp, email, or visit socials."""
+def showContactMethod(method: str, auto_open: bool = False) -> str:
+    """Shows an interactive contact card button in the chat (whatsapp, phone, email, instagram, linkedin, github). Set auto_open=True ONLY if the user explicitly asked to be taken/redirected there. By default, just show the button and ask the user if they want it opened."""
     RequestContext.ui_actions.append({"name": "showContactMethod", "args": {"method": method, "auto_open": auto_open}})
-    return f"Opening {method} contact option for you."
+    if auto_open:
+        return f"Opening {method} for you now."
+    return f"Here is the {method} contact button. Would you like me to open it for you?"
 
 import sys
 
@@ -77,8 +79,10 @@ When listing or mentioning any portfolio projects or services, you MUST format t
 - For services: Use `[Service Name](/services/service-slug)`
 
 When users ask for WhatsApp, Phone, Email, or Social contact:
-- You HAVE full capability to directly open WhatsApp, launch phone calls, open email, or open social profiles for the user using the `showContactMethod` tool!
-- Whenever the user asks to contact, call, message on WhatsApp, email, or visit socials, ALWAYS call `showContactMethod` with method (whatsapp, phone, email, instagram, linkedin, github) and auto_open=True immediately and tell them you are launching it for them!
+- Call 'showContactMethod' with the correct method and auto_open=False. This shows a button.
+- Then ASK the user if they want you to open it for them.
+- ONLY call 'showContactMethod' with auto_open=True if the user EXPLICITLY says 'open it', 'take me there', 'yes please open', or similar.
+- NEVER auto-open without the user asking you to.
 - Also provide clickable markdown links like `[Chat on WhatsApp](https://wa.me/...)` or `[Call Us](tel:...)` using site knowledge so they can click manually if needed.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),

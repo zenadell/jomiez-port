@@ -1628,8 +1628,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.idleTimer = null;
             this.idleWarningTimer = null;
             this.idleWarned = false;
-            this.IDLE_WARNING_MS = 2 * 60 * 1000;   // 2 minutes — ask "are you still there?"
-            this.IDLE_DISCONNECT_MS = 3 * 60 * 1000; // 3 minutes — end session
+            this.IDLE_WARNING_MS = 60 * 1000;        // 60 seconds — ask "are you still there?"
+            this.IDLE_DISCONNECT_MS = 105 * 1000;     // 105 seconds (60 + 45) — end session
 
             // Audio FIFO Queue
             this.audioQueue = [];
@@ -2172,6 +2172,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         sessionStorage.setItem('chakaMemory', JSON.stringify(this.conversationHistory));
                     }
                     this.textBuffer = '';
+
+                    // If pending goodbye disconnect, end session now that AI finished speaking
+                    if (this._pendingGoodbyeDisconnect) {
+                        this._pendingGoodbyeDisconnect = false;
+                        console.log('[Chaka] AI goodbye complete — disconnecting session.');
+                        setTimeout(() => { if (this.isConnected) this.disconnect(); }, 1000);
+                    }
                 }
 
                 // D. Tool Calls from Gemini
@@ -2261,7 +2268,10 @@ MANAGEMENT PROTOCOLS:
    - Project content must be RICH HTML, not just a few words.
    - Ensure descriptions are professional and concise.
 4. NAVIGATION: Only call navigate_to if explicitly requested or to show a change you just made.
-5. CONTACT PROTOCOL: You have full capability to directly open WhatsApp, phone calls, email, or socials for the user using 'showContactMethod'. Whenever the user asks to contact, call, chat on WhatsApp, email, or visit socials, call 'showContactMethod' immediately with auto_open: true and tell them you are launching it for them!
+5. CONTACT PROTOCOL:
+   - When the user asks for a contact method (WhatsApp, phone, email, socials), call 'showContactMethod' with auto_open=false. This shows a button in the chat. Then ASK the user: 'Would you like me to open it for you?'
+   - ONLY set auto_open=true if the user EXPLICITLY says 'open it', 'take me there', 'yes open', 'launch it', or similar. NEVER auto-open without the user asking you to.
+   - If the user says 'no' or doesn't want it opened, just leave the button there for them to click manually.
 Current Time: ${new Date().toLocaleTimeString()}`
                         }]
                     },
@@ -2299,12 +2309,12 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "showContactMethod",
-                                description: "Opens and displays an interactive contact card (whatsapp, phone, email, instagram, linkedin, github). Call this immediately whenever user asks to contact, call, email, or message on WhatsApp.",
+                                description: "Shows an interactive contact card in the chat. IMPORTANT: Set auto_open to false by default. Only set auto_open to true if the user EXPLICITLY asked you to open/launch it for them (e.g. 'open it', 'take me there', 'yes please open'). Valid methods: whatsapp, phone, email, instagram, linkedin, github.",
                                 parameters: { 
                                     type: "OBJECT", 
                                     properties: { 
-                                        method: { type: "STRING" },
-                                        auto_open: { type: "BOOLEAN", description: "Set to true to directly launch/open the link or app for the user immediately." }
+                                        method: { type: "STRING", description: "The contact method to show." },
+                                        auto_open: { type: "BOOLEAN", description: "ONLY set true if the user EXPLICITLY asked to be taken/redirected. Default false — just show the button." }
                                     }, 
                                     required: ["method"] 
                                 }
@@ -2316,7 +2326,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this.socket.send(JSON.stringify(setupMsg));
         }
 
-        // Issue #3: Immediately greet the user based on time of day
+        // Issue #3: Immediately greet the user based on time of day (or welcome back)
         sendGreeting() {
             if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
             const hour = new Date().getHours();
@@ -2325,6 +2335,17 @@ Current Time: ${new Date().toLocaleTimeString()}`
             else if (hour < 17) timeContext = 'afternoon';
             else timeContext = 'evening';
 
+            // Check if this is a returning user (has recent conversation history)
+            const isReturning = this.conversationHistory.length > 2;
+            const lastTopic = isReturning ? this.conversationHistory.slice(-3).map(m => m.content).join(' ').substring(0, 200) : '';
+
+            let greetingPrompt;
+            if (isReturning) {
+                greetingPrompt = `[SYSTEM: The user just reconnected to the live stream after briefly leaving (likely clicked an external link like WhatsApp or a phone call). They are RETURNING — do NOT introduce yourself again. Welcome them back casually and briefly, ask if the link worked or if they need anything else. Pick up naturally from where you left off. Recent conversation context: "${lastTopic}". Keep it very short and natural.]`;
+            } else {
+                greetingPrompt = `[SYSTEM: The user just connected to the live stream for the first time. It is currently ${timeContext} (${new Date().toLocaleTimeString()}). Greet them warmly and naturally based on the time of day, introduce yourself briefly as Chaka, and ask how you can help them today. Be conversational, warm, and human-like. Keep it short and inviting.]`;
+            }
+
             // Send a client text prompt that triggers the AI to speak first
             setTimeout(() => {
                 if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -2332,7 +2353,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         clientContent: {
                             turns: [{
                                 role: 'user',
-                                parts: [{ text: `[SYSTEM: The user just connected to the live stream. It is currently ${timeContext} (${new Date().toLocaleTimeString()}). Greet them warmly and naturally based on the time of day, introduce yourself briefly as Chaka, and ask how you can help them today. Be conversational, warm, and human-like. Keep it short and inviting.]` }]
+                                parts: [{ text: greetingPrompt }]
                             }],
                             turnComplete: true
                         }
@@ -2348,7 +2369,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
 
             if (!this.isConnected) return;
 
-            // First timer: warn at 2 minutes
+            // First timer: warn at 60 seconds
             this.idleWarningTimer = setTimeout(() => {
                 if (!this.isConnected) return;
                 this.idleWarned = true;
@@ -2358,14 +2379,14 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         clientContent: {
                             turns: [{
                                 role: 'user',
-                                parts: [{ text: '[SYSTEM: The user has been silent for 2 minutes. Ask them warmly if they are still there. Something like "Hey, are you still there? I am here if you need anything!". Keep it short and friendly.]' }]
+                                parts: [{ text: '[SYSTEM: The user has been silent for a while. Ask them warmly if they are still there. Something like "Hey, are you still there? I am here if you need anything!". Keep it very short and friendly.]' }]
                             }],
                             turnComplete: true
                         }
                     }));
                 }
 
-                // Second timer: disconnect at 3 minutes total (1 more minute after warning)
+                // Second timer: disconnect 45 seconds after warning
                 this.idleTimer = setTimeout(() => {
                     if (!this.isConnected) return;
                     console.log('[Chaka] User still idle after warning — ending session.');
@@ -2374,16 +2395,15 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             clientContent: {
                                 turns: [{
                                     role: 'user',
-                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle warning. Say a warm goodbye like "Alright, it seems you might be busy. I will end our session for now to save resources, but feel free to come back anytime! Have a great day!" Then the session will end.]' }]
+                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle check. Say a brief warm goodbye like "Alright, it seems you are busy right now. I will close our session for now, but I am always here when you need me. Take care!" Keep it short. The session will close automatically after you finish speaking.]' }]
                                 }],
                                 turnComplete: true
                             }
                         }));
                     }
-                    // Give the AI 5 seconds to speak its goodbye, then disconnect
-                    setTimeout(() => {
-                        if (this.isConnected) this.disconnect();
-                    }, 5000);
+                    // Wait for AI to finish speaking goodbye, then disconnect
+                    // Listen for turnComplete to know when AI is done
+                    this._pendingGoodbyeDisconnect = true;
                 }, this.IDLE_DISCONNECT_MS - this.IDLE_WARNING_MS);
             }, this.IDLE_WARNING_MS);
         }
@@ -2627,13 +2647,12 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         </div>`;
                         this.appendChatMessage('assistant', cardHtml, true);
                         
-                        // Issue #1: ACTUALLY auto-open the link reliably
-                        const shouldOpen = args.auto_open !== false && args.auto_open !== "false";
+                        // Only auto-open if AI explicitly passed auto_open=true (user asked to be taken there)
+                        const shouldOpen = args.auto_open === true || args.auto_open === "true";
                         if (shouldOpen) {
                             setTimeout(() => {
                                 const url = contact.url;
                                 if (url.startsWith('tel:') || url.startsWith('mailto:')) {
-                                    // For native protocols, create a hidden link and click it
                                     const tempLink = document.createElement('a');
                                     tempLink.href = url;
                                     tempLink.style.display = 'none';
@@ -2641,9 +2660,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                                     tempLink.click();
                                     document.body.removeChild(tempLink);
                                 } else {
-                                    // For http/https links (WhatsApp, socials), use window.open
                                     const newWin = window.open(url, '_blank');
-                                    // Fallback: if popup blocked, try location.href
                                     if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
                                         window.location.href = url;
                                     }
