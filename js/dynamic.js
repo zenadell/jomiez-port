@@ -2539,6 +2539,21 @@ Current Time: ${new Date().toLocaleTimeString()}`
             const newTitle = doc.querySelector('title');
             if (newTitle) document.title = newTitle.textContent;
             
+            // Force-reveal all Webflow IX2 animated elements
+            // IX2 sets inline opacity:0 and transform:translate3d(0,50px,0) as initial animation states.
+            // After soft nav, IX2 doesn't re-trigger, so we force everything visible.
+            currentWrapper.querySelectorAll('[style]').forEach(el => {
+                const style = el.getAttribute('style') || '';
+                if (style.includes('opacity:0') || style.includes('opacity: 0')) {
+                    el.style.opacity = '1';
+                    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                }
+                if (style.includes('translate3d')) {
+                    el.style.transform = 'translate3d(0, 0, 0) scale3d(1, 1, 1)';
+                    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                }
+            });
+            
             // Re-initialize Webflow animations on new content
             if (window.Webflow) {
                 try { window.Webflow.destroy(); } catch(e) {}
