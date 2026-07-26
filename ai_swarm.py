@@ -39,6 +39,11 @@ def scroll_to(section_concept: str) -> str:
     RequestContext.ui_actions.append({"name": "scroll_to", "args": {"section_concept": section_concept}})
     return f"Scrolling to {section_concept}"
 
+def showContactMethod(method: str, auto_open: bool = True) -> str:
+    """Opens and launches a contact method directly for the user (whatsapp, phone, email, instagram, linkedin, github). Call this immediately whenever the user asks to contact, call, chat on WhatsApp, email, or visit socials."""
+    RequestContext.ui_actions.append({"name": "showContactMethod", "args": {"method": method, "auto_open": auto_open}})
+    return f"Opening {method} contact option for you."
+
 import sys
 
 # Setup MCP Server for Knowledge/Graphify
@@ -71,13 +76,13 @@ When listing or mentioning any portfolio projects or services, you MUST format t
 - For projects: Use `[Project Name](/work/project-slug)`
 - For services: Use `[Service Name](/services/service-slug)`
 
-When users ask for WhatsApp or Phone contact:
-- For WhatsApp, MUST provide a link like `[Chat on WhatsApp](https://wa.me/...)` using the WhatsApp URL from site knowledge.
-- For Phone calls, MUST provide a link like `[Call Us](tel:...)` using the phone number from site knowledge.
-Make sure the links are fully clickable in your markdown output.
+When users ask for WhatsApp, Phone, Email, or Social contact:
+- You HAVE full capability to directly open WhatsApp, launch phone calls, open email, or open social profiles for the user using the `showContactMethod` tool!
+- Whenever the user asks to contact, call, message on WhatsApp, email, or visit socials, ALWAYS call `showContactMethod` with method (whatsapp, phone, email, instagram, linkedin, github) and auto_open=True immediately and tell them you are launching it for them!
+- Also provide clickable markdown links like `[Chat on WhatsApp](https://wa.me/...)` or `[Call Us](tel:...)` using site knowledge so they can click manually if needed.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
-    tools=[navigate_to, scroll_to], # No execute_sql, no mcp_servers
+    tools=[navigate_to, scroll_to, showContactMethod], # No execute_sql, no mcp_servers
     model="gemini-3.1-flash-lite"
 )
 
@@ -86,10 +91,10 @@ captain_config = LocalAgentConfig(
 You are equipped with powerful Tools. 
 1. The 'execute_sql' tool queries the local SQLite DB to manage works, settings, etc.
 2. The MCP graphify tools let you query the AST knowledge graph of the codebase.
-3. Use your own tools `navigate_to` and `scroll_to` to control the user's screen.
+3. Use your own tools `navigate_to`, `scroll_to`, and `showContactMethod` to control the user's screen or open contact links directly.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=True),
-    tools=[navigate_to, scroll_to, execute_sql],
+    tools=[navigate_to, scroll_to, showContactMethod, execute_sql],
     mcp_servers=mcp_servers,
     model="gemini-3.1-flash-lite"
 )

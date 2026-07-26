@@ -1583,7 +1583,7 @@ MANAGEMENT PROTOCOLS:
       if (!aiResponseText.trim()) {
         const primaryTool = toolCallPayload[0].name;
         if (primaryTool === 'navigate_to') aiResponseText = "Navigating you there right now.";
-        else if (primaryTool === 'showContactMethod') aiResponseText = "Sure, here is my contact info!";
+        else if (primaryTool === 'showContactMethod') aiResponseText = "Right away! Launching that contact option directly for you now.";
         else aiResponseText = "Getting that for you now.";
       }
     } else if (aiResponseText.includes('{"url"')) {

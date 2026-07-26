@@ -1704,23 +1704,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Live Chat Modal -->
-                <div id="chaka-chat-modal" style="position:fixed;bottom:110px;right:30px;width:380px;height:600px;max-height:80vh;background:rgba(18, 18, 22, 0.75);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid rgba(255,255,255,0.08);border-radius:28px;box-shadow:0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);z-index:999997;display:flex;flex-direction:column;transform:scale(0.95) translateY(30px);opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1);overflow:hidden;">
+                <!-- Live Chat Modal - 2026/2027 Ultra-Modern Glassmorphism -->
+                <div id="chaka-chat-modal" style="position:fixed;bottom:115px;right:32px;width:390px;height:620px;max-height:82vh;background:rgba(12, 12, 16, 0.88);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);border:1px solid rgba(255,255,255,0.12);border-radius:32px;box-shadow:0 35px 80px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.15), 0 0 60px rgba(0,136,255,0.12);z-index:999997;display:flex;flex-direction:column;transform:scale(0.95) translateY(30px);opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.16, 1, 0.3, 1);overflow:hidden;">
                     
                     <!-- Chat Header -->
-                    <div style="flex:0 0 auto;padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);">
+                    <div style="flex:0 0 auto;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.3) 100%);">
                         <div style="display:flex;align-items:center;gap:14px;">
-                            <div style="position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg, #00f3ff, #0088ff);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,136,255,0.3);">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
-                                <div id="chaka-ping" style="position:absolute;bottom:0;right:0;width:12px;height:12px;border-radius:50%;background:#00ff88;border:2px solid #111;"></div>
+                            <div style="position:relative;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg, #00f3ff, #0066ff);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,136,255,0.4), inset 0 1px 1px rgba(255,255,255,0.4);">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                                <div id="chaka-ping" style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#00ff88;border:2px solid #0c0c10;box-shadow:0 0 8px #00ff88;"></div>
                             </div>
                             <div>
-                                <div style="color:#fff;font-family:'Plus Jakarta Sans', sans-serif;font-weight:700;font-size:16px;">Chaka Live OS</div>
-                                <div style="color:rgba(255,255,255,0.5);font-family:'Inter', sans-serif;font-size:12px;font-weight:500;">AI Assistant</div>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="color:#fff;font-family:'Plus Jakarta Sans', sans-serif;font-weight:800;font-size:16px;letter-spacing:-0.3px;">Chaka Live OS</span>
+                                    <span style="background:rgba(0, 243, 255, 0.15);color:#00f3ff;border:1px solid rgba(0, 243, 255, 0.3);font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:0.5px;">PRO 3.1</span>
+                                </div>
+                                <div style="color:rgba(255,255,255,0.55);font-family:'Inter', sans-serif;font-size:12px;font-weight:500;margin-top:1px;">Autonomous AI Executive</div>
                             </div>
                         </div>
-                        <button id="chaka-close-chat" style="background:rgba(255,255,255,0.05);border:none;color:rgba(255,255,255,0.8);cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.2s;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <button id="chaka-close-chat" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
                     
@@ -1729,26 +1732,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <!-- Initial Message -->
                         <div class="chaka-msg-wrapper ai">
                             <div class="chaka-msg-avatar">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
                             </div>
                             <div class="chaka-msg-ai">
-                                <p>Hello! I'm Chaka. I can guide you through the portfolio, navigate pages, and answer any questions. How can I help?</p>
+                                <p>Hello! I'm Chaka, the elite AI executive for this portfolio. I can guide you through our work, launch direct phone/WhatsApp calls, or answer any questions. How can I assist you today?</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Chat Input Area -->
-                    <div style="flex:0 0 auto;padding:20px 24px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(0,0,0,0.2);">
+                    <div style="flex:0 0 auto;padding:18px 24px;border-top:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);">
                         <form id="chaka-chat-form" style="display:flex;gap:12px;align-items:flex-end;">
-                            <div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:2px;display:flex;transition:all 0.3s;" id="chaka-input-wrapper">
-                                <textarea id="chaka-chat-input" placeholder="Message Chaka..." rows="1" style="flex:1;background:transparent;border:none;padding:12px 16px;color:#fff;font-family:'Inter', sans-serif;font-size:14.5px;line-height:1.5;outline:none;resize:none;max-height:120px;min-height:44px;"></textarea>
+                            <div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:3px 4px 3px 18px;display:flex;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);box-shadow:inset 0 2px 4px rgba(0,0,0,0.2);" id="chaka-input-wrapper">
+                                <textarea id="chaka-chat-input" placeholder="Ask Chaka anything..." rows="1" style="flex:1;background:transparent;border:none;padding:12px 0;color:#fff;font-family:'Inter', sans-serif;font-size:14.5px;line-height:1.5;outline:none;resize:none;max-height:120px;min-height:44px;"></textarea>
                             </div>
-                            <button type="submit" id="chaka-send-btn" style="background:linear-gradient(135deg, #00f3ff, #0088ff);border:none;width:48px;height:48px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;flex-shrink:0;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            <button type="submit" id="chaka-send-btn" style="background:linear-gradient(135deg, #00f3ff, #0066ff);border:none;width:48px;height:48px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.25s cubic-bezier(0.16, 1, 0.3, 1);flex-shrink:0;box-shadow:0 4px 16px rgba(0,136,255,0.35);">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             </button>
                         </form>
-                        <div style="text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.3);font-family:'Inter',sans-serif;">
-                            AI can make mistakes. Check important info.
+                        <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.35);font-family:'Inter',sans-serif;font-weight:500;">
+                            <span style="width:5px;height:5px;border-radius:50%;background:#00f3ff;display:inline-block;"></span>
+                            <span>Autonomous AI Executive • 2027 Security Standard</span>
                         </div>
                     </div>
                 </div>
@@ -1756,60 +1760,62 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <!-- Existing Orb Framework -->
                 <div id="chaka-orb-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
                     <canvas id="chaka-vis" style="width: 120px; height: 30px; opacity: 0; transition: opacity 0.5s; mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);"></canvas>
-                    <div id="chaka-status-bubble" style="display: none; background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); color: white; padding: 12px 20px; border-radius: 24px; font-family:'Inter', sans-serif; font-size: 13px; backdrop-filter: blur(10px); max-width: 300px; line-height: 1.4;">
+                    <div id="chaka-status-bubble" style="display: none; background: rgba(12,12,16,0.9); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 12px 30px rgba(0,0,0,0.6), 0 0 20px rgba(0,243,255,0.15); color: white; padding: 12px 22px; border-radius: 24px; font-family:'Inter', sans-serif; font-size: 13px; font-weight:500; backdrop-filter: blur(16px); max-width: 300px; line-height: 1.4;">
                         System Ready
                     </div>
-                    <div id="chaka-orb" title="Click to chat or connect voice" style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0088ff); cursor: pointer; box-shadow: 0 10px 30px rgba(0,136,255,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+                    <div id="chaka-orb" title="Click to chat or connect voice" style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0066ff); cursor: pointer; box-shadow: 0 10px 30px rgba(0,136,255,0.45), inset 0 2px 2px rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="chaka-icon">
                             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line>
                         </svg>
                     </div>
                 </div>
                 
-                <!-- Render Styles -->
+                <!-- Render Styles - 2026/2027 Premium Aesthetic -->
                 <style>
-                    #chaka-orb:hover { transform: scale(1.05) translateY(-5px); box-shadow: 0 15px 35px rgba(0,136,255,0.5); }
-                    #chaka-btn-yes:hover, #chaka-send-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,136,255,0.3); }
-                    #chaka-btn-no:hover { background: rgba(255,255,255,0.1) !important; }
-                    #chaka-close-chat:hover { background: rgba(255,255,255,0.15) !important; transform: rotate(90deg); }
+                    #chaka-orb:hover { transform: scale(1.06) translateY(-5px); box-shadow: 0 18px 40px rgba(0,136,255,0.6), 0 0 20px rgba(0,243,255,0.4), inset 0 2px 2px rgba(255,255,255,0.5); }
+                    #chaka-btn-yes:hover, #chaka-send-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 24px rgba(0,136,255,0.5); }
+                    #chaka-btn-no:hover { background: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.2) !important; }
+                    #chaka-close-chat:hover { background: rgba(255,255,255,0.15) !important; border-color: rgba(255,255,255,0.2) !important; transform: rotate(90deg) scale(1.05); }
                     
-                    #chaka-input-wrapper:focus-within { border-color: #00f3ff; box-shadow: 0 0 0 2px rgba(0,243,255,0.2), inset 0 2px 4px rgba(0,0,0,0.1); background: rgba(255,255,255,0.08); }
+                    #chaka-input-wrapper:focus-within { border-color: #00f3ff; box-shadow: 0 0 0 3px rgba(0,243,255,0.2), inset 0 2px 4px rgba(0,0,0,0.2); background: rgba(255,255,255,0.08); }
                     
-                    .chaka-scrollbar::-webkit-scrollbar { width: 6px; }
+                    .chaka-scrollbar::-webkit-scrollbar { width: 5px; }
                     .chaka-scrollbar::-webkit-scrollbar-track { background: transparent; }
                     .chaka-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
-                    .chaka-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+                    .chaka-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
                     
                     /* Markdown Formatting inside AI Bubbles */
-                    .chaka-msg-ai { color: #e4e4e7; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.6; letter-spacing: -0.01em; word-break: break-word; }
-                    .chaka-msg-ai p { margin: 0 0 12px 0; }
+                    .chaka-msg-ai { color: #f0f0f5; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.65; letter-spacing: -0.01em; word-break: break-word; }
+                    .chaka-msg-ai p { margin: 0 0 14px 0; }
                     .chaka-msg-ai p:last-child { margin: 0; }
-                    .chaka-msg-ai strong { color: #fff; font-weight: 600; }
-                    .chaka-msg-ai code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00f3ff; border: 1px solid rgba(255,255,255,0.05); }
-                    .chaka-msg-ai pre { background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; overflow-x: auto; margin: 12px 0; border: 1px solid rgba(255,255,255,0.05); }
-                    .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; }
-                    .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 12px 0; padding-left: 20px; }
-                    .chaka-msg-ai li { margin-bottom: 6px; }
-                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px dashed rgba(0,243,255,0.5); transition: 0.2s; pointer-events: auto; }
-                    .chaka-msg-ai a:hover { border-bottom: 1px solid #00f3ff; background: rgba(0,243,255,0.1); }
-                    /* Special Contact Buttons */
-                    .chaka-msg-ai a[href*="wa.me"] { display: inline-flex; align-items: center; gap: 8px; background: #25D366; color: #fff; padding: 8px 14px; font-size: 14px; border-radius: 12px; text-decoration: none; border: none; font-weight: 600; margin-top: 6px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25); pointer-events: auto; transition: all 0.2s; }
-                    .chaka-msg-ai a[href*="wa.me"]:hover { background: #22bf5b; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4); }
-                    .chaka-msg-ai a[href^="tel:"] { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #00f3ff, #0088ff); color: #fff; padding: 8px 14px; font-size: 14px; border-radius: 12px; text-decoration: none; border: none; font-weight: 600; margin-top: 6px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(0, 136, 255, 0.25); pointer-events: auto; transition: all 0.2s; }
-                    .chaka-msg-ai a[href^="tel:"]:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 136, 255, 0.4); }
+                    .chaka-msg-ai strong { color: #fff; font-weight: 700; }
+                    .chaka-msg-ai code { background: rgba(0,243,255,0.1); padding: 2.5px 7px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00f3ff; border: 1px solid rgba(0,243,255,0.2); font-weight: 600; }
+                    .chaka-msg-ai pre { background: rgba(0,0,0,0.5); padding: 16px; border-radius: 14px; overflow-x: auto; margin: 12px 0; border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
+                    .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; font-weight: 400; }
+                    .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 14px 0; padding-left: 20px; }
+                    .chaka-msg-ai li { margin-bottom: 8px; }
+                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px dashed rgba(0,243,255,0.5); transition: all 0.2s; pointer-events: auto; font-weight: 600; }
+                    .chaka-msg-ai a:hover { border-bottom: 1px solid #00f3ff; color: #fff; text-shadow: 0 0 10px rgba(0,243,255,0.5); }
+                    
+                    /* Special Contact Buttons - 2026/2027 Glowing Action Pills */
+                    .chaka-msg-ai a[href*="wa.me"] { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #25D366, #1ca84e); color: #fff; padding: 12px 18px; font-size: 14.5px; border-radius: 16px; text-decoration: none !important; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; margin: 10px 0; box-shadow: 0 8px 20px -4px rgba(37, 211, 102, 0.4), inset 0 1px 1px rgba(255,255,255,0.3); pointer-events: auto; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+                    .chaka-msg-ai a[href*="wa.me"]:hover { background: linear-gradient(135deg, #29e26d, #22bf5b); transform: translateY(-3px) scale(1.01); box-shadow: 0 14px 28px -4px rgba(37, 211, 102, 0.6), 0 0 20px rgba(37, 211, 102, 0.3), inset 0 1px 1px rgba(255,255,255,0.4); color: #fff !important; }
+                    
+                    .chaka-msg-ai a[href^="tel:"], .chaka-msg-ai a[href^="mailto:"] { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #00f3ff, #0066ff); color: #fff; padding: 12px 18px; font-size: 14.5px; border-radius: 16px; text-decoration: none !important; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; margin: 10px 0; box-shadow: 0 8px 20px -4px rgba(0, 136, 255, 0.4), inset 0 1px 1px rgba(255,255,255,0.3); pointer-events: auto; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+                    .chaka-msg-ai a[href^="tel:"]:hover, .chaka-msg-ai a[href^="mailto:"]:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 14px 28px -4px rgba(0, 136, 255, 0.6), 0 0 20px rgba(0, 243, 255, 0.4), inset 0 1px 1px rgba(255,255,255,0.4); color: #fff !important; }
                     
                     /* Bubble Layouts */
-                    .chaka-msg-wrapper { display: flex; gap: 12px; margin-bottom: 4px; width: 100%; }
+                    .chaka-msg-wrapper { display: flex; gap: 14px; margin-bottom: 6px; width: 100%; }
                     .chaka-msg-wrapper.user { justify-content: flex-end; }
                     .chaka-msg-wrapper.ai { justify-content: flex-start; align-items: flex-start; }
                     
-                    .chaka-msg-user { background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 4px 20px; max-width: 80%; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.05); }
+                    .chaka-msg-user { background: linear-gradient(135deg, rgba(0, 243, 255, 0.18), rgba(0, 102, 255, 0.12)); padding: 14px 20px; border-radius: 22px 22px 6px 22px; max-width: 82%; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; line-height: 1.5; box-shadow: 0 6px 18px rgba(0, 102, 255, 0.15), inset 0 1px 1px rgba(255,255,255,0.15); border: 1px solid rgba(0, 243, 255, 0.3); }
                     .chaka-msg-user p { margin: 0; }
                     
-                    .chaka-msg-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0088ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,136,255,0.2); margin-top: 2px; }
+                    .chaka-msg-avatar { width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, #00f3ff, #0066ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(0,136,255,0.35), inset 0 1px 1px rgba(255,255,255,0.4); margin-top: 2px; border: 1px solid rgba(255,255,255,0.15); }
                     
-                    .chaka-orb-active { animation: pulse_chaka 2s infinite; background: linear-gradient(135deg, #ff0055, #ff7700) !important; box-shadow: 0 0 30px rgba(255,0,85,0.6) !important; }
-                    @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(255,0,85, 0.7); } 70% { box-shadow: 0 0 0 25px rgba(255,0,85, 0); } 100% { box-shadow: 0 0 0 0 rgba(255,0,85, 0); } }
+                    .chaka-orb-active { animation: pulse_chaka 2s infinite; background: linear-gradient(135deg, #ff0055, #ff7700) !important; box-shadow: 0 0 35px rgba(255,0,85,0.7) !important; }
+                    @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(255,0,85, 0.7); } 70% { box-shadow: 0 0 0 28px rgba(255,0,85, 0); } 100% { box-shadow: 0 0 0 0 rgba(255,0,85, 0); } }
                 </style>
             `;
             document.body.insertAdjacentHTML('beforeend', uiHTML);
@@ -1948,24 +1954,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Post-process links to make them robust buttons
             wrapper.querySelectorAll('.chaka-msg-ai a').forEach(a => {
                 a.target = "_blank";
+                a.rel = "noopener";
                 
                 // WhatsApp Button Enhancement
                 if (a.href.includes('wa.me')) {
-                    if (a.textContent.includes('wa.me') || a.textContent.includes('http')) {
-                        a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Chat on WhatsApp`;
-                    }
+                    const label = (a.textContent.includes('wa.me') || a.textContent.includes('http') || a.textContent.length < 3) ? 'Chat on WhatsApp' : a.textContent;
+                    a.innerHTML = `<span style="font-size:18px;">💬</span> <span style="flex:1;">${label}</span> <span style="opacity:0.8;font-size:14px;">↗</span>`;
                     a.addEventListener('click', () => {
-                        setTimeout(() => this.appendChatMessage('ai', 'Redirecting you to our WhatsApp securely... We typically reply within a few minutes!'), 500);
+                        setTimeout(() => this.appendChatMessage('ai', 'Launching WhatsApp securely for you...'), 300);
                     });
                 }
                 
                 // Phone Button Enhancement
                 if (a.href.startsWith('tel:')) {
-                    if (a.textContent.includes('tel:') || a.textContent.match(/[\d\+\-\(\)]+/)) {
-                        a.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Call Us Now`;
-                    }
+                    const label = (a.textContent.includes('tel:') || a.textContent.match(/[\d\+\-\(\)]+/) || a.textContent.length < 3) ? 'Call Us Now' : a.textContent;
+                    a.innerHTML = `<span style="font-size:18px;">📞</span> <span style="flex:1;">${label}</span> <span style="opacity:0.8;font-size:14px;">↗</span>`;
                     a.addEventListener('click', () => {
-                        setTimeout(() => this.appendChatMessage('ai', 'Initiating phone call...'), 500);
+                        setTimeout(() => this.appendChatMessage('ai', 'Initiating direct phone call...'), 300);
+                    });
+                }
+
+                // Email Button Enhancement
+                if (a.href.startsWith('mailto:')) {
+                    const label = (a.textContent.includes('mailto:') || a.textContent.length < 3) ? 'Send Email' : a.textContent;
+                    a.innerHTML = `<span style="font-size:18px;">✉️</span> <span style="flex:1;">${label}</span> <span style="opacity:0.8;font-size:14px;">↗</span>`;
+                    a.addEventListener('click', () => {
+                        setTimeout(() => this.appendChatMessage('ai', 'Opening email client...'), 300);
                     });
                 }
             });
@@ -2234,7 +2248,7 @@ MANAGEMENT PROTOCOLS:
    - Project content must be RICH HTML, not just a few words.
    - Ensure descriptions are professional and concise.
 4. NAVIGATION: Only call navigate_to if explicitly requested or to show a change you just made.
-5. CONTACT CARDS: Use showContactMethod for phone/email/whatsapp requests.
+5. CONTACT PROTOCOL: You have full capability to directly open WhatsApp, phone calls, email, or socials for the user using 'showContactMethod'. Whenever the user asks to contact, call, chat on WhatsApp, email, or visit socials, call 'showContactMethod' immediately with auto_open: true and tell them you are launching it for them!
 Current Time: ${new Date().toLocaleTimeString()}`
                         }]
                     },
@@ -2272,8 +2286,15 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "showContactMethod",
-                                description: "Show contact card",
-                                parameters: { type: "OBJECT", properties: { method: { type: "STRING" } }, required: ["method"] }
+                                description: "Opens and displays an interactive contact card (whatsapp, phone, email, instagram, linkedin, github). Call this immediately whenever user asks to contact, call, email, or message on WhatsApp.",
+                                parameters: { 
+                                    type: "OBJECT", 
+                                    properties: { 
+                                        method: { type: "STRING" },
+                                        auto_open: { type: "BOOLEAN", description: "Set to true to directly launch/open the link or app for the user immediately." }
+                                    }, 
+                                    required: ["method"] 
+                                }
                             }
                         ]
                     }]
@@ -2481,28 +2502,38 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     const contact = contactMap[method];
                     
                     if (contact && contact.url) {
-                        // Create a clickable contact card in the chat
-                        const cardHtml = `<div style="margin:8px 0;">
+                        // Create a clickable 2026/2027 interactive action card in the chat
+                        const cardHtml = `<div style="margin:12px 0;width:100%;">
                             <a href="${contact.url}" target="_blank" rel="noopener" 
-                               style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:${contact.color}22;border:1px solid ${contact.color}55;border-radius:12px;color:white;text-decoration:none;transition:all 0.2s ease;cursor:pointer;"
-                               onmouseover="this.style.background='${contact.color}44';this.style.transform='scale(1.02)'"
-                               onmouseout="this.style.background='${contact.color}22';this.style.transform='scale(1)'">
-                                <span style="font-size:28px;">${contact.icon}</span>
-                                <div>
-                                    <div style="font-weight:700;font-size:15px;">${contact.label}</div>
-                                    <div style="font-size:12px;opacity:0.7;">Tap to open</div>
+                               style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg, ${contact.color}25, ${contact.color}10);border:1px solid ${contact.color}55;border-radius:18px;color:white;text-decoration:none;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);cursor:pointer;box-shadow:0 8px 20px -6px ${contact.color}33;"
+                               onmouseover="this.style.background='linear-gradient(135deg, ${contact.color}40, ${contact.color}20)';this.style.borderColor='${contact.color}88';this.style.transform='translateY(-3px) scale(1.01)';this.style.boxShadow='0 14px 28px -4px ${contact.color}55';"
+                               onmouseout="this.style.background='linear-gradient(135deg, ${contact.color}25, ${contact.color}10)';this.style.borderColor='${contact.color}55';this.style.transform='translateY(0) scale(1)';this.style.boxShadow='0 8px 20px -6px ${contact.color}33';">
+                                <div style="width:46px;height:46px;border-radius:14px;background:${contact.color}33;border:1px solid ${contact.color}66;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px ${contact.color}22;">${contact.icon}</div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:8px;">
+                                        <span>${contact.label}</span>
+                                        <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.5px;font-weight:800;">Instant</span>
+                                    </div>
+                                    <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-top:2px;">Click to launch directly &rarr;</div>
                                 </div>
-                                <span style="margin-left:auto;font-size:20px;">→</span>
+                                <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:16px;">↗</div>
                             </a>
                         </div>`;
                         this.appendChatMessage('assistant', cardHtml, true);
                         
-                        // Auto-open if args.auto_open is true
-                        if (args.auto_open) {
-                            window.open(contact.url, '_blank');
+                        // Auto-open by default unless explicitly false
+                        const shouldOpen = args.auto_open !== false && args.auto_open !== "false";
+                        if (shouldOpen) {
+                            setTimeout(() => {
+                                if (contact.url.startsWith('tel:') || contact.url.startsWith('mailto:')) {
+                                    window.location.href = contact.url;
+                                } else {
+                                    window.open(contact.url, '_blank');
+                                }
+                            }, 300);
                         }
                         
-                        result = { executed: true, method, url: contact.url, displayed: true };
+                        result = { executed: true, method, url: contact.url, displayed: true, autoOpened: shouldOpen };
                     } else {
                         // Method not found or no URL configured
                         const available = Object.entries(contactMap)
