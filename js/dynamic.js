@@ -2292,7 +2292,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 // Stop any existing mic session before starting a new one
                 this.stopMic();
 
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 24000 } });
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
                 
                 // Check if user clicked stop/disconnect while we were waiting for mic permission
                 if (!this.isConnected) {
@@ -2301,7 +2301,8 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 }
 
                 this.micStream = stream;
-                this.inputCtx = new AudioContext({ sampleRate: 24000 });
+                this.micBuffer = [];
+                this.inputCtx = new AudioContext({ sampleRate: 16000 });
                 const source = this.inputCtx.createMediaStreamSource(this.micStream);
                 
                 await this.inputCtx.audioWorklet.addModule('/js/mic-worklet.js');
@@ -2309,13 +2310,24 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 
                 source.connect(this.processor);
                 this.processor.port.onmessage = (e) => {
-                    if (this.isConnected && this.socket && this.socket.readyState === WebSocket.OPEN && !this.isAiSpeaking) {
+                    if (!this.isConnected || !this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+                    
+                    // Accumulate mic buffer and send in chunks (matching working reference)
+                    const int16Data = new Int16Array(e.data);
+                    this.micBuffer.push(...int16Data);
+                    
+                    const TRANSMIT_SIZE = 4048;
+                    while (this.micBuffer.length >= TRANSMIT_SIZE) {
+                        const chunk = this.micBuffer.splice(0, TRANSMIT_SIZE);
+                        const int16Arr = new Int16Array(chunk);
+                        const base64 = this.arrayBufferToBase64(int16Arr.buffer);
+                        
                         this.socket.send(JSON.stringify({
-                            realtime_input: {
-                                media_chunks: [{
-                                    data: this.arrayBufferToBase64(e.data),
-                                    mime_type: "audio/pcm;rate=24000"
-                                }]
+                            realtimeInput: {
+                                audio: {
+                                    data: base64,
+                                    mimeType: "audio/pcm;rate=16000"
+                                }
                             }
                         }));
                     }
