@@ -1630,8 +1630,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             this._idleGoodbyeSent = false;
             this._warningSpoken = false;
             this._lastActivityTime = Date.now();
-            this.IDLE_WARNING_S = 60;       // 60 seconds of silence → ask "are you still there?"
-            this.IDLE_DISCONNECT_S = 105;   // 105 seconds of silence (60 + 45) → end session
+            this.IDLE_WARNING_S = 20;       // 20 seconds of silence → ask "are you still there?"
+            this.IDLE_DISCONNECT_S = 40;    // 40 seconds of silence (20 + 20) → end session
 
             // Audio FIFO Queue
             this.audioQueue = [];
@@ -2455,7 +2455,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     this._pendingGoodbyeDisconnect = true;
                     this.stopIdleWatchdog(); // Stop polling, turnComplete will handle disconnect
                 }
-            }, 5000); // Check every 5 seconds
+            }, 2000); // Check every 2 seconds for crisp timing
         }
 
         stopIdleWatchdog() {
