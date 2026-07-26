@@ -1624,12 +1624,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.isConnected = false;
             this.intentionalDisconnect = false;
 
-            // Idle timeout system (Issue #4)
-            this.idleTimer = null;
-            this.idleWarningTimer = null;
-            this.idleWarned = false;
-            this.IDLE_WARNING_MS = 60 * 1000;        // 60 seconds — ask "are you still there?"
-            this.IDLE_DISCONNECT_MS = 105 * 1000;     // 105 seconds (60 + 45) — end session
+            // Idle timeout system — polling-based for reliability
+            this._idleCheckInterval = null;
+            this._idleWarned = false;
+            this._idleGoodbyeSent = false;
+            this._warningSpoken = false;
+            this._lastActivityTime = Date.now();
+            this.IDLE_WARNING_S = 60;       // 60 seconds of silence → ask "are you still there?"
+            this.IDLE_DISCONNECT_S = 105;   // 105 seconds of silence (60 + 45) → end session
 
             // Audio FIFO Queue
             this.audioQueue = [];
@@ -2122,8 +2124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Issue #3: AI greets immediately on connect
                 this.sendGreeting();
 
-                // Issue #4: Start idle watchdog
-                this.resetIdleTimer();
+                // Start idle watchdog (polling-based, immune to mic noise)
+                this.startIdleWatchdog();
             };
 
             this.socket.onmessage = async (event) => {
@@ -2177,22 +2179,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (this._pendingGoodbyeDisconnect) {
                         this._pendingGoodbyeDisconnect = false;
                         console.log('[Chaka] AI goodbye complete — disconnecting session.');
-                        setTimeout(() => { if (this.isConnected) this.disconnect(); }, 1000);
+                        setTimeout(() => { if (this.isConnected) this.disconnect(); }, 1500);
                     }
-                    // If we're in post-warning phase and AI just spoke the warning,
-                    // mark that the warning speech is done. Next turnComplete means user actually responded.
-                    else if (this.idleWarned && !this._warningSpoken) {
+                    // Post-warning turn tracking:
+                    // First turnComplete after warning = AI speaking the warning itself
+                    // Second turnComplete = user actually responded → cancel disconnect
+                    else if (this._idleWarned && !this._warningSpoken) {
                         this._warningSpoken = true;
-                        console.log('[Chaka] Warning speech delivered. Waiting 45s for user response...');
+                        console.log('[Chaka] Warning speech delivered. Waiting for user response...');
                     }
-                    // If user actually responded after the warning (a second turn completed),
-                    // cancel the disconnect and restart idle monitoring
-                    else if (this.idleWarned && this._warningSpoken) {
+                    else if (this._idleWarned && this._warningSpoken && !this._idleGoodbyeSent) {
                         console.log('[Chaka] User responded after idle warning — cancelling disconnect.');
-                        this.clearIdleTimers();
-                        this.idleWarned = false;
+                        this._idleWarned = false;
                         this._warningSpoken = false;
-                        this.resetIdleTimer();
+                        this._lastActivityTime = Date.now();
                     }
                 }
 
@@ -2399,68 +2399,81 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }, 800);
         }
 
-        // Idle timer management — monitors user silence during live stream
-        resetIdleTimer() {
-            // CRITICAL: Do NOT reset if we're in post-warning phase.
-            // The mic picks up the AI's own voice and would cancel the disconnect timer.
-            if (this.idleWarned) {
-                console.log('[Chaka] Idle reset blocked — in post-warning phase.');
-                return;
-            }
-
-            this.clearIdleTimers();
+        // ──────────────────────────────────────────────────────
+        // IDLE WATCHDOG — Polling-based (immune to mic noise resets)
+        // Instead of setTimeout chains that get cleared by mic noise,
+        // we poll every 5s and check elapsed silence from _lastActivityTime.
+        // ──────────────────────────────────────────────────────
+        startIdleWatchdog() {
+            this.stopIdleWatchdog();
+            this._lastActivityTime = Date.now();
+            this._idleWarned = false;
+            this._idleGoodbyeSent = false;
             this._warningSpoken = false;
+            this._pendingGoodbyeDisconnect = false;
 
-            if (!this.isConnected) return;
+            console.log(`[Chaka] Idle watchdog started (warn: ${this.IDLE_WARNING_S}s, disconnect: ${this.IDLE_DISCONNECT_S}s)`);
 
-            // First timer: warn at 60 seconds
-            this.idleWarningTimer = setTimeout(() => {
-                if (!this.isConnected) return;
-                this.idleWarned = true;
-                console.log('[Chaka] User idle — sending warning prompt.');
-                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-                    this.socket.send(JSON.stringify({
-                        clientContent: {
-                            turns: [{
-                                role: 'user',
-                                parts: [{ text: '[SYSTEM: The user has been silent for a while. Ask them warmly if they are still there. Something like "Hey, are you still there? I am here if you need anything!". Keep it very short and friendly.]' }]
-                            }],
-                            turnComplete: true
-                        }
-                    }));
-                }
+            this._idleCheckInterval = setInterval(() => {
+                if (!this.isConnected) { this.stopIdleWatchdog(); return; }
 
-                // Second timer: disconnect 45 seconds after warning
-                this.idleTimer = setTimeout(() => {
-                    if (!this.isConnected) return;
-                    console.log('[Chaka] User still idle after warning — ending session.');
+                const silenceSec = (Date.now() - this._lastActivityTime) / 1000;
+
+                // Phase 1: Warning at 60s
+                if (!this._idleWarned && silenceSec >= this.IDLE_WARNING_S) {
+                    this._idleWarned = true;
+                    this._warningSpoken = false;
+                    console.log(`[Chaka] ${silenceSec.toFixed(0)}s silence — sending idle warning.`);
                     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                         this.socket.send(JSON.stringify({
                             clientContent: {
                                 turns: [{
                                     role: 'user',
-                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle check. Say a brief warm goodbye like "Alright, it seems you are busy right now. I will close our session for now, but I am always here when you need me. Take care!" Keep it short. The session will close automatically after you finish speaking.]' }]
+                                    parts: [{ text: '[SYSTEM: The user has been silent for a while. Ask them warmly if they are still there. Something like "Hey, are you still there? I\'m here if you need anything!". Keep it very short and friendly.]' }]
                                 }],
                                 turnComplete: true
                             }
                         }));
                     }
-                    // Wait for AI to finish speaking goodbye, then disconnect
-                    // Listen for turnComplete to know when AI is done
+                }
+
+                // Phase 2: Goodbye + disconnect at 105s
+                if (this._idleWarned && !this._idleGoodbyeSent && silenceSec >= this.IDLE_DISCONNECT_S) {
+                    this._idleGoodbyeSent = true;
+                    console.log(`[Chaka] ${silenceSec.toFixed(0)}s silence — sending goodbye and disconnecting.`);
+                    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                        this.socket.send(JSON.stringify({
+                            clientContent: {
+                                turns: [{
+                                    role: 'user',
+                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle check. Say a brief warm goodbye like "Alright, it seems you\'re busy right now. I\'ll close our session for now, but I\'m always here when you need me. Take care!" Keep it short. The session will close after you finish speaking.]' }]
+                                }],
+                                turnComplete: true
+                            }
+                        }));
+                    }
                     this._pendingGoodbyeDisconnect = true;
-                }, this.IDLE_DISCONNECT_MS - this.IDLE_WARNING_MS);
-            }, this.IDLE_WARNING_MS);
+                    this.stopIdleWatchdog(); // Stop polling, turnComplete will handle disconnect
+                }
+            }, 5000); // Check every 5 seconds
         }
 
-        clearIdleTimers() {
-            if (this.idleWarningTimer) { clearTimeout(this.idleWarningTimer); this.idleWarningTimer = null; }
-            if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
+        stopIdleWatchdog() {
+            if (this._idleCheckInterval) {
+                clearInterval(this._idleCheckInterval);
+                this._idleCheckInterval = null;
+            }
+        }
+
+        // Called when real user speech is detected
+        markActivity() {
+            this._lastActivityTime = Date.now();
         }
 
         disconnect() {
             console.log("[Chaka] Intentional disconnect requested.");
             this.intentionalDisconnect = true;
-            this.clearIdleTimers();
+            this.stopIdleWatchdog();
             this.cleanup();
         }
 
@@ -2511,14 +2524,14 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         const int16Arr = new Int16Array(chunk);
                         const base64 = this.arrayBufferToBase64(int16Arr.buffer);
                         
-                        // Issue #4: Check if actual speech (not silence) by computing RMS energy
+                        // Detect real speech via RMS energy (threshold 1500 filters background noise)
                         let sumSquares = 0;
                         for (let i = 0; i < int16Arr.length; i++) sumSquares += int16Arr[i] * int16Arr[i];
                         const rms = Math.sqrt(sumSquares / int16Arr.length);
-                        // Only reset idle timer if NOT in post-warning phase
-                        // (mic picks up AI's own voice after warning, which would cancel the disconnect timer)
-                        if (rms > 200 && !this.idleWarned) {
-                            this.resetIdleTimer();
+                        // Only count as activity if NOT in post-warning phase
+                        // (AI's own voice through speakers would otherwise reset the timer)
+                        if (rms > 1500 && !this._idleWarned) {
+                            this.markActivity();
                         }
                         
                         this.socket.send(JSON.stringify({
