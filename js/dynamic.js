@@ -1624,6 +1624,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.isConnected = false;
             this.intentionalDisconnect = false;
 
+            // Idle timeout system (Issue #4)
+            this.idleTimer = null;
+            this.idleWarningTimer = null;
+            this.idleWarned = false;
+            this.IDLE_WARNING_MS = 2 * 60 * 1000;   // 2 minutes — ask "are you still there?"
+            this.IDLE_DISCONNECT_MS = 3 * 60 * 1000; // 3 minutes — end session
+
             // Audio FIFO Queue
             this.audioQueue = [];
             this.isPlaying = false;
@@ -2111,6 +2118,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 this.isConnected = true;
                 this.startMic();
                 this.updateUI('connected');
+
+                // Issue #3: AI greets immediately on connect
+                this.sendGreeting();
+
+                // Issue #4: Start idle watchdog
+                this.resetIdleTimer();
             };
 
             this.socket.onmessage = async (event) => {
@@ -2303,9 +2316,87 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this.socket.send(JSON.stringify(setupMsg));
         }
 
+        // Issue #3: Immediately greet the user based on time of day
+        sendGreeting() {
+            if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+            const hour = new Date().getHours();
+            let timeContext;
+            if (hour < 12) timeContext = 'morning';
+            else if (hour < 17) timeContext = 'afternoon';
+            else timeContext = 'evening';
+
+            // Send a client text prompt that triggers the AI to speak first
+            setTimeout(() => {
+                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify({
+                        clientContent: {
+                            turns: [{
+                                role: 'user',
+                                parts: [{ text: `[SYSTEM: The user just connected to the live stream. It is currently ${timeContext} (${new Date().toLocaleTimeString()}). Greet them warmly and naturally based on the time of day, introduce yourself briefly as Chaka, and ask how you can help them today. Be conversational, warm, and human-like. Keep it short and inviting.]` }]
+                            }],
+                            turnComplete: true
+                        }
+                    }));
+                }
+            }, 800);
+        }
+
+        // Issue #4: Idle timer management
+        resetIdleTimer() {
+            this.clearIdleTimers();
+            this.idleWarned = false;
+
+            if (!this.isConnected) return;
+
+            // First timer: warn at 2 minutes
+            this.idleWarningTimer = setTimeout(() => {
+                if (!this.isConnected) return;
+                this.idleWarned = true;
+                console.log('[Chaka] User idle — sending warning prompt.');
+                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                    this.socket.send(JSON.stringify({
+                        clientContent: {
+                            turns: [{
+                                role: 'user',
+                                parts: [{ text: '[SYSTEM: The user has been silent for 2 minutes. Ask them warmly if they are still there. Something like "Hey, are you still there? I am here if you need anything!". Keep it short and friendly.]' }]
+                            }],
+                            turnComplete: true
+                        }
+                    }));
+                }
+
+                // Second timer: disconnect at 3 minutes total (1 more minute after warning)
+                this.idleTimer = setTimeout(() => {
+                    if (!this.isConnected) return;
+                    console.log('[Chaka] User still idle after warning — ending session.');
+                    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                        this.socket.send(JSON.stringify({
+                            clientContent: {
+                                turns: [{
+                                    role: 'user',
+                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle warning. Say a warm goodbye like "Alright, it seems you might be busy. I will end our session for now to save resources, but feel free to come back anytime! Have a great day!" Then the session will end.]' }]
+                                }],
+                                turnComplete: true
+                            }
+                        }));
+                    }
+                    // Give the AI 5 seconds to speak its goodbye, then disconnect
+                    setTimeout(() => {
+                        if (this.isConnected) this.disconnect();
+                    }, 5000);
+                }, this.IDLE_DISCONNECT_MS - this.IDLE_WARNING_MS);
+            }, this.IDLE_WARNING_MS);
+        }
+
+        clearIdleTimers() {
+            if (this.idleWarningTimer) { clearTimeout(this.idleWarningTimer); this.idleWarningTimer = null; }
+            if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
+        }
+
         disconnect() {
             console.log("[Chaka] Intentional disconnect requested.");
             this.intentionalDisconnect = true;
+            this.clearIdleTimers();
             this.cleanup();
         }
 
@@ -2355,6 +2446,15 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         const chunk = this.micBuffer.splice(0, TRANSMIT_SIZE);
                         const int16Arr = new Int16Array(chunk);
                         const base64 = this.arrayBufferToBase64(int16Arr.buffer);
+                        
+                        // Issue #4: Check if actual speech (not silence) by computing RMS energy
+                        let sumSquares = 0;
+                        for (let i = 0; i < int16Arr.length; i++) sumSquares += int16Arr[i] * int16Arr[i];
+                        const rms = Math.sqrt(sumSquares / int16Arr.length);
+                        if (rms > 200) {
+                            // Real speech detected — reset idle timers
+                            this.resetIdleTimer();
+                        }
                         
                         this.socket.send(JSON.stringify({
                             realtimeInput: {
@@ -2502,9 +2602,15 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     const contact = contactMap[method];
                     
                     if (contact && contact.url) {
+                        // Issue #2: If chat widget is hidden/minimized, bring it back so user can see the card
+                        const chatModal = document.getElementById('chaka-chat-modal');
+                        if (chatModal && chatModal.style.opacity !== '1') {
+                            this.toggleChatWindow(true);
+                        }
+
                         // Create a clickable 2026/2027 interactive action card in the chat
                         const cardHtml = `<div style="margin:12px 0;width:100%;">
-                            <a href="${contact.url}" target="_blank" rel="noopener" 
+                            <a href="${contact.url}" target="_blank" rel="noopener" id="chaka-contact-autoclick"
                                style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg, ${contact.color}25, ${contact.color}10);border:1px solid ${contact.color}55;border-radius:18px;color:white;text-decoration:none;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);cursor:pointer;box-shadow:0 8px 20px -6px ${contact.color}33;"
                                onmouseover="this.style.background='linear-gradient(135deg, ${contact.color}40, ${contact.color}20)';this.style.borderColor='${contact.color}88';this.style.transform='translateY(-3px) scale(1.01)';this.style.boxShadow='0 14px 28px -4px ${contact.color}55';"
                                onmouseout="this.style.background='linear-gradient(135deg, ${contact.color}25, ${contact.color}10)';this.style.borderColor='${contact.color}55';this.style.transform='translateY(0) scale(1)';this.style.boxShadow='0 8px 20px -6px ${contact.color}33';">
@@ -2521,16 +2627,28 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         </div>`;
                         this.appendChatMessage('assistant', cardHtml, true);
                         
-                        // Auto-open by default unless explicitly false
+                        // Issue #1: ACTUALLY auto-open the link reliably
                         const shouldOpen = args.auto_open !== false && args.auto_open !== "false";
                         if (shouldOpen) {
                             setTimeout(() => {
-                                if (contact.url.startsWith('tel:') || contact.url.startsWith('mailto:')) {
-                                    window.location.href = contact.url;
+                                const url = contact.url;
+                                if (url.startsWith('tel:') || url.startsWith('mailto:')) {
+                                    // For native protocols, create a hidden link and click it
+                                    const tempLink = document.createElement('a');
+                                    tempLink.href = url;
+                                    tempLink.style.display = 'none';
+                                    document.body.appendChild(tempLink);
+                                    tempLink.click();
+                                    document.body.removeChild(tempLink);
                                 } else {
-                                    window.open(contact.url, '_blank');
+                                    // For http/https links (WhatsApp, socials), use window.open
+                                    const newWin = window.open(url, '_blank');
+                                    // Fallback: if popup blocked, try location.href
+                                    if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+                                        window.location.href = url;
+                                    }
                                 }
-                            }, 300);
+                            }, 500);
                         }
                         
                         result = { executed: true, method, url: contact.url, displayed: true, autoOpened: shouldOpen };
