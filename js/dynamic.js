@@ -134,6 +134,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const testimonials = await testimonialsRes.json();
         const counters = await countersRes.json();
 
+        // Store all data globally for re-hydration after soft navigation
+        window.dynamicData = { settings, works, skills, services, brands, faqs, marquee, testimonials, counters };
+
+        // Define reusable hydration function
+        window.hydrateDynamicContent = function() {
+            const { settings, works, skills, services, brands, faqs, marquee, testimonials, counters } = window.dynamicData;
 
         // 0. SEO & METADATA HYDRATION
         const setMeta = (name, value, attr = 'name') => {
@@ -1578,6 +1584,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Remove global Skeleton Loader by flagging html as hydrated
         document.documentElement.setAttribute('data-hydrated', 'true');
+
+        }; // end window.hydrateDynamicContent
+
+        // Run hydration on first load
+        window.hydrateDynamicContent();
 
         // 9. AI SESSION PERSISTENCE ACROSS NAVIGATION
         window.addEventListener('beforeunload', () => {
