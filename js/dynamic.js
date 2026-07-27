@@ -2291,11 +2291,14 @@ PERSONALITY & VOICE:
 ${this.siteKnowledge}
 
 CORE CAPABILITIES:
-1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections on the current page.
-2. PORTFOLIO SHOWCASE: Know every project, service, tech stack, and achievement. Present them compellingly with context and enthusiasm.
+1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections — supports 'top', 'bottom', 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.
+2. PORTFOLIO SHOWCASE: Know every project, service, tech stack, and achievement. Present them compellingly.
 3. CONTACT FACILITATION: Use showContactMethod to display interactive contact cards.
-4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting to modify portfolio content.
-5. IMAGE SOURCING: Use searchImages to find professional imagery when adding content.
+4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting.
+5. IMAGE SOURCING: Use searchImages to find professional imagery.
+6. SPOTLIGHT: Use highlightElement to make any section glow/pulse to draw the visitor's attention. Great for showcasing.
+7. GUIDED TOUR: Use guidedTour to walk the visitor through the entire site section by section — a premium concierge experience.
+8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
 
 INTELLIGENCE PROTOCOLS:
 - ANTICIPATE NEEDS: If someone asks about a project, proactively offer to show it. If they seem interested in hiring, guide them toward contact.
@@ -2305,6 +2308,11 @@ INTELLIGENCE PROTOCOLS:
 - CONTEXT AWARENESS: Reference earlier parts of the conversation. Never ask for information already provided. Build on what you know.
 - PROACTIVE GUIDANCE: Don't just answer questions — guide the conversation. Suggest relevant pages, showcase matching projects, recommend next steps.
 - NATURAL TRANSITIONS: Smoothly transition between topics. If showing a project, naturally ask if they'd like to see more or get in touch.
+
+SESSION ENDING:
+- When the user says goodbye, bye, thanks that's all, I'm done, gotta go, or naturally ends the conversation, call endSession to gracefully close the stream.
+- Say a warm farewell FIRST, then call endSession. Do NOT wait for idle timers.
+- Be human about it — match their energy. If they're casual say "Catch you later!", if professional say "It was a pleasure helping you."
 
 CONTACT PROTOCOL:
 - When user asks for WhatsApp, phone, email, or socials: call showContactMethod with auto_open=false to show the button in chat.
@@ -2355,16 +2363,41 @@ Current Time: ${new Date().toLocaleTimeString()}`
                                 parameters: { type: "OBJECT", properties: { url: { type: "STRING" } }, required: ["url"] }
                             },
                             {
+                                name: "scroll_to",
+                                description: "Scroll to a section on the current page. VALID targets: 'top' (very top of page), 'bottom' (very bottom), 'hero', 'about', 'services', 'works', 'projects', 'testimonials', 'faq', 'brands', 'contact', 'footer'. Always use this for scroll requests.",
+                                parameters: { type: "OBJECT", properties: { section_concept: { type: "STRING", description: "Section to scroll to. Use 'top' for page top, 'bottom' for page bottom, or a section name." } }, required: ["section_concept"] }
+                            },
+                            {
                                 name: "showContactMethod",
-                                description: "Shows an interactive contact card in the chat. IMPORTANT: Set auto_open to false by default. Only set auto_open to true if the user EXPLICITLY asked you to open/launch it for them (e.g. 'open it', 'take me there', 'yes please open'). Valid methods: whatsapp, phone, email, instagram, linkedin, github.",
+                                description: "Shows an interactive contact card in the chat. Set auto_open to false by default. Only set auto_open to true if the user EXPLICITLY asked you to open/launch it. Valid methods: whatsapp, phone, email, instagram, linkedin, github.",
                                 parameters: { 
                                     type: "OBJECT", 
                                     properties: { 
                                         method: { type: "STRING", description: "The contact method to show." },
-                                        auto_open: { type: "BOOLEAN", description: "ONLY set true if the user EXPLICITLY asked to be taken/redirected. Default false — just show the button." }
+                                        auto_open: { type: "BOOLEAN", description: "ONLY set true if the user EXPLICITLY asked to be taken/redirected. Default false." }
                                     }, 
                                     required: ["method"] 
                                 }
+                            },
+                            {
+                                name: "endSession",
+                                description: "Gracefully end the voice stream session. Call this AFTER saying your farewell when the user says bye, goodbye, thanks that's all, I'm done, etc. This closes the connection cleanly.",
+                                parameters: { type: "OBJECT", properties: {} }
+                            },
+                            {
+                                name: "highlightElement",
+                                description: "Spotlight a section on the page with a glowing pulse animation to draw the visitor's eye. Great for showcasing projects, services, or CTAs. Use section names: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.",
+                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "Section to highlight." } }, required: ["section"] }
+                            },
+                            {
+                                name: "guidedTour",
+                                description: "Start a guided tour of the site. Scrolls through each section with pauses, giving you time to narrate what each section shows. Use this when a visitor says 'show me around', 'give me a tour', 'walk me through the site', etc.",
+                                parameters: { type: "OBJECT", properties: {} }
+                            },
+                            {
+                                name: "toggleTheme",
+                                description: "Toggle the site between dark and light mode. Use when the user asks for light mode, dark mode, or to change the theme.",
+                                parameters: { type: "OBJECT", properties: { theme: { type: "STRING", description: "'light' or 'dark'" } }, required: ["theme"] }
                             }
                         ]
                     }]
@@ -2693,28 +2726,171 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         return;
                     }
                 } else if (name === 'scroll_to') {
-                    const sectionMap = {
-                        'hero': '.hero-section, .section-hero, [data-section="hero"]',
-                        'about': '.about-section, .section-about, [data-section="about"]',
-                        'services': '.services-section, .section-services, [data-section="services"]',
-                        'works': '.work-section, .section-works, [data-section="works"]',
-                        'projects': '.work-section, .section-works, [data-section="works"]',
-                        'contact': '.contact-section, .section-contact, [data-section="contact"]',
-                        'testimonials': '.testimonial-section, [data-section="testimonials"]',
-                        'footer': 'footer, .footer',
-                        'brands': '.brands-section, .brands-logo-marquee',
-                        'skills': '.skills-section, [data-section="skills"]',
-                        'faq': '.faq-section, [data-section="faq"]'
-                    };
-                    const concept = (args.section_concept || '').toLowerCase();
-                    const selector = sectionMap[concept] || `[data-section="${concept}"]`;
-                    const el = document.querySelector(selector);
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' });
-                        result = { executed: true, scrolledTo: concept };
+                    // ━━━ PRECISION SCROLL — handles top, bottom, and section names ━━━
+                    const concept = (args.section_concept || '').toLowerCase().trim();
+                    const navbarHeight = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
+
+                    if (concept === 'top') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        result = { executed: true, scrolledTo: 'top' };
+                    } else if (concept === 'bottom') {
+                        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+                        result = { executed: true, scrolledTo: 'bottom' };
                     } else {
-                        result = { executed: false, error: `Section "${concept}" not found on current page` };
+                        const sectionMap = {
+                            'hero': '.section-global.home, .hero-section, .section-hero, [data-section="hero"]',
+                            'about': '.section-about, .about-section, [data-section="about"]',
+                            'services': '.section-seivecs, .section-services, .services-section, [data-section="services"]',
+                            'works': '.section-works, .work-section, [data-section="works"]',
+                            'projects': '.section-works, .work-section, [data-section="works"]',
+                            'testimonials': '.section-testslider, .testimonial-section, [data-section="testimonials"]',
+                            'contact': '.section-contact, .contact-section, [data-section="contact"]',
+                            'footer': '.section-footer, footer, .footer',
+                            'brands': '.section-brands, .brands-section, .brands-logo-marquee',
+                            'skills': '.section-marquee, .skills-section, [data-section="skills"]',
+                            'faq': '.section-faq, .faq-section, [data-section="faq"]',
+                            'cta': '.section-cta, [data-section="cta"]'
+                        };
+                        const selectors = sectionMap[concept] || `[data-section="${concept}"]`;
+                        let el = null;
+                        for (const sel of selectors.split(',')) {
+                            el = document.querySelector(sel.trim());
+                            if (el) break;
+                        }
+                        if (el) {
+                            const targetY = el.getBoundingClientRect().top + window.pageYOffset - navbarHeight - 10;
+                            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                            result = { executed: true, scrolledTo: concept };
+                        } else {
+                            result = { executed: false, error: `Section "${concept}" not found on current page` };
+                        }
                     }
+                } else if (name === 'endSession') {
+                    // ━━━ SMART SESSION ENDING — AI-triggered graceful disconnect ━━━
+                    console.log('[Chaka] AI triggered endSession — closing stream gracefully.');
+                    this._pendingGoodbyeDisconnect = true;
+                    result = { executed: true, action: 'session_ending' };
+                } else if (name === 'highlightElement') {
+                    // ━━━ SPOTLIGHT HIGHLIGHT — pulsing glow on a section ━━━
+                    const section = (args.section || '').toLowerCase().trim();
+                    const highlightMap = {
+                        'hero': '.section-global.home, .hero-section, .section-hero',
+                        'about': '.section-about, .about-section',
+                        'services': '.section-seivecs, .section-services',
+                        'works': '.section-works, .work-section',
+                        'testimonials': '.section-testslider, .testimonial-section',
+                        'contact': '.section-contact, .contact-section',
+                        'faq': '.section-faq',
+                        'footer': '.section-footer, footer',
+                        'brands': '.section-brands',
+                        'cta': '.section-cta'
+                    };
+                    const selectors = highlightMap[section] || `[data-section="${section}"]`;
+                    let el = null;
+                    for (const sel of selectors.split(',')) {
+                        el = document.querySelector(sel.trim());
+                        if (el) break;
+                    }
+                    if (el) {
+                        // Scroll to it first
+                        const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
+                        const targetY = el.getBoundingClientRect().top + window.pageYOffset - navH - 10;
+                        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+                        // Add spotlight glow
+                        el.style.transition = 'box-shadow 0.6s ease, outline 0.6s ease';
+                        el.style.boxShadow = '0 0 40px 10px rgba(0, 200, 255, 0.35), inset 0 0 30px rgba(0, 200, 255, 0.08)';
+                        el.style.outline = '2px solid rgba(0, 200, 255, 0.5)';
+                        el.style.outlineOffset = '4px';
+                        // Auto-remove after 4 seconds
+                        setTimeout(() => {
+                            el.style.boxShadow = '';
+                            el.style.outline = '';
+                            el.style.outlineOffset = '';
+                        }, 4000);
+                        result = { executed: true, highlighted: section };
+                    } else {
+                        result = { executed: false, error: `Section "${section}" not found` };
+                    }
+                } else if (name === 'guidedTour') {
+                    // ━━━ GUIDED TOUR — auto-scroll through all sections ━━━
+                    const tourSections = [
+                        { name: 'hero', sel: '.section-global.home, .section-hero' },
+                        { name: 'about', sel: '.section-about' },
+                        { name: 'services', sel: '.section-seivecs, .section-services' },
+                        { name: 'works', sel: '.section-works' },
+                        { name: 'testimonials', sel: '.section-testslider' },
+                        { name: 'faq', sel: '.section-faq' },
+                        { name: 'cta', sel: '.section-cta' },
+                        { name: 'footer', sel: '.section-footer' }
+                    ];
+                    const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
+                    // Start from top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    let delay = 2000;
+                    const found = [];
+                    for (const stop of tourSections) {
+                        let el = null;
+                        for (const sel of stop.sel.split(',')) {
+                            el = document.querySelector(sel.trim());
+                            if (el) break;
+                        }
+                        if (el) {
+                            found.push(stop.name);
+                            ((element, d) => {
+                                setTimeout(() => {
+                                    const y = element.getBoundingClientRect().top + window.pageYOffset - navH - 10;
+                                    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+                                    // Brief highlight
+                                    element.style.transition = 'box-shadow 0.5s ease';
+                                    element.style.boxShadow = '0 0 30px 8px rgba(0, 200, 255, 0.25)';
+                                    setTimeout(() => { element.style.boxShadow = ''; }, 3000);
+                                }, d);
+                            })(el, delay);
+                            delay += 5000; // 5 seconds per section
+                        }
+                    }
+                    result = { executed: true, tourSections: found, totalDurationSeconds: Math.ceil(delay / 1000) };
+                } else if (name === 'toggleTheme') {
+                    // ━━━ THEME TOGGLE — dark/light mode ━━━
+                    const theme = (args.theme || 'light').toLowerCase();
+                    if (theme === 'light') {
+                        document.documentElement.style.setProperty('--chaka-theme', 'light');
+                        document.body.style.background = '#f5f5f5';
+                        document.body.style.color = '#1a1a1a';
+                        document.querySelectorAll('.section-global, section, .page-wrapper').forEach(el => {
+                            if (!el.style.background || el.style.background.includes('rgb(0') || el.style.background.includes('#0') || el.style.background.includes('#1')) {
+                                el.style.background = '#ffffff';
+                                el.style.color = '#1a1a1a';
+                            }
+                        });
+                        document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li').forEach(el => {
+                            const color = getComputedStyle(el).color;
+                            if (color.includes('255, 255, 255') || color.includes('rgb(255') || color.includes('rgba(255')) {
+                                el.style.color = '#1a1a1a';
+                            }
+                        });
+                        sessionStorage.setItem('chakaTheme', 'light');
+                        result = { executed: true, theme: 'light' };
+                    } else {
+                        // Restore dark mode (default) — reload to reset all inline styles
+                        sessionStorage.setItem('chakaTheme', 'dark');
+                        document.body.style.background = '';
+                        document.body.style.color = '';
+                        document.querySelectorAll('[style]').forEach(el => {
+                            if (el.id && el.id.startsWith('chaka-')) return; // Don't touch Chaka UI
+                            el.style.background = '';
+                            el.style.color = '';
+                        });
+                        result = { executed: true, theme: 'dark' };
+                    }
+                } else if (name === 'startLiveStream') {
+                    // ━━━ CHAT-TO-VOICE SWITCH — triggered from chat mode ━━━
+                    console.log('[Chaka] AI triggered startLiveStream from chat.');
+                    this.toggleChatWindow(false); // Hide chat panel
+                    if (!this.isConnected) {
+                        await this.toggleSession(); // Start voice stream
+                    }
+                    result = { executed: true, action: 'live_stream_started' };
                 } else if (name === 'showContactMethod') {
                     const method = (args.method || '').toLowerCase();
                     const s = window.siteSettings || {};

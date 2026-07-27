@@ -46,6 +46,11 @@ def showContactMethod(method: str, auto_open: bool = False) -> str:
         return f"Opening {method} for you now."
     return f"Here is the {method} contact button. Would you like me to open it for you?"
 
+def startLiveStream() -> str:
+    """Start a live voice stream session with the user. Use when the user asks to speak, talk, or have a voice conversation. The chat panel will close and voice mode will activate."""
+    RequestContext.ui_actions.append({"name": "startLiveStream", "args": {}})
+    return "Starting live voice stream now. The chat will close and voice mode will activate."
+
 import sys
 
 # Setup MCP Server for Knowledge/Graphify
@@ -94,9 +99,13 @@ CONTACT PROTOCOL:
 - ONLY set auto_open=True if user EXPLICITLY confirms ("yes", "open it", "take me there")
 - NEVER auto-open without explicit consent
 - Also provide clickable markdown links as backup
+
+VOICE MODE:
+- If the user asks to speak, talk, have a voice conversation, or requests a live stream, call startLiveStream to switch to voice mode.
+- Say something like "Sure, switching to voice mode now!" before calling the tool.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
-    tools=[navigate_to, scroll_to, showContactMethod], # No execute_sql, no mcp_servers
+    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream], # No execute_sql, no mcp_servers
     model="gemini-3.1-flash-lite"
 )
 
@@ -108,7 +117,7 @@ You are equipped with powerful Tools.
 3. Use your own tools `navigate_to`, `scroll_to`, and `showContactMethod` to control the user's screen or open contact links directly.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=True),
-    tools=[navigate_to, scroll_to, showContactMethod, execute_sql],
+    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, execute_sql],
     mcp_servers=mcp_servers,
     model="gemini-3.1-flash-lite"
 )
