@@ -122,7 +122,7 @@ CONTACT PROTOCOL:
 
 VOICE MODE & TOURS:
 - If the user asks to speak, talk, have a voice conversation, or requests a live stream, call startLiveStream to switch to voice mode.
-- When giving a guided tour, call guidedTour(section) step-by-step for each section ('hero', 'about', 'services', 'works', 'testimonials', 'contact') before you speak about it. DO NOT explain all sections at once!
+- When giving a guided tour, call guidedTour(section) step-by-step for each section ('hero', 'about', 'services', 'works', 'testimonials', 'contact') before you speak about it. DO NOT explain all sections at once! CRITICAL: When narrating a section during a tour, DO NOT end with a question like "Shall we move on?" or wait for permission! Just explain the section and finish with a smooth transition like "Next up is...". The system will automatically advance the tour when you finish speaking!
 - Use highlightElement to pulse/glow any section to draw attention.
 - When the user says goodbye or ends the session, call endSession after your farewell.
 """,
