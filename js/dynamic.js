@@ -1656,6 +1656,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             this._tourAdvanceTimer = null;
             this._speechEndTimer = null;
             this._ignoreSpeechUntil = 0;
+            this._tourExploreNoticeSent = false;
+            this._speechRecognitionPausedByAi = false;
+            this._speechRecognitionRestartTimer = null;
             this.speechRecognizer = null;
 
             // Stateful Memory (Survives Hard Reloads & Tabs, Expires after 24 hours)
@@ -2204,6 +2207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else if (this.textBuffer.trim()) {
                         // Edge TTS mode — speak only, don't write to chat
                         console.log('[Chaka] Turn complete. Speaking via Edge TTS:', this.textBuffer.substring(0, 60));
+                        this.pauseUserSpeechCapture(6000);
                         this.speakWithEdgeTTS(this.textBuffer.trim());
                     }
                     // Save to memory for context but don't display
@@ -2329,13 +2333,13 @@ PERSONALITY & VOICE:
 ${this.siteKnowledge}
 
 CORE CAPABILITIES:
-1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections — supports 'top', 'bottom', 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.
+1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections — supports 'top', 'bottom', 'hero', 'about', 'stats', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.
 2. PORTFOLIO SHOWCASE: Know every project, service, tech stack, and achievement. Present them compellingly.
 3. CONTACT FACILITATION: Use showContactMethod to display interactive contact cards.
 4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting.
 5. IMAGE SOURCING: Use searchImages to find professional imagery.
 6. SPOTLIGHT: Use highlightElement to make any section glow/pulse to draw the visitor's attention. Great for showcasing.
-7. GUIDED TOUR: When a visitor asks for a tour of the site, DO NOT explain everything at once or run ahead. Take them step-by-step. Start by calling guidedTour(section='hero'), then speak only about what is visible. The system will wait until your speech fully ends before asking you to continue to the next step. For about, services, works, testimonials, and contact, guidedTour opens the real page first before highlighting it, so always describe the page that is actually on screen.
+7. GUIDED TOUR: When a visitor asks for a tour of the site, behave like a calm human guide who keeps the flow moving. Start with guidedTour(section='hero'), speak only about the visible stop, then let the system auto-cue the next stop after your voice finishes. NEVER ask "shall we continue?", "ready?", "should we move on?", "do you want me to proceed?", or any permission question between tour stops. You may gently bridge with statements like "Next, I'll take you into the About page." The tour includes the About stats stack, where you should mention 7+ years of experience, 80+ successful projects, and strong client satisfaction.
 8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
 
 INTELLIGENCE PROTOCOLS:
@@ -2402,7 +2406,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "scroll_to",
-                                description: "Scroll to a section on the current page. VALID targets: 'top' (very top of page), 'bottom' (very bottom), 'hero', 'about', 'services', 'works', 'projects', 'testimonials', 'faq', 'brands', 'contact', 'footer'. Always use this for scroll requests.",
+                                description: "Scroll to a section on the current page. VALID targets: 'top' (very top of page), 'bottom', 'hero', 'about', 'stats', 'services', 'works', 'projects', 'testimonials', 'faq', 'brands', 'contact', 'footer'. Always use this for scroll requests.",
                                 parameters: { type: "OBJECT", properties: { section_concept: { type: "STRING", description: "Section to scroll to. Use 'top' for page top, 'bottom' for page bottom, or a section name." } }, required: ["section_concept"] }
                             },
                             {
@@ -2424,13 +2428,13 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "highlightElement",
-                                description: "Spotlight a section on the page with a glowing pulse animation to draw the visitor's eye. Great for showcasing projects, services, or CTAs. Use section names: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.",
+                                description: "Spotlight a section on the page with a premium guided-tour focus ring. Great for showcasing projects, services, stats, or CTAs. Use section names: 'hero', 'about', 'stats', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.",
                                 parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "Section to highlight." } }, required: ["section"] }
                             },
                             {
                                 name: "guidedTour",
-                                description: "Navigate to and highlight one guided-tour stop. This tool opens the real page when needed: about -> /about, services -> /services, works -> /works, testimonials -> /testimonials, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then wait for the system to cue the next stop.",
-                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The section to show: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'." } }, required: ["section"] }
+                                description: "Navigate to and highlight one guided-tour stop. This tool opens the real page when needed: about/stats -> /about, services -> /services, works -> /works, testimonials -> /testimonials, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then stop. The system auto-cues the next stop, so never ask the visitor for permission to continue.",
+                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The section to show: 'hero', 'about', 'stats', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'." } }, required: ["section"] }
                             },
                             {
                                 name: "toggleTheme",
@@ -2601,6 +2605,32 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this.showBubble("Session ended.", 3000);
         }
 
+        pauseUserSpeechCapture(duration = 2600) {
+            this._ignoreSpeechUntil = Math.max(this._ignoreSpeechUntil || 0, Date.now() + duration);
+            if (this._speechRecognitionRestartTimer) clearTimeout(this._speechRecognitionRestartTimer);
+
+            if (this.speechRecognizer && !this._speechRecognitionPausedByAi) {
+                this._speechRecognitionPausedByAi = true;
+                try { this.speechRecognizer.stop(); } catch(e) {}
+            }
+
+            this._speechRecognitionRestartTimer = setTimeout(() => {
+                this.resumeUserSpeechCapture();
+            }, duration);
+        }
+
+        resumeUserSpeechCapture() {
+            if (this._speechRecognitionRestartTimer) {
+                clearTimeout(this._speechRecognitionRestartTimer);
+                this._speechRecognitionRestartTimer = null;
+            }
+            if (!this._speechRecognitionPausedByAi) return;
+            this._speechRecognitionPausedByAi = false;
+            if (this.isConnected && this.speechRecognizer) {
+                try { this.speechRecognizer.start(); } catch(e) {}
+            }
+        }
+
         async startMic() {
             try {
                 // Stop any existing mic session before starting a new one
@@ -2676,7 +2706,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         };
                         this.speechRecognizer.onerror = () => {};
                         this.speechRecognizer.onend = () => {
-                            if (this.isConnected && this.speechRecognizer) {
+                            if (this.isConnected && this.speechRecognizer && !this._speechRecognitionPausedByAi) {
                                 try { this.speechRecognizer.start(); } catch(e) {}
                             }
                         };
@@ -2687,6 +2717,11 @@ Current Time: ${new Date().toLocaleTimeString()}`
         }
 
         stopMic() {
+            if (this._speechRecognitionRestartTimer) {
+                clearTimeout(this._speechRecognitionRestartTimer);
+                this._speechRecognitionRestartTimer = null;
+            }
+            this._speechRecognitionPausedByAi = false;
             if (this.speechRecognizer) {
                 try { this.speechRecognizer.stop(); } catch(e) {}
                 this.speechRecognizer = null;
@@ -2707,6 +2742,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
         }
 
         addToQueue(base64Data) {
+            this.pauseUserSpeechCapture(4200);
             const binary = atob(base64Data);
             const bytes = new Int16Array(binary.length / 2);
             for (let i = 0; i < bytes.length; i++) {
@@ -2745,13 +2781,13 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (this.audioQueue.length === 0) {
                 this.isPlaying = false;
                 this.isAiSpeaking = false;
-                this._ignoreSpeechUntil = Date.now() + 1200;
+                this.pauseUserSpeechCapture(2200);
                 this.scheduleAiSpeechEnd();
                 return;
             }
             this.isPlaying = true;
             this.isAiSpeaking = true;
-            this._ignoreSpeechUntil = Date.now() + 1200;
+            this.pauseUserSpeechCapture(4200);
             if (this._speechEndTimer) {
                 clearTimeout(this._speechEndTimer);
                 this._speechEndTimer = null;
@@ -2802,15 +2838,22 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 if (timeSinceScroll < 3500) {
                     this._tourPausedForScroll = true;
                     console.log('[Chaka] Tour waiting: visitor is actively exploring section.');
-                    this.scheduleAiSpeechEnd();
+                    if (!this._tourExploreNoticeSent) {
+                        this._tourExploreNoticeSent = true;
+                        this.showBubble("Take your time. I'll continue when you stop scrolling.", 4500);
+                        this.sendSystemPrompt(`[SYSTEM: The visitor is actively scrolling or inspecting the "${this.currentTourSection}" stop. Acknowledge it in one short, calm sentence, such as "I can see you're taking a closer look, take your time. I'll continue once you're done." Do NOT ask a permission question and do NOT call any tools yet.]`);
+                    } else {
+                        this.scheduleAiSpeechEnd();
+                    }
                     return;
                 }
 
                 this._tourPausedForScroll = false;
+                this._tourExploreNoticeSent = false;
 
                 const nextSec = this.nextTourSection;
                 console.log(`[Chaka] Continuing guided tour to: ${nextSec}`);
-                this.sendSystemPrompt(`[SYSTEM: Your previous narration has fully finished and the visitor has had a moment to see the "${this.currentTourSection}" stop. Continue the guided tour now by calling guidedTour(section='${nextSec}'), then narrate only that visible page or section in 1-2 natural sentences. Do not summarize future stops yet.]`);
+                this.sendSystemPrompt(`[SYSTEM: Your previous narration has fully finished and the visitor has had a moment to see the "${this.currentTourSection}" stop. Continue the guided tour now by calling guidedTour(section='${nextSec}'), then narrate only that visible page or section in 1-2 natural sentences. Do not summarize future stops yet. Do NOT ask whether to continue, do NOT ask if they are ready, and do NOT wait for permission.]`);
             }, 1700);
         }
 
@@ -2818,7 +2861,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this.audioQueue = [];
             this.isPlaying = false;
             this.isAiSpeaking = false;
-            this._ignoreSpeechUntil = Date.now() + 1200;
+            this.pauseUserSpeechCapture(1800);
             if (this._speechEndTimer) clearTimeout(this._speechEndTimer);
             if (this._tourAdvanceTimer) clearTimeout(this._tourAdvanceTimer);
             this._speechEndTimer = null;
@@ -2841,6 +2884,96 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
                 x += barWidth + 1;
             }
+        }
+
+        ensureSpotlightStyles() {
+            if (document.getElementById('chaka-spotlight-styles')) return;
+            const style = document.createElement('style');
+            style.id = 'chaka-spotlight-styles';
+            style.textContent = `
+                .chaka-spotlight-target {
+                    position: relative !important;
+                    z-index: 3 !important;
+                    isolation: isolate;
+                    border-radius: var(--chaka-spotlight-radius, 18px) !important;
+                    box-shadow:
+                        0 0 0 1px rgba(255,255,255,0.18),
+                        0 0 0 8px rgba(0, 180, 255, 0.12),
+                        0 22px 70px rgba(0, 132, 255, 0.32),
+                        inset 0 0 34px rgba(0, 221, 255, 0.12) !important;
+                    transform: translateY(-2px);
+                    transition: box-shadow 420ms ease, transform 420ms ease, filter 420ms ease !important;
+                }
+                .chaka-spotlight-target::before {
+                    content: "";
+                    position: absolute;
+                    inset: -12px;
+                    border-radius: calc(var(--chaka-spotlight-radius, 18px) + 12px);
+                    border: 1px solid rgba(128, 226, 255, 0.72);
+                    background: linear-gradient(135deg, rgba(0,243,255,0.14), rgba(255,255,255,0.04), rgba(0,102,255,0.12));
+                    box-shadow: 0 0 34px rgba(0, 213, 255, 0.38);
+                    pointer-events: none;
+                    z-index: -1;
+                    animation: chakaSpotlightBreathe 2.6s ease-in-out infinite;
+                }
+                .chaka-spotlight-target::after {
+                    content: "";
+                    position: absolute;
+                    inset: -2px;
+                    border-radius: var(--chaka-spotlight-radius, 18px);
+                    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.16) 45%, transparent 72%);
+                    transform: translateX(-120%);
+                    pointer-events: none;
+                    animation: chakaSpotlightSweep 1.45s ease-out 1;
+                }
+                .chaka-spotlight-dim {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 2;
+                    pointer-events: none;
+                    background: radial-gradient(circle at 50% 45%, transparent 0, rgba(0,0,0,0.02) 260px, rgba(0,0,0,0.34) 100%);
+                    opacity: 0;
+                    transition: opacity 320ms ease;
+                }
+                .chaka-spotlight-dim.active { opacity: 1; }
+                @keyframes chakaSpotlightBreathe {
+                    0%, 100% { opacity: 0.72; transform: scale(1); }
+                    50% { opacity: 1; transform: scale(1.012); }
+                }
+                @keyframes chakaSpotlightSweep {
+                    0% { transform: translateX(-120%); opacity: 0; }
+                    20% { opacity: 1; }
+                    100% { transform: translateX(120%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        spotlightElement(targetEl, duration = 6200) {
+            if (!targetEl) return;
+            this.ensureSpotlightStyles();
+            const existingDim = document.getElementById('chaka-spotlight-dim');
+            if (existingDim) existingDim.remove();
+            const dim = document.createElement('div');
+            dim.id = 'chaka-spotlight-dim';
+            dim.className = 'chaka-spotlight-dim';
+            document.body.appendChild(dim);
+
+            document.querySelectorAll('.chaka-spotlight-target').forEach(el => {
+                el.classList.remove('chaka-spotlight-target');
+            });
+
+            const computedRadius = getComputedStyle(targetEl).borderRadius || '18px';
+            targetEl.style.setProperty('--chaka-spotlight-radius', computedRadius);
+            targetEl.classList.add('chaka-spotlight-target');
+            requestAnimationFrame(() => dim.classList.add('active'));
+
+            clearTimeout(targetEl._chakaSpotlightTimer);
+            targetEl._chakaSpotlightTimer = setTimeout(() => {
+                targetEl.classList.remove('chaka-spotlight-target');
+                dim.classList.remove('active');
+                setTimeout(() => dim.remove(), 340);
+            }, duration);
         }
 
         async handleToolCall(toolCall) {
@@ -2879,6 +3012,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         const sectionMap = {
                             'hero': '.section-global.home, .hero-section, .section-hero, [data-section="hero"]',
                             'about': '.section-about, .about-section, [data-section="about"]',
+                            'stats': '.section-counter, .counter-wrapper, [data-section="stats"]',
                             'services': '.section-seivecs, .section-services, .services-section, [data-section="services"]',
                             'works': '.section-works, .work-section, [data-section="works"]',
                             'projects': '.section-works, .work-section, [data-section="works"]',
@@ -2916,6 +3050,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     const tourPages = {
                         'hero': '/',
                         'about': '/about',
+                        'stats': '/about',
                         'services': '/services',
                         'works': '/works',
                         'testimonials': '/testimonials',
@@ -2937,6 +3072,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     const highlightMap = {
                         'hero': '.section-global.home, .hero-section, .section-hero, .section-global',
                         'about': '.about-hero-wrapper, .section-about, .about-section',
+                        'stats': '.section-counter, .counter-wrapper',
                         'services': '.section-global.service, .section-seivecs, .section-services, .services-wrapper',
                         'works': '.section-works, .work-section, .works-wrapper, .section-global',
                         'testimonials': '.section-testslider, .testimonial-section, .testimonials-wrapper',
@@ -2954,37 +3090,19 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     }
                     if (el) {
                         // Target inner container for perfect visual framing without screen edge clipping
-                        const targetEl = el.querySelector('.w-container, .main-container, .container, .about-wrapper, .works-wrapper, .services-wrapper, .testimonials-wrapper') || el;
+                        const targetEl = el.querySelector('.counter-wrapper, .w-container, .main-container, .container, .about-wrapper, .works-wrapper, .services-wrapper, .testimonials-wrapper') || el;
                         
                         // Scroll so target is comfortably below navbar
                         const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
                         const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - navH - 20;
                         window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-                        
-                        // Add jaw-dropping spotlight glow
-                        targetEl.style.transition = 'box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.6s ease';
-                        const origBg = targetEl.style.backgroundColor;
-                        const origShadow = targetEl.style.boxShadow;
-                        const origOutline = targetEl.style.outline;
-                        const origOffset = targetEl.style.outlineOffset;
-                        
-                        targetEl.style.boxShadow = '0 0 45px 12px rgba(0, 200, 255, 0.45), inset 0 0 25px rgba(0, 200, 255, 0.15)';
-                        targetEl.style.backgroundColor = 'rgba(0, 200, 255, 0.04)';
-                        targetEl.style.outline = '2px solid rgba(0, 200, 255, 0.7)';
-                        targetEl.style.outlineOffset = '8px';
-                        targetEl.style.borderRadius = targetEl.style.borderRadius || '16px';
-                        
-                        setTimeout(() => {
-                            targetEl.style.boxShadow = origShadow;
-                            targetEl.style.backgroundColor = origBg;
-                            targetEl.style.outline = origOutline;
-                            targetEl.style.outlineOffset = origOffset;
-                        }, 5000);
+
+                        this.spotlightElement(targetEl, isTourStep ? 7200 : 5600);
                         
                         if (isTourStep) {
                             this.isGuidedTourActive = true;
                             this.currentTourSection = section;
-                            const tourOrder = ['hero', 'about', 'services', 'works', 'testimonials', 'contact'];
+                            const tourOrder = ['hero', 'about', 'stats', 'services', 'works', 'testimonials', 'contact'];
                             const idx = tourOrder.indexOf(section);
                             this.nextTourSection = (idx !== -1 && idx + 1 < tourOrder.length) ? tourOrder[idx + 1] : null;
                             this._ignoreScrollUntil = Date.now() + 2000; // Ignore programmatic smooth scroll
@@ -2994,7 +3112,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                                 currentPage: window.location.pathname,
                                 navigated: navigatedForTour,
                                 nextSection: this.nextTourSection,
-                                instruction: `You are now showing the real "${section}" ${section === 'hero' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. Do not claim you are on any other page. Do not ask to move on, and do not narrate future stops. When your speech fully ends, the system will cue the next step if there is one.`
+                                instruction: `You are now showing the real "${section}" ${section === 'hero' || section === 'stats' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. ${section === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not claim you are on any other page. Do not ask to move on, do not ask if they are ready, and do not narrate future stops. You may end with a short statement of where you are taking them next, but the system will move automatically.`
                             };
                         } else {
                             result = { executed: true, highlighted: section };
@@ -3164,12 +3282,31 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (!newWrapper || !currentWrapper) {
                 throw new Error('Could not find .page-wrapper in source or target page');
             }
+
+            const nextPageId = doc.documentElement.getAttribute('data-wf-page');
+            const nextSiteId = doc.documentElement.getAttribute('data-wf-site');
+            if (nextPageId) document.documentElement.setAttribute('data-wf-page', nextPageId);
+            if (nextSiteId) document.documentElement.setAttribute('data-wf-site', nextSiteId);
+            if (doc.documentElement.lang) document.documentElement.lang = doc.documentElement.lang;
+
+            document.querySelectorAll('style[data-chaka-soft-nav-style="true"]').forEach(style => style.remove());
+            doc.head.querySelectorAll('style').forEach(style => {
+                const text = style.textContent || '';
+                if (!text.includes('data-w-id') && !text.includes('html.w-mod-js')) return;
+                const clone = style.cloneNode(true);
+                clone.setAttribute('data-chaka-soft-nav-style', 'true');
+                document.head.appendChild(clone);
+            });
             
             // Preserve the Chaka UI elements before swapping
             const chakaOrb = document.getElementById('chaka-orb');
-            const chakaPanel = document.getElementById('chaka-chat-panel');
+            const chakaPanel = document.getElementById('chaka-chat-modal');
+            const chakaPopup = document.getElementById('chaka-welcome-popup');
+            const chakaContainer = document.getElementById('chaka-orb-container');
             const chakaOrbParent = chakaOrb ? chakaOrb.parentNode : null;
             const chakaPanelParent = chakaPanel ? chakaPanel.parentNode : null;
+            const chakaPopupParent = chakaPopup ? chakaPopup.parentNode : null;
+            const chakaContainerParent = chakaContainer ? chakaContainer.parentNode : null;
             
             // Swap the page content
             currentWrapper.className = newWrapper.className;
@@ -3179,8 +3316,14 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (chakaOrb && !document.getElementById('chaka-orb')) {
                 (chakaOrbParent || document.body).appendChild(chakaOrb);
             }
-            if (chakaPanel && !document.getElementById('chaka-chat-panel')) {
+            if (chakaPanel && !document.getElementById('chaka-chat-modal')) {
                 (chakaPanelParent || document.body).appendChild(chakaPanel);
+            }
+            if (chakaPopup && !document.getElementById('chaka-welcome-popup')) {
+                (chakaPopupParent || document.body).appendChild(chakaPopup);
+            }
+            if (chakaContainer && !document.getElementById('chaka-orb-container')) {
+                (chakaContainerParent || document.body).appendChild(chakaContainer);
             }
             
             // Update browser URL
@@ -3209,7 +3352,10 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (window.Webflow) {
                 try { window.Webflow.destroy(); } catch(e) {}
                 try { window.Webflow.ready(); } catch(e) {}
-                try { window.Webflow.require('ix2').init(); } catch(e) {}
+                try {
+                    const ix2 = window.Webflow.require('ix2');
+                    if (ix2 && typeof ix2.init === 'function') ix2.init();
+                } catch(e) {}
             }
             
             // Re-run dynamic hydration on new content
