@@ -51,6 +51,26 @@ def startLiveStream() -> str:
     RequestContext.ui_actions.append({"name": "startLiveStream", "args": {}})
     return "Starting live voice stream now. The chat will close and voice mode will activate."
 
+def endSession() -> str:
+    """End the current chat or voice session when the user says goodbye or wants to leave."""
+    RequestContext.ui_actions.append({"name": "endSession", "args": {}})
+    return "Ending session now."
+
+def highlightElement(section: str) -> str:
+    """Highlight a specific section on the page with a glowing spotlight effect. Available sections: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer', 'brands', 'cta'."""
+    RequestContext.ui_actions.append({"name": "highlightElement", "args": {"section": section}})
+    return f"Highlighting {section} section."
+
+def guidedTour(section: str = 'hero') -> str:
+    """Navigate to and highlight a specific section during a step-by-step guided tour of the site. Call this sequentially for EACH section as you narrate it (e.g. 'hero', then 'about', then 'services', 'works', 'testimonials', 'faq', 'contact', 'footer')."""
+    RequestContext.ui_actions.append({"name": "guidedTour", "args": {"section": section}})
+    return f"Guided tour showing {section} section."
+
+def toggleTheme(theme: str = 'light') -> str:
+    """Toggle between 'dark' and 'light' theme on the website."""
+    RequestContext.ui_actions.append({"name": "toggleTheme", "args": {"theme": theme}})
+    return f"Toggled theme to {theme}."
+
 import sys
 
 # Setup MCP Server for Knowledge/Graphify
@@ -100,12 +120,14 @@ CONTACT PROTOCOL:
 - NEVER auto-open without explicit consent
 - Also provide clickable markdown links as backup
 
-VOICE MODE:
+VOICE MODE & TOURS:
 - If the user asks to speak, talk, have a voice conversation, or requests a live stream, call startLiveStream to switch to voice mode.
-- Say something like "Sure, switching to voice mode now!" before calling the tool.
+- When giving a guided tour, call guidedTour(section) step-by-step for each section ('hero', 'about', 'services', 'works', 'testimonials', 'contact') before you speak about it. DO NOT explain all sections at once!
+- Use highlightElement to pulse/glow any section to draw attention.
+- When the user says goodbye or ends the session, call endSession after your farewell.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
-    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream], # No execute_sql, no mcp_servers
+    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, endSession, highlightElement, guidedTour, toggleTheme],
     model="gemini-3.1-flash-lite"
 )
 
@@ -114,10 +136,10 @@ captain_config = LocalAgentConfig(
 You are equipped with powerful Tools. 
 1. The 'execute_sql' tool queries the local SQLite DB to manage works, settings, etc.
 2. The MCP graphify tools let you query the AST knowledge graph of the codebase.
-3. Use your own tools `navigate_to`, `scroll_to`, and `showContactMethod` to control the user's screen or open contact links directly.
+3. Use your own tools `navigate_to`, `scroll_to`, `showContactMethod`, `highlightElement`, `guidedTour`, and `toggleTheme` to control the user's screen or open contact links directly.
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=True),
-    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, execute_sql],
+    tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, endSession, highlightElement, guidedTour, toggleTheme, execute_sql],
     mcp_servers=mcp_servers,
     model="gemini-3.1-flash-lite"
 )

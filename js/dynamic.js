@@ -1645,17 +1645,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.analyser = null;
             this.visData = null;
 
-            // Stateful Memory (Survives Hard Reloads, Expires after 2 hours)
-            let rawMemory = sessionStorage.getItem('chakaMemory');
-            let lastActive = sessionStorage.getItem('chakaLastActivity');
-            if (lastActive && (Date.now() - parseInt(lastActive)) > 2 * 60 * 60 * 1000) {
+            // Stateful Memory (Survives Hard Reloads & Tabs, Expires after 24 hours)
+            let rawMemory = localStorage.getItem('chakaMemory') || sessionStorage.getItem('chakaMemory');
+            let lastActive = localStorage.getItem('chakaLastActivity') || sessionStorage.getItem('chakaLastActivity');
+            if (lastActive && (Date.now() - parseInt(lastActive)) > 24 * 60 * 60 * 1000) {
                 rawMemory = null;
                 sessionStorage.removeItem('chakaMemory');
                 sessionStorage.removeItem('chakaLastActivity');
+                localStorage.removeItem('chakaMemory');
+                localStorage.removeItem('chakaLastActivity');
             }
             this.conversationHistory = rawMemory ? JSON.parse(rawMemory) : [];
 
             this.init();
+        }
+
+        saveMemory() {
+            try {
+                const memStr = JSON.stringify(this.conversationHistory);
+                const nowStr = Date.now().toString();
+                sessionStorage.setItem('chakaMemory', memStr);
+                sessionStorage.setItem('chakaLastActivity', nowStr);
+                localStorage.setItem('chakaMemory', memStr);
+                localStorage.setItem('chakaLastActivity', nowStr);
+            } catch (e) {}
         }
 
         get apiKey() { return this.apiKeys[this.currentKeyIndex]; }
@@ -2000,8 +2013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (role !== 'system') {
                 this.conversationHistory = this.conversationHistory.filter(m => m.content !== text); // prevent duplicates on initial render
                 this.conversationHistory.push({ role, content: text });
-                sessionStorage.setItem('chakaMemory', JSON.stringify(this.conversationHistory));
-                sessionStorage.setItem('chakaLastActivity', Date.now().toString());
+                this.saveMemory();
             }
         }
 
@@ -2171,7 +2183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Save to memory for context but don't display
                     if (this.textBuffer.trim()) {
                         this.conversationHistory.push({ role: 'assistant', content: this.textBuffer.trim() });
-                        sessionStorage.setItem('chakaMemory', JSON.stringify(this.conversationHistory));
+                        this.saveMemory();
                     }
                     this.textBuffer = '';
 
@@ -2297,7 +2309,7 @@ CORE CAPABILITIES:
 4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting.
 5. IMAGE SOURCING: Use searchImages to find professional imagery.
 6. SPOTLIGHT: Use highlightElement to make any section glow/pulse to draw the visitor's attention. Great for showcasing.
-7. GUIDED TOUR: Use guidedTour to walk the visitor through the entire site section by section — a premium concierge experience.
+7. GUIDED TOUR: When a visitor asks for a tour of the site, DO NOT explain everything at once or run ahead. Take them step-by-step! Start by calling guidedTour(section='hero'), speak about the hero section. When you finish speaking, call guidedTour(section='about') and speak about about me. Then call guidedTour(section='services'), guidedTour(section='works'), guidedTour(section='testimonials'), guidedTour(section='contact'). Call the tool sequentially before you speak about each section so the screen moves synchronously with your voice!
 8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
 
 INTELLIGENCE PROTOCOLS:
@@ -2391,8 +2403,8 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "guidedTour",
-                                description: "Start a guided tour of the site. Scrolls through each section with pauses, giving you time to narrate what each section shows. Use this when a visitor says 'show me around', 'give me a tour', 'walk me through the site', etc.",
-                                parameters: { type: "OBJECT", properties: {} }
+                                description: "Navigate to and highlight a specific section during a guided tour of the site. Call this tool sequentially for EACH section as you narrate it (e.g., call guidedTour(section='hero'), speak about it, then call guidedTour(section='about'), speak about it, etc.). This keeps the screen perfectly synchronized with your speech.",
+                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The section to show: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'." } }, required: ["section"] }
                             },
                             {
                                 name: "toggleTheme",
@@ -2415,13 +2427,13 @@ Current Time: ${new Date().toLocaleTimeString()}`
             else if (hour < 17) timeContext = 'afternoon';
             else timeContext = 'evening';
 
-            // Check if this is a returning user (has recent conversation history)
-            const isReturning = this.conversationHistory.length > 2;
+            // Check if this is a returning user (has recent conversation history or localStorage memory within 24h)
+            const isReturning = (this.conversationHistory && this.conversationHistory.length > 0) || !!localStorage.getItem('chakaMemory');
             const lastTopic = isReturning ? this.conversationHistory.slice(-3).map(m => m.content).join(' ').substring(0, 200) : '';
 
             let greetingPrompt;
             if (isReturning) {
-                greetingPrompt = `[SYSTEM: The user just reconnected to the live stream after briefly leaving (likely clicked an external link like WhatsApp or a phone call). They are RETURNING — do NOT introduce yourself again. Welcome them back casually and briefly, ask if the link worked or if they need anything else. Pick up naturally from where you left off. Recent conversation context: "${lastTopic}". Keep it very short and natural.]`;
+                greetingPrompt = `[SYSTEM: The user just reconnected or returned to the live voice session (you have conversed within the last 24 hours). DO NOT introduce yourself from scratch (DO NOT say "I am Chaka" or "Welcome to the portfolio"). Welcome them back warmly and briefly (e.g. "Welcome back! Ready to continue?" or "Hey again! What can we tackle next?"). Recent conversation context: "${lastTopic}". Keep it very short, natural, and human-like.]`;
             } else {
                 greetingPrompt = `[SYSTEM: The user just connected to the live stream for the first time. It is currently ${timeContext} (${new Date().toLocaleTimeString()}). Greet them warmly and naturally based on the time of day, introduce yourself briefly as Chaka, and ask how you can help them today. Be conversational, warm, and human-like. Keep it short and inviting.]`;
             }
@@ -2459,6 +2471,10 @@ Current Time: ${new Date().toLocaleTimeString()}`
 
             this._idleCheckInterval = setInterval(() => {
                 if (!this.isConnected) { this.stopIdleWatchdog(); return; }
+                if (this.isAiSpeaking || (this.audioQueue && this.audioQueue.length > 0) || this.isPlaying) {
+                    this._lastActivityTime = Date.now();
+                    return;
+                }
 
                 const silenceSec = (Date.now() - this._lastActivityTime) / 1000;
 
@@ -2770,9 +2786,9 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     console.log('[Chaka] AI triggered endSession — closing stream gracefully.');
                     this._pendingGoodbyeDisconnect = true;
                     result = { executed: true, action: 'session_ending' };
-                } else if (name === 'highlightElement') {
-                    // ━━━ SPOTLIGHT HIGHLIGHT — pulsing glow on a section ━━━
-                    const section = (args.section || '').toLowerCase().trim();
+                } else if (name === 'highlightElement' || name === 'guidedTour') {
+                    // ━━━ SPOTLIGHT HIGHLIGHT & SYNCHRONIZED TOUR STEP ━━━
+                    const section = (args.section || (name === 'guidedTour' ? 'hero' : '')).toLowerCase().trim();
                     const highlightMap = {
                         'hero': '.section-global.home, .hero-section, .section-hero',
                         'about': '.section-about, .about-section',
@@ -2792,64 +2808,42 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         if (el) break;
                     }
                     if (el) {
-                        // Scroll to it first
+                        // Target inner container for perfect visual framing without screen edge clipping
+                        const targetEl = el.querySelector('.w-container, .main-container, .container, .about-wrapper, .works-wrapper, .services-wrapper, .testimonials-wrapper') || el;
+                        
+                        // Scroll so target is comfortably below navbar
                         const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
-                        const targetY = el.getBoundingClientRect().top + window.pageYOffset - navH - 10;
+                        const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - navH - 20;
                         window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-                        // Add spotlight glow
-                        el.style.transition = 'box-shadow 0.6s ease, outline 0.6s ease';
-                        el.style.boxShadow = '0 0 40px 10px rgba(0, 200, 255, 0.35), inset 0 0 30px rgba(0, 200, 255, 0.08)';
-                        el.style.outline = '2px solid rgba(0, 200, 255, 0.5)';
-                        el.style.outlineOffset = '4px';
-                        // Auto-remove after 4 seconds
+                        
+                        // Add jaw-dropping spotlight glow
+                        targetEl.style.transition = 'box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.6s ease';
+                        const origBg = targetEl.style.backgroundColor;
+                        const origShadow = targetEl.style.boxShadow;
+                        const origOutline = targetEl.style.outline;
+                        const origOffset = targetEl.style.outlineOffset;
+                        
+                        targetEl.style.boxShadow = '0 0 45px 12px rgba(0, 200, 255, 0.45), inset 0 0 25px rgba(0, 200, 255, 0.15)';
+                        targetEl.style.backgroundColor = 'rgba(0, 200, 255, 0.04)';
+                        targetEl.style.outline = '2px solid rgba(0, 200, 255, 0.7)';
+                        targetEl.style.outlineOffset = '8px';
+                        targetEl.style.borderRadius = targetEl.style.borderRadius || '16px';
+                        
                         setTimeout(() => {
-                            el.style.boxShadow = '';
-                            el.style.outline = '';
-                            el.style.outlineOffset = '';
-                        }, 4000);
-                        result = { executed: true, highlighted: section };
+                            targetEl.style.boxShadow = origShadow;
+                            targetEl.style.backgroundColor = origBg;
+                            targetEl.style.outline = origOutline;
+                            targetEl.style.outlineOffset = origOffset;
+                        }, 5000);
+                        
+                        if (name === 'guidedTour') {
+                            result = { executed: true, currentSection: section, instruction: `You are now showing the "${section}" section. Explain this section briefly to the user. When you finish speaking about this section, call guidedTour for the next section in sequence!` };
+                        } else {
+                            result = { executed: true, highlighted: section };
+                        }
                     } else {
-                        result = { executed: false, error: `Section "${section}" not found` };
+                        result = { executed: false, error: `Section "${section}" not found on page.` };
                     }
-                } else if (name === 'guidedTour') {
-                    // ━━━ GUIDED TOUR — auto-scroll through all sections ━━━
-                    const tourSections = [
-                        { name: 'hero', sel: '.section-global.home, .section-hero' },
-                        { name: 'about', sel: '.section-about' },
-                        { name: 'services', sel: '.section-seivecs, .section-services' },
-                        { name: 'works', sel: '.section-works' },
-                        { name: 'testimonials', sel: '.section-testslider' },
-                        { name: 'faq', sel: '.section-faq' },
-                        { name: 'cta', sel: '.section-cta' },
-                        { name: 'footer', sel: '.section-footer' }
-                    ];
-                    const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
-                    // Start from top
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    let delay = 2000;
-                    const found = [];
-                    for (const stop of tourSections) {
-                        let el = null;
-                        for (const sel of stop.sel.split(',')) {
-                            el = document.querySelector(sel.trim());
-                            if (el) break;
-                        }
-                        if (el) {
-                            found.push(stop.name);
-                            ((element, d) => {
-                                setTimeout(() => {
-                                    const y = element.getBoundingClientRect().top + window.pageYOffset - navH - 10;
-                                    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-                                    // Brief highlight
-                                    element.style.transition = 'box-shadow 0.5s ease';
-                                    element.style.boxShadow = '0 0 30px 8px rgba(0, 200, 255, 0.25)';
-                                    setTimeout(() => { element.style.boxShadow = ''; }, 3000);
-                                }, d);
-                            })(el, delay);
-                            delay += 5000; // 5 seconds per section
-                        }
-                    }
-                    result = { executed: true, tourSections: found, totalDurationSeconds: Math.ceil(delay / 1000) };
                 } else if (name === 'toggleTheme') {
                     // ━━━ THEME TOGGLE — dark/light mode ━━━
                     const theme = (args.theme || 'light').toLowerCase();
