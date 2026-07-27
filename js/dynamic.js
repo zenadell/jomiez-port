@@ -1660,6 +1660,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             this._speechRecognitionPausedByAi = false;
             this._speechRecognitionRestartTimer = null;
             this.speechRecognizer = null;
+            this.fallbackProcessor = null;
+            this.fallbackSilence = null;
 
             // Stateful Memory (Survives Hard Reloads & Tabs, Expires after 24 hours)
             let rawMemory = localStorage.getItem('chakaMemory') || sessionStorage.getItem('chakaMemory');
@@ -1671,9 +1673,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 localStorage.removeItem('chakaMemory');
                 localStorage.removeItem('chakaLastActivity');
             }
-            this.conversationHistory = rawMemory ? JSON.parse(rawMemory) : [];
+            this.conversationHistory = this.sanitizeConversationHistory(rawMemory ? JSON.parse(rawMemory) : []);
 
             this.init();
+        }
+
+        sanitizeConversationHistory(history) {
+            if (!Array.isArray(history)) return [];
+            return history.filter(msg => {
+                const content = String(msg?.content || '');
+                const isBrokenContactMarkup = content.includes('chaka-contact-autoclick') ||
+                    content.includes('onmouseover="this.style') ||
+                    content.includes('target="_blank" rel="noopener"') ||
+                    (content.includes('https://wa.me/') && content.includes('style="display:flex'));
+                return !isBrokenContactMarkup;
+            });
         }
 
         saveMemory() {
@@ -2251,18 +2265,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            this.socket.onopen = () => {
+            this.socket.onopen = async () => {
                 console.log(`[Chaka] Socket open (Key #${this.currentKeyIndex + 1})`);
                 this.sendSetup();
                 this.isConnected = true;
-                this.startMic();
-                this.updateUI('connected');
+                const micStarted = await this.startMic();
+                this.updateUI(micStarted ? 'connected' : 'disconnected');
 
                 // Issue #3: AI greets immediately on connect
                 this.sendGreeting();
 
                 // Start idle watchdog (polling-based, immune to mic noise)
-                this.startIdleWatchdog();
+                if (micStarted) {
+                    this.startIdleWatchdog();
+                } else {
+                    this.showBubble("I couldn't access the microphone. Tap again or check browser mic permission.", 7000);
+                }
             };
 
             this.socket.onmessage = async (event) => {
@@ -2724,6 +2742,27 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }
         }
 
+        transmitMicPcm(int16Data) {
+            if (!this.isConnected || !this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+            if (!this.micBuffer) this.micBuffer = [];
+            this.micBuffer.push(...int16Data);
+
+            const TRANSMIT_SIZE = 4048;
+            while (this.micBuffer.length >= TRANSMIT_SIZE) {
+                const chunk = this.micBuffer.splice(0, TRANSMIT_SIZE);
+                const int16Arr = new Int16Array(chunk);
+                const base64 = this.arrayBufferToBase64(int16Arr.buffer);
+                this.socket.send(JSON.stringify({
+                    realtimeInput: {
+                        audio: {
+                            data: base64,
+                            mimeType: "audio/pcm;rate=16000"
+                        }
+                    }
+                }));
+            }
+        }
+
         async startMic() {
             try {
                 // Stop any existing mic session before starting a new one
@@ -2741,37 +2780,32 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 this.micBuffer = [];
                 this.inputCtx = new AudioContext({ sampleRate: 16000 });
                 const source = this.inputCtx.createMediaStreamSource(this.micStream);
-                
-                await this.inputCtx.audioWorklet.addModule('/js/mic-worklet.js');
-                this.processor = new AudioWorkletNode(this.inputCtx, 'mic-worklet');
-                
-                source.connect(this.processor);
-                this.processor.port.onmessage = (e) => {
-                    if (!this.isConnected || !this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-                    
-                    // Accumulate mic buffer and send in chunks (matching working reference)
-                    const int16Data = new Int16Array(e.data);
-                    this.micBuffer.push(...int16Data);
-                    
-                    const TRANSMIT_SIZE = 4048;
-                    while (this.micBuffer.length >= TRANSMIT_SIZE) {
-                        const chunk = this.micBuffer.splice(0, TRANSMIT_SIZE);
-                        const int16Arr = new Int16Array(chunk);
-                        const base64 = this.arrayBufferToBase64(int16Arr.buffer);
-                        
-                        // We do NOT call markActivity() solely from RMS energy, preventing crowded/noisy
-                        // background environments from falsely resetting the watchdog timer!
-                        // Inactivity reset is handled via Web Speech API word recognition + Gemini server validation.
-                        this.socket.send(JSON.stringify({
-                            realtimeInput: {
-                                audio: {
-                                    data: base64,
-                                    mimeType: "audio/pcm;rate=16000"
-                                }
-                            }
-                        }));
-                    }
-                };
+
+                try {
+                    await this.inputCtx.audioWorklet.addModule('/js/mic-worklet.js');
+                    this.processor = new AudioWorkletNode(this.inputCtx, 'mic-worklet');
+                    source.connect(this.processor);
+                    this.processor.port.onmessage = (e) => {
+                        this.transmitMicPcm(new Int16Array(e.data));
+                    };
+                } catch(workletError) {
+                    console.warn('[Chaka] AudioWorklet unavailable, using fallback mic capture.', workletError);
+                    this.fallbackProcessor = this.inputCtx.createScriptProcessor(4096, 1, 1);
+                    this.fallbackSilence = this.inputCtx.createGain();
+                    this.fallbackSilence.gain.value = 0;
+                    this.fallbackProcessor.onaudioprocess = (event) => {
+                        const input = event.inputBuffer.getChannelData(0);
+                        const int16Data = new Int16Array(input.length);
+                        for (let i = 0; i < input.length; i++) {
+                            const s = Math.max(-1, Math.min(1, input[i]));
+                            int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                        }
+                        this.transmitMicPcm(int16Data);
+                    };
+                    source.connect(this.fallbackProcessor);
+                    this.fallbackProcessor.connect(this.fallbackSilence);
+                    this.fallbackSilence.connect(this.inputCtx.destination);
+                }
 
                 // Initialize Web Speech API for continuous understandable word/sentence monitoring
                 if (!this.speechRecognizer && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
@@ -2802,7 +2836,12 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         this.speechRecognizer.start();
                     } catch(e) { console.log('[Chaka] SpeechRecognition fallback to AI server validation.'); }
                 }
-            } catch (e) { console.error("[Chaka] Mic start failed:", e); }
+                return true;
+            } catch (e) {
+                console.error("[Chaka] Mic start failed:", e);
+                this.stopMic();
+                return false;
+            }
         }
 
         stopMic() {
@@ -2815,10 +2854,18 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 try { this.speechRecognizer.stop(); } catch(e) {}
                 this.speechRecognizer = null;
             }
+            if (this.fallbackProcessor) {
+                try { this.fallbackProcessor.disconnect(); } catch(e) {}
+            }
+            if (this.fallbackSilence) {
+                try { this.fallbackSilence.disconnect(); } catch(e) {}
+            }
             if (this.processor) this.processor.disconnect();
             if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
             if (this.inputCtx) this.inputCtx.close();
             this.processor = null;
+            this.fallbackProcessor = null;
+            this.fallbackSilence = null;
             this.micStream = null;
             this.inputCtx = null;
         }
