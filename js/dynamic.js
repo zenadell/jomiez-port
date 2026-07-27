@@ -2810,7 +2810,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 const hasPendingAudio = this.isPlaying || this.isAiSpeaking || (this.audioQueue && this.audioQueue.length > 0) || (this._audioStagingBuffer && this._audioStagingBuffer.length > 0);
                 if (hasPendingAudio) return;
                 this.onAiSpeechEnd();
-            }, 1400);
+            }, 550);
         }
 
         onAiSpeechEnd() {
@@ -2823,24 +2823,24 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 this._tourAdvanceTimer = setTimeout(() => {
                     if (!this.isConnected || !this.isGuidedTourActive || this.isAiSpeaking || this.isPlaying) return;
                     this.isGuidedTourActive = false;
-                    this.sendSystemPrompt(`[SYSTEM: You have just shown the final section of the website! Warmly conclude the guided tour, ask if they have any questions about what they saw, and offer to help them get in touch or explore a specific project.]`);
-                }, 2000);
+                    this.sendSystemPrompt(`[SYSTEM: You have just shown the final section of the website. Conclude the guided tour warmly in one or two sentences. Ask if they have any questions about what they saw, and offer to help them get in touch or explore a specific project.]`);
+                }, 850);
                 return;
             }
 
-            this._tourAdvanceTimer = setTimeout(() => {
+            this._tourAdvanceTimer = setTimeout(async () => {
                 if (!this.isConnected || !this.isGuidedTourActive || this.isAiSpeaking || this.isPlaying) {
                     return;
                 }
 
                 // If visitor scrolled or clicked recently, give them space before continuing.
                 const timeSinceScroll = Date.now() - (this._lastUserScrollTime || 0);
-                if (timeSinceScroll < 3500) {
+                if (timeSinceScroll < 1800) {
                     this._tourPausedForScroll = true;
                     console.log('[Chaka] Tour waiting: visitor is actively exploring section.');
                     if (!this._tourExploreNoticeSent) {
                         this._tourExploreNoticeSent = true;
-                        this.showBubble("Take your time. I'll continue when you stop scrolling.", 4500);
+                        this.showBubble("Take your time. I'll continue when you stop scrolling.", 3200);
                         this.sendSystemPrompt(`[SYSTEM: The visitor is actively scrolling or inspecting the "${this.currentTourSection}" stop. Acknowledge it in one short, calm sentence, such as "I can see you're taking a closer look, take your time. I'll continue once you're done." Do NOT ask a permission question and do NOT call any tools yet.]`);
                     } else {
                         this.scheduleAiSpeechEnd();
@@ -2852,9 +2852,14 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 this._tourExploreNoticeSent = false;
 
                 const nextSec = this.nextTourSection;
-                console.log(`[Chaka] Continuing guided tour to: ${nextSec}`);
-                this.sendSystemPrompt(`[SYSTEM: Your previous narration has fully finished and the visitor has had a moment to see the "${this.currentTourSection}" stop. Continue the guided tour now by calling guidedTour(section='${nextSec}'), then narrate only that visible page or section in 1-2 natural sentences. Do not summarize future stops yet. Do NOT ask whether to continue, do NOT ask if they are ready, and do NOT wait for permission.]`);
-            }, 1700);
+                console.log(`[Chaka] Instantly advancing guided tour to: ${nextSec}`);
+                const result = await this.showGuidedTourStop(nextSec, true);
+                if (!result.executed) {
+                    this.sendSystemPrompt(`[SYSTEM: I tried to continue the tour to "${nextSec}", but the page element was not found. Apologize briefly and continue with the next best useful part of the portfolio without asking permission.]`);
+                    return;
+                }
+                this.sendSystemPrompt(`[SYSTEM: The screen has already moved to and highlighted the "${nextSec}" stop at ${result.currentPage}. Narrate only what is visible in 1-2 natural sentences. ${nextSec === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not call guidedTour again for this same stop. Do not ask whether to continue, do not ask if they are ready, and do not wait for permission. You may briefly say where you are taking them next at the end.]`);
+            }, 350);
         }
 
         stopCurrentAudio() {
@@ -2976,6 +2981,76 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }, duration);
         }
 
+        async showGuidedTourStop(section, isTourStep = true) {
+            const tourPages = {
+                'hero': '/',
+                'about': '/about',
+                'stats': '/about',
+                'services': '/services',
+                'works': '/works',
+                'testimonials': '/testimonials',
+                'contact': '/contact-us'
+            };
+            const targetPage = isTourStep ? tourPages[section] : null;
+            let navigatedForTour = false;
+
+            if (targetPage && window.location.pathname !== targetPage) {
+                try {
+                    await this.softNavigate(targetPage);
+                    navigatedForTour = true;
+                    await new Promise(resolve => setTimeout(resolve, 120));
+                } catch(e) {
+                    console.error('[Chaka] Guided tour page navigation failed:', e);
+                }
+            }
+
+            const highlightMap = {
+                'hero': '.section-global.home, .hero-section, .section-hero, .section-global',
+                'about': '.about-hero-wrapper, .section-about, .about-section',
+                'stats': '.section-counter, .counter-wrapper',
+                'services': '.section-global.service, .section-seivecs, .section-services, .services-wrapper',
+                'works': '.section-works, .work-section, .works-wrapper, .section-global',
+                'testimonials': '.section-testslider, .testimonial-section, .testimonials-wrapper',
+                'contact': '.contact-wrapper, .section-contact, .contact-section',
+                'faq': '.section-faq',
+                'footer': '.section-footer, footer',
+                'brands': '.section-brands',
+                'cta': '.section-cta'
+            };
+            const selectors = highlightMap[section] || `[data-section="${section}"]`;
+            let el = null;
+            for (const sel of selectors.split(',')) {
+                el = document.querySelector(sel.trim());
+                if (el) break;
+            }
+            if (!el) return { executed: false, error: `Section "${section}" not found on page.` };
+
+            const targetEl = el.querySelector('.counter-wrapper, .w-container, .main-container, .container, .about-wrapper, .works-wrapper, .services-wrapper, .testimonials-wrapper') || el;
+            const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
+            const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - navH - 20;
+            window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+            this.spotlightElement(targetEl, isTourStep ? 6200 : 4400);
+
+            if (!isTourStep) {
+                return { executed: true, highlighted: section };
+            }
+
+            this.isGuidedTourActive = true;
+            this.currentTourSection = section;
+            const tourOrder = ['hero', 'about', 'stats', 'services', 'works', 'testimonials', 'contact'];
+            const idx = tourOrder.indexOf(section);
+            this.nextTourSection = (idx !== -1 && idx + 1 < tourOrder.length) ? tourOrder[idx + 1] : null;
+            this._ignoreScrollUntil = Date.now() + 1200;
+            return {
+                executed: true,
+                currentSection: section,
+                currentPage: window.location.pathname,
+                navigated: navigatedForTour,
+                nextSection: this.nextTourSection,
+                instruction: `You are now showing the real "${section}" ${section === 'hero' || section === 'stats' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. ${section === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not claim you are on any other page. Do not ask to move on, do not ask if they are ready, and do not narrate future stops. You may end with a short statement of where you are taking them next, but the system will move automatically.`
+            };
+        }
+
         async handleToolCall(toolCall) {
             for (const call of toolCall.functionCalls) {
                 const { name, args } = call;
@@ -3047,79 +3122,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     // ━━━ SPOTLIGHT HIGHLIGHT & SYNCHRONIZED TOUR STEP ━━━
                     const section = (args.section || (name === 'guidedTour' ? 'hero' : '')).toLowerCase().trim();
                     const isTourStep = name === 'guidedTour';
-                    const tourPages = {
-                        'hero': '/',
-                        'about': '/about',
-                        'stats': '/about',
-                        'services': '/services',
-                        'works': '/works',
-                        'testimonials': '/testimonials',
-                        'contact': '/contact-us'
-                    };
-                    const targetPage = isTourStep ? tourPages[section] : null;
-                    let navigatedForTour = false;
-
-                    if (targetPage && window.location.pathname !== targetPage) {
-                        try {
-                            await this.softNavigate(targetPage);
-                            navigatedForTour = true;
-                            await new Promise(resolve => setTimeout(resolve, 350));
-                        } catch(e) {
-                            console.error('[Chaka] Guided tour page navigation failed:', e);
-                        }
-                    }
-
-                    const highlightMap = {
-                        'hero': '.section-global.home, .hero-section, .section-hero, .section-global',
-                        'about': '.about-hero-wrapper, .section-about, .about-section',
-                        'stats': '.section-counter, .counter-wrapper',
-                        'services': '.section-global.service, .section-seivecs, .section-services, .services-wrapper',
-                        'works': '.section-works, .work-section, .works-wrapper, .section-global',
-                        'testimonials': '.section-testslider, .testimonial-section, .testimonials-wrapper',
-                        'contact': '.contact-wrapper, .section-contact, .contact-section',
-                        'faq': '.section-faq',
-                        'footer': '.section-footer, footer',
-                        'brands': '.section-brands',
-                        'cta': '.section-cta'
-                    };
-                    const selectors = highlightMap[section] || `[data-section="${section}"]`;
-                    let el = null;
-                    for (const sel of selectors.split(',')) {
-                        el = document.querySelector(sel.trim());
-                        if (el) break;
-                    }
-                    if (el) {
-                        // Target inner container for perfect visual framing without screen edge clipping
-                        const targetEl = el.querySelector('.counter-wrapper, .w-container, .main-container, .container, .about-wrapper, .works-wrapper, .services-wrapper, .testimonials-wrapper') || el;
-                        
-                        // Scroll so target is comfortably below navbar
-                        const navH = document.querySelector('.section-navbar, nav, .w-nav')?.offsetHeight || 80;
-                        const targetY = targetEl.getBoundingClientRect().top + window.pageYOffset - navH - 20;
-                        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-
-                        this.spotlightElement(targetEl, isTourStep ? 7200 : 5600);
-                        
-                        if (isTourStep) {
-                            this.isGuidedTourActive = true;
-                            this.currentTourSection = section;
-                            const tourOrder = ['hero', 'about', 'stats', 'services', 'works', 'testimonials', 'contact'];
-                            const idx = tourOrder.indexOf(section);
-                            this.nextTourSection = (idx !== -1 && idx + 1 < tourOrder.length) ? tourOrder[idx + 1] : null;
-                            this._ignoreScrollUntil = Date.now() + 2000; // Ignore programmatic smooth scroll
-                            result = { 
-                                executed: true, 
-                                currentSection: section, 
-                                currentPage: window.location.pathname,
-                                navigated: navigatedForTour,
-                                nextSection: this.nextTourSection,
-                                instruction: `You are now showing the real "${section}" ${section === 'hero' || section === 'stats' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. ${section === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not claim you are on any other page. Do not ask to move on, do not ask if they are ready, and do not narrate future stops. You may end with a short statement of where you are taking them next, but the system will move automatically.`
-                            };
-                        } else {
-                            result = { executed: true, highlighted: section };
-                        }
-                    } else {
-                        result = { executed: false, error: `Section "${section}" not found on page.` };
-                    }
+                    result = await this.showGuidedTourStop(section, isTourStep);
                 } else if (name === 'toggleTheme') {
                     // ━━━ THEME TOGGLE — dark/light mode ━━━
                     const theme = (args.theme || 'light').toLowerCase();
