@@ -1653,6 +1653,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             this._ignoreScrollUntil = 0;
             this._tourTimer = null;
             this._tourPausedForScroll = false;
+            this._tourAdvanceTimer = null;
+            this._speechEndTimer = null;
+            this._ignoreSpeechUntil = 0;
             this.speechRecognizer = null;
 
             // Stateful Memory (Survives Hard Reloads & Tabs, Expires after 24 hours)
@@ -2172,7 +2175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // A. Handle interruptions
                 if (data.serverContent?.interrupted) {
                     console.log("[Chaka] Interrupted.");
-                    this.markActivity(); // Server validated understandable user speech over AI
+                    this.markActivity('server_interruption');
                     this.stopCurrentAudio();
                     this.textBuffer = '';
                     return;
@@ -2180,7 +2183,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // B. Process model output based on engine mode
                 if (data.serverContent?.modelTurn?.parts) {
-                    this.markActivity(); // Server validated understandable user speech triggering model response
                     for (const part of data.serverContent.modelTurn.parts) {
                         // Native Gemini audio mode — play PCM directly
                         if (this.engine === 'gemini-bidi' && part.inlineData?.data) {
@@ -2245,7 +2247,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // D. Tool Calls from Gemini
                 const toolCall = data.toolCall || data.tool_call;
                 if (toolCall && toolCall.functionCalls) {
-                    this.markActivity(); // Server validated understandable user speech triggering tool action
                     this.handleToolCall(toolCall);
                 }
             };
@@ -2334,7 +2335,7 @@ CORE CAPABILITIES:
 4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting.
 5. IMAGE SOURCING: Use searchImages to find professional imagery.
 6. SPOTLIGHT: Use highlightElement to make any section glow/pulse to draw the visitor's attention. Great for showcasing.
-7. GUIDED TOUR: When a visitor asks for a tour of the site, DO NOT explain everything at once or run ahead. Take them step-by-step! Start by calling guidedTour(section='hero'), speak about the hero section. When you finish speaking, call guidedTour(section='about') and speak about about me. Then call guidedTour(section='services'), guidedTour(section='works'), guidedTour(section='testimonials'), guidedTour(section='contact'). Call the tool sequentially before you speak about each section so the screen moves synchronously with your voice!
+7. GUIDED TOUR: When a visitor asks for a tour of the site, DO NOT explain everything at once or run ahead. Take them step-by-step. Start by calling guidedTour(section='hero'), then speak only about what is visible. The system will wait until your speech fully ends before asking you to continue to the next step. For about, services, works, testimonials, and contact, guidedTour opens the real page first before highlighting it, so always describe the page that is actually on screen.
 8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
 
 INTELLIGENCE PROTOCOLS:
@@ -2428,7 +2429,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "guidedTour",
-                                description: "Navigate to and highlight a specific section during a guided tour of the site. Call this tool sequentially for EACH section as you narrate it (e.g., call guidedTour(section='hero'), speak about it, then call guidedTour(section='about'), speak about it, etc.). This keeps the screen perfectly synchronized with your speech.",
+                                description: "Navigate to and highlight one guided-tour stop. This tool opens the real page when needed: about -> /about, services -> /services, works -> /works, testimonials -> /testimonials, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then wait for the system to cue the next stop.",
                                 parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The section to show: 'hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'." } }, required: ["section"] }
                             },
                             {
@@ -2567,7 +2568,11 @@ Current Time: ${new Date().toLocaleTimeString()}`
         }
 
         // Called when real user speech is detected
-        markActivity() {
+        markActivity(source = 'user') {
+            if (source === 'speech_recognition' && (this.isAiSpeaking || this.isPlaying || Date.now() < (this._ignoreSpeechUntil || 0))) {
+                console.log('[Chaka] Ignoring speech recognition during AI output.');
+                return;
+            }
             this._lastActivityTime = Date.now();
             // If user speaks after being warned, reset the warning state
             if (this._idleWarned && this._warningSpoken && !this._idleGoodbyeSent) {
@@ -2634,7 +2639,10 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         // We do NOT call markActivity() solely from RMS energy, preventing crowded/noisy
                         // background environments from falsely resetting the watchdog timer!
                         // Inactivity reset is handled via Web Speech API word recognition + Gemini server validation.
-                        
+                        if (this.isAiSpeaking || this.isPlaying || Date.now() < (this._ignoreSpeechUntil || 0)) {
+                            continue;
+                        }
+
                         this.socket.send(JSON.stringify({
                             realtimeInput: {
                                 audio: {
@@ -2661,7 +2669,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                                     // Only mark activity if understandable words/sentences are spoken
                                     if (transcript.length >= 2) {
                                         console.log('[Chaka] Meaningful speech recognized:', transcript);
-                                        this.markActivity();
+                                        this.markActivity('speech_recognition');
                                     }
                                 }
                             }
@@ -2737,11 +2745,17 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (this.audioQueue.length === 0) {
                 this.isPlaying = false;
                 this.isAiSpeaking = false;
-                this.onAiSpeechEnd();
+                this._ignoreSpeechUntil = Date.now() + 1200;
+                this.scheduleAiSpeechEnd();
                 return;
             }
             this.isPlaying = true;
             this.isAiSpeaking = true;
+            this._ignoreSpeechUntil = Date.now() + 1200;
+            if (this._speechEndTimer) {
+                clearTimeout(this._speechEndTimer);
+                this._speechEndTimer = null;
+            }
             const data = this.audioQueue.shift();
             const buffer = this.audioCtx.createBuffer(1, data.length, 24000);
             buffer.getChannelData(0).set(data);
@@ -2753,12 +2767,24 @@ Current Time: ${new Date().toLocaleTimeString()}`
             source.start();
         }
 
+        scheduleAiSpeechEnd() {
+            if (this._speechEndTimer) clearTimeout(this._speechEndTimer);
+            this._speechEndTimer = setTimeout(() => {
+                this._speechEndTimer = null;
+                const hasPendingAudio = this.isPlaying || this.isAiSpeaking || (this.audioQueue && this.audioQueue.length > 0) || (this._audioStagingBuffer && this._audioStagingBuffer.length > 0);
+                if (hasPendingAudio) return;
+                this.onAiSpeechEnd();
+            }, 1400);
+        }
+
         onAiSpeechEnd() {
             if (!this.isConnected || !this.isGuidedTourActive) return;
             if (this._tourTimer) clearInterval(this._tourTimer);
+            this._tourTimer = null;
+            if (this._tourAdvanceTimer) clearTimeout(this._tourAdvanceTimer);
 
             if (!this.nextTourSection) {
-                setTimeout(() => {
+                this._tourAdvanceTimer = setTimeout(() => {
                     if (!this.isConnected || !this.isGuidedTourActive || this.isAiSpeaking || this.isPlaying) return;
                     this.isGuidedTourActive = false;
                     this.sendSystemPrompt(`[SYSTEM: You have just shown the final section of the website! Warmly conclude the guided tour, ask if they have any questions about what they saw, and offer to help them get in touch or explore a specific project.]`);
@@ -2766,40 +2792,37 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 return;
             }
 
-            this._tourTimer = setInterval(() => {
+            this._tourAdvanceTimer = setTimeout(() => {
                 if (!this.isConnected || !this.isGuidedTourActive || this.isAiSpeaking || this.isPlaying) {
-                    if (this._tourTimer) clearInterval(this._tourTimer);
-                    this._tourTimer = null;
                     return;
                 }
 
-                // If visitor scrolled or clicked within the last 3.5 seconds, they are actively viewing this section!
+                // If visitor scrolled or clicked recently, give them space before continuing.
                 const timeSinceScroll = Date.now() - (this._lastUserScrollTime || 0);
                 if (timeSinceScroll < 3500) {
-                    if (!this._tourPausedForScroll) {
-                        this._tourPausedForScroll = true;
-                        console.log('[Chaka] Tour paused: visitor is actively scrolling/exploring section.');
-                        this.sendSystemPrompt(`[SYSTEM: Notice that the visitor is actively scrolling and exploring the "${this.currentTourSection}" section right now! Casually and warmly acknowledge that they are checking it out (e.g. "I see you exploring those details—take your time!"). Do NOT ask them to move on; just let them browse.]`);
-                    }
-                    return; // Keep waiting in interval while they explore
+                    this._tourPausedForScroll = true;
+                    console.log('[Chaka] Tour waiting: visitor is actively exploring section.');
+                    this.scheduleAiSpeechEnd();
+                    return;
                 }
 
-                // Visitor stopped scrolling (or never scrolled). Auto-advance!
-                clearInterval(this._tourTimer);
-                this._tourTimer = null;
                 this._tourPausedForScroll = false;
 
                 const nextSec = this.nextTourSection;
-                console.log(`[Chaka] Auto-advancing guided tour to: ${nextSec}`);
-                this.sendSystemPrompt(`[SYSTEM: The visitor has finished viewing the "${this.currentTourSection}" section and is listening attentively. Automatically continue the tour right now by calling guidedTour(section='${nextSec}') and narrating it! Do NOT ask for permission.]`);
-            }, 1000);
+                console.log(`[Chaka] Continuing guided tour to: ${nextSec}`);
+                this.sendSystemPrompt(`[SYSTEM: Your previous narration has fully finished and the visitor has had a moment to see the "${this.currentTourSection}" stop. Continue the guided tour now by calling guidedTour(section='${nextSec}'), then narrate only that visible page or section in 1-2 natural sentences. Do not summarize future stops yet.]`);
+            }, 1700);
         }
 
         stopCurrentAudio() {
             this.audioQueue = [];
             this.isPlaying = false;
             this.isAiSpeaking = false;
-            this.onAiSpeechEnd();
+            this._ignoreSpeechUntil = Date.now() + 1200;
+            if (this._speechEndTimer) clearTimeout(this._speechEndTimer);
+            if (this._tourAdvanceTimer) clearTimeout(this._tourAdvanceTimer);
+            this._speechEndTimer = null;
+            this._tourAdvanceTimer = null;
         }
 
         drawVisualizer() {
@@ -2889,13 +2912,35 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 } else if (name === 'highlightElement' || name === 'guidedTour') {
                     // ━━━ SPOTLIGHT HIGHLIGHT & SYNCHRONIZED TOUR STEP ━━━
                     const section = (args.section || (name === 'guidedTour' ? 'hero' : '')).toLowerCase().trim();
+                    const isTourStep = name === 'guidedTour';
+                    const tourPages = {
+                        'hero': '/',
+                        'about': '/about',
+                        'services': '/services',
+                        'works': '/works',
+                        'testimonials': '/testimonials',
+                        'contact': '/contact-us'
+                    };
+                    const targetPage = isTourStep ? tourPages[section] : null;
+                    let navigatedForTour = false;
+
+                    if (targetPage && window.location.pathname !== targetPage) {
+                        try {
+                            await this.softNavigate(targetPage);
+                            navigatedForTour = true;
+                            await new Promise(resolve => setTimeout(resolve, 350));
+                        } catch(e) {
+                            console.error('[Chaka] Guided tour page navigation failed:', e);
+                        }
+                    }
+
                     const highlightMap = {
-                        'hero': '.section-global.home, .hero-section, .section-hero',
-                        'about': '.section-about, .about-section',
-                        'services': '.section-seivecs, .section-services',
-                        'works': '.section-works, .work-section',
-                        'testimonials': '.section-testslider, .testimonial-section',
-                        'contact': '.section-contact, .contact-section',
+                        'hero': '.section-global.home, .hero-section, .section-hero, .section-global',
+                        'about': '.about-hero-wrapper, .section-about, .about-section',
+                        'services': '.section-global.service, .section-seivecs, .section-services, .services-wrapper',
+                        'works': '.section-works, .work-section, .works-wrapper, .section-global',
+                        'testimonials': '.section-testslider, .testimonial-section, .testimonials-wrapper',
+                        'contact': '.contact-wrapper, .section-contact, .contact-section',
                         'faq': '.section-faq',
                         'footer': '.section-footer, footer',
                         'brands': '.section-brands',
@@ -2936,17 +2981,20 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             targetEl.style.outlineOffset = origOffset;
                         }, 5000);
                         
-                        if (name === 'guidedTour') {
+                        if (isTourStep) {
                             this.isGuidedTourActive = true;
                             this.currentTourSection = section;
-                            const tourOrder = ['hero', 'about', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'];
+                            const tourOrder = ['hero', 'about', 'services', 'works', 'testimonials', 'contact'];
                             const idx = tourOrder.indexOf(section);
                             this.nextTourSection = (idx !== -1 && idx + 1 < tourOrder.length) ? tourOrder[idx + 1] : null;
                             this._ignoreScrollUntil = Date.now() + 2000; // Ignore programmatic smooth scroll
                             result = { 
                                 executed: true, 
                                 currentSection: section, 
-                                instruction: `You are now showing the "${section}" section. Explain this section briefly and warmly. CRITICAL RULE FOR GUIDED TOUR: Do NOT ask questions at the end like "shall we move on?", "ready for the next section?", or "what do you think?". Do NOT wait for permission! Simply narrate the section and finish with a smooth statement like "Next up, let me show you...". The system will automatically move to the next section when you finish speaking!` 
+                                currentPage: window.location.pathname,
+                                navigated: navigatedForTour,
+                                nextSection: this.nextTourSection,
+                                instruction: `You are now showing the real "${section}" ${section === 'hero' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. Do not claim you are on any other page. Do not ask to move on, and do not narrate future stops. When your speech fully ends, the system will cue the next step if there is one.`
                             };
                         } else {
                             result = { executed: true, highlighted: section };
