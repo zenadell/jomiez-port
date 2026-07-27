@@ -2175,6 +2175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     this.textBuffer = '';
 
+                    // ━━━ IDLE WATCHDOG: Update activity timestamp when AI finishes speaking ━━━
+                    // This ensures the idle countdown starts AFTER the AI stops talking,
+                    // not while it's still mid-sentence.
+                    if (!this._pendingGoodbyeDisconnect && !this._idleWarned) {
+                        this._lastActivityTime = Date.now();
+                    }
+
                     // If pending goodbye disconnect, end session now that AI finished speaking
                     if (this._pendingGoodbyeDisconnect) {
                         this._pendingGoodbyeDisconnect = false;
@@ -2186,7 +2193,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Second turnComplete = user actually responded → cancel disconnect
                     else if (this._idleWarned && !this._warningSpoken) {
                         this._warningSpoken = true;
-                        console.log('[Chaka] Warning speech delivered. Waiting for user response...');
+                        // Update activity time AFTER warning speech so the 20s disconnect
+                        // countdown starts from when the AI finishes the warning question
+                        this._lastActivityTime = Date.now();
+                        console.log('[Chaka] Warning speech delivered. 20s countdown to goodbye starts now.');
                     }
                     else if (this._idleWarned && this._warningSpoken && !this._idleGoodbyeSent) {
                         console.log('[Chaka] User responded after idle warning — cancelling disconnect.');
@@ -2419,17 +2429,24 @@ Current Time: ${new Date().toLocaleTimeString()}`
 
                 const silenceSec = (Date.now() - this._lastActivityTime) / 1000;
 
-                // Phase 1: Warning at 60s
+                // Phase 1: Warning (natural, varied prompts)
                 if (!this._idleWarned && silenceSec >= this.IDLE_WARNING_S) {
                     this._idleWarned = true;
                     this._warningSpoken = false;
+                    const warningVariants = [
+                        'The user has gone quiet. Gently check in — maybe say something like "Hey, you still with me?" or "Still there? No rush, just checking in." Be warm, casual, and brief.',
+                        'The user seems to have gone silent. Casually nudge them — something like "Hey, just making sure you\'re still around!" or "Take your time, I\'m right here whenever you\'re ready." Keep it short and natural.',
+                        'It\'s been quiet for a bit. Check in naturally — try something like "Hello? Did I lose you?" or "Still there? I\'m not going anywhere!" Be friendly and keep it to one sentence.',
+                        'The user hasn\'t said anything in a while. Do a friendly check-in — like "Hey there, everything good?" or "Just checking — are you still around?" One sentence, casual tone.'
+                    ];
+                    const prompt = warningVariants[Math.floor(Math.random() * warningVariants.length)];
                     console.log(`[Chaka] ${silenceSec.toFixed(0)}s silence — sending idle warning.`);
                     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                         this.socket.send(JSON.stringify({
                             clientContent: {
                                 turns: [{
                                     role: 'user',
-                                    parts: [{ text: '[SYSTEM: The user has been silent for a while. Ask them warmly if they are still there. Something like "Hey, are you still there? I\'m here if you need anything!". Keep it very short and friendly.]' }]
+                                    parts: [{ text: `[SYSTEM: ${prompt}]` }]
                                 }],
                                 turnComplete: true
                             }
@@ -2437,23 +2454,29 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     }
                 }
 
-                // Phase 2: Goodbye + disconnect at 105s
+                // Phase 2: Goodbye + disconnect
                 if (this._idleWarned && !this._idleGoodbyeSent && silenceSec >= this.IDLE_DISCONNECT_S) {
                     this._idleGoodbyeSent = true;
+                    const goodbyeVariants = [
+                        'The user did not respond. Say a quick, warm goodbye — like "Alright, looks like you stepped away. I\'ll close out for now, but come back anytime! Catch you later!" Keep it brief and friendly.',
+                        'No response from the user. Wrap up naturally — something like "Okay, seems like you\'re busy. I\'ll let you go for now. Feel free to hit me up whenever you need me. Take care!" One or two sentences max.',
+                        'The user hasn\'t come back. End the session warmly — like "Hey, I think you might have stepped away. No worries! I\'ll be right here whenever you want to chat again. See you next time!" Keep it short.'
+                    ];
+                    const prompt = goodbyeVariants[Math.floor(Math.random() * goodbyeVariants.length)];
                     console.log(`[Chaka] ${silenceSec.toFixed(0)}s silence — sending goodbye and disconnecting.`);
                     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                         this.socket.send(JSON.stringify({
                             clientContent: {
                                 turns: [{
                                     role: 'user',
-                                    parts: [{ text: '[SYSTEM: The user has not responded after the idle check. Say a brief warm goodbye like "Alright, it seems you\'re busy right now. I\'ll close our session for now, but I\'m always here when you need me. Take care!" Keep it short. The session will close after you finish speaking.]' }]
+                                    parts: [{ text: `[SYSTEM: ${prompt}]` }]
                                 }],
                                 turnComplete: true
                             }
                         }));
                     }
                     this._pendingGoodbyeDisconnect = true;
-                    this.stopIdleWatchdog(); // Stop polling, turnComplete will handle disconnect
+                    this.stopIdleWatchdog();
                 }
             }, 2000); // Check every 2 seconds for crisp timing
         }
@@ -2468,6 +2491,12 @@ Current Time: ${new Date().toLocaleTimeString()}`
         // Called when real user speech is detected
         markActivity() {
             this._lastActivityTime = Date.now();
+            // If user speaks after being warned, reset the warning state
+            if (this._idleWarned && this._warningSpoken && !this._idleGoodbyeSent) {
+                console.log('[Chaka] User speech detected after warning — resetting idle state.');
+                this._idleWarned = false;
+                this._warningSpoken = false;
+            }
         }
 
         disconnect() {
@@ -2571,8 +2600,31 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }
             const floatData = new Float32Array(bytes.length);
             for (let i = 0; i < bytes.length; i++) floatData[i] = bytes[i] / 32768.0;
-            this.audioQueue.push(floatData);
-            if (!this.isPlaying) this.playNextInQueue();
+
+            // Accumulate chunks into a staging buffer before playing
+            // This prevents crackling caused by playing tiny fragments with gaps between them
+            if (!this._audioStagingBuffer) this._audioStagingBuffer = [];
+            this._audioStagingBuffer.push(floatData);
+
+            // Flush staging buffer into a single merged chunk every 200ms
+            // to eliminate micro-gaps between tiny audio fragments
+            if (!this._audioFlushTimer) {
+                this._audioFlushTimer = setTimeout(() => {
+                    this._audioFlushTimer = null;
+                    if (this._audioStagingBuffer && this._audioStagingBuffer.length > 0) {
+                        const totalLen = this._audioStagingBuffer.reduce((sum, b) => sum + b.length, 0);
+                        const merged = new Float32Array(totalLen);
+                        let offset = 0;
+                        for (const buf of this._audioStagingBuffer) {
+                            merged.set(buf, offset);
+                            offset += buf.length;
+                        }
+                        this._audioStagingBuffer = [];
+                        this.audioQueue.push(merged);
+                        if (!this.isPlaying) this.playNextInQueue();
+                    }
+                }, 200);
+            }
         }
 
         playNextInQueue() {
