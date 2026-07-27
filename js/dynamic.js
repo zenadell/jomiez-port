@@ -1828,6 +1828,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                     #chaka-close-chat:hover { background: rgba(255,255,255,0.15) !important; border-color: rgba(255,255,255,0.2) !important; transform: rotate(90deg) scale(1.05); }
                     
                     #chaka-input-wrapper:focus-within { border-color: #00f3ff; box-shadow: 0 0 0 3px rgba(0,243,255,0.2), inset 0 2px 4px rgba(0,0,0,0.2); background: rgba(255,255,255,0.08); }
+
+                    #chaka-chat-modal {
+                        width: min(440px, calc(100vw - 28px)) !important;
+                        height: min(640px, calc(100vh - 116px)) !important;
+                        right: 24px !important;
+                        bottom: 108px !important;
+                        border-radius: 28px !important;
+                        background:
+                            linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025)),
+                            rgba(9, 10, 14, 0.84) !important;
+                        border: 1px solid rgba(255,255,255,0.14) !important;
+                        box-shadow:
+                            0 32px 90px rgba(0,0,0,0.72),
+                            0 0 0 1px rgba(0, 243, 255, 0.06),
+                            inset 0 1px 0 rgba(255,255,255,0.14) !important;
+                    }
+                    #chaka-chat-modal::before {
+                        content: "";
+                        position: absolute;
+                        inset: 0;
+                        pointer-events: none;
+                        background:
+                            radial-gradient(circle at 20% 0%, rgba(0, 213, 255, 0.16), transparent 34%),
+                            radial-gradient(circle at 85% 12%, rgba(255, 111, 45, 0.1), transparent 30%);
+                        opacity: 0.95;
+                    }
+                    #chaka-chat-modal > * { position: relative; z-index: 1; }
+                    #chaka-chat-history {
+                        padding: 18px !important;
+                        gap: 14px !important;
+                        background: linear-gradient(180deg, rgba(255,255,255,0.018), rgba(0,0,0,0.18));
+                    }
+                    #chaka-input-wrapper {
+                        min-height: 52px !important;
+                        border-radius: 18px !important;
+                        background: rgba(255,255,255,0.07) !important;
+                        border-color: rgba(255,255,255,0.13) !important;
+                    }
+                    #chaka-chat-input {
+                        min-height: 42px !important;
+                        font-size: 14px !important;
+                        color: rgba(255,255,255,0.94) !important;
+                    }
+                    #chaka-send-btn {
+                        width: 52px !important;
+                        height: 52px !important;
+                        border-radius: 18px !important;
+                        background: linear-gradient(135deg, #00d5ff, #1478ff 58%, #6f5bff) !important;
+                        box-shadow: 0 14px 34px rgba(0, 136, 255, 0.34), inset 0 1px 0 rgba(255,255,255,0.28) !important;
+                    }
                     
                     .chaka-scrollbar::-webkit-scrollbar { width: 5px; }
                     .chaka-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -1835,7 +1885,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .chaka-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
                     
                     /* Markdown Formatting inside AI Bubbles */
-                    .chaka-msg-ai { color: #f0f0f5; font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.65; letter-spacing: -0.01em; word-break: break-word; }
+                    .chaka-msg-ai { color: rgba(246, 248, 255, 0.92); font-family: 'Inter', sans-serif; font-size: 14.5px; line-height: 1.62; letter-spacing: 0; word-break: break-word; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px 18px 18px 7px; padding: 13px 15px; max-width: 86%; box-shadow: 0 12px 30px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08); }
                     .chaka-msg-ai p { margin: 0 0 14px 0; }
                     .chaka-msg-ai p:last-child { margin: 0; }
                     .chaka-msg-ai strong { color: #fff; font-weight: 700; }
@@ -1844,8 +1894,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; font-weight: 400; }
                     .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 14px 0; padding-left: 20px; }
                     .chaka-msg-ai li { margin-bottom: 8px; }
-                    .chaka-msg-ai a { color: #00f3ff; text-decoration: none; border-bottom: 1px dashed rgba(0,243,255,0.5); transition: all 0.2s; pointer-events: auto; font-weight: 600; }
-                    .chaka-msg-ai a:hover { border-bottom: 1px solid #00f3ff; color: #fff; text-shadow: 0 0 10px rgba(0,243,255,0.5); }
+                    .chaka-msg-ai a { color: #6be7ff; text-decoration: none; border-bottom: 1px solid rgba(107,231,255,0.35); transition: all 0.2s; pointer-events: auto; font-weight: 650; }
+                    .chaka-msg-ai a:hover { border-bottom-color: #6be7ff; color: #fff; text-shadow: 0 0 12px rgba(0,243,255,0.42); }
                     
                     /* Special Contact Buttons - 2026/2027 Glowing Action Pills */
                     .chaka-msg-ai a[href*="wa.me"] { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #25D366, #1ca84e); color: #fff; padding: 12px 18px; font-size: 14.5px; border-radius: 16px; text-decoration: none !important; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; margin: 10px 0; box-shadow: 0 8px 20px -4px rgba(37, 211, 102, 0.4), inset 0 1px 1px rgba(255,255,255,0.3); pointer-events: auto; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -1855,14 +1905,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .chaka-msg-ai a[href^="tel:"]:hover, .chaka-msg-ai a[href^="mailto:"]:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 14px 28px -4px rgba(0, 136, 255, 0.6), 0 0 20px rgba(0, 243, 255, 0.4), inset 0 1px 1px rgba(255,255,255,0.4); color: #fff !important; }
                     
                     /* Bubble Layouts */
-                    .chaka-msg-wrapper { display: flex; gap: 14px; margin-bottom: 6px; width: 100%; }
+                    .chaka-msg-wrapper { display: flex; gap: 10px; margin-bottom: 2px; width: 100%; }
                     .chaka-msg-wrapper.user { justify-content: flex-end; }
                     .chaka-msg-wrapper.ai { justify-content: flex-start; align-items: flex-start; }
                     
-                    .chaka-msg-user { background: linear-gradient(135deg, rgba(0, 243, 255, 0.18), rgba(0, 102, 255, 0.12)); padding: 14px 20px; border-radius: 22px 22px 6px 22px; max-width: 82%; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; line-height: 1.5; box-shadow: 0 6px 18px rgba(0, 102, 255, 0.15), inset 0 1px 1px rgba(255,255,255,0.15); border: 1px solid rgba(0, 243, 255, 0.3); }
+                    .chaka-msg-user { background: linear-gradient(135deg, rgba(0, 213, 255, 0.24), rgba(20, 120, 255, 0.18)); padding: 13px 16px; border-radius: 18px 18px 7px 18px; max-width: 82%; color: #fff; font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 550; line-height: 1.5; box-shadow: 0 12px 26px rgba(0, 102, 255, 0.18), inset 0 1px 0 rgba(255,255,255,0.16); border: 1px solid rgba(0, 213, 255, 0.26); }
                     .chaka-msg-user p { margin: 0; }
                     
-                    .chaka-msg-avatar { width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, #00f3ff, #0066ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(0,136,255,0.35), inset 0 1px 1px rgba(255,255,255,0.4); margin-top: 2px; border: 1px solid rgba(255,255,255,0.15); }
+                    .chaka-msg-avatar { width: 30px; height: 30px; border-radius: 11px; background: linear-gradient(135deg, #00d5ff, #1478ff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,136,255,0.32), inset 0 1px 0 rgba(255,255,255,0.36); margin-top: 4px; border: 1px solid rgba(255,255,255,0.14); }
+                    .chaka-action-card { display:flex; align-items:center; gap:14px; width:100%; padding:15px; border-radius:18px; border:1px solid rgba(255,255,255,0.12); background:linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.045)); color:#fff; text-decoration:none !important; box-shadow:0 18px 38px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12); transition:transform 220ms ease, border-color 220ms ease, background 220ms ease; }
+                    .chaka-action-card:hover { transform: translateY(-2px); border-color: rgba(107,231,255,0.42); background:linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06)); }
+                    .chaka-action-icon { width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22); }
+                    .chaka-action-main { flex:1; min-width:0; }
+                    .chaka-action-title { color:#fff; font-weight:760; font-size:14.5px; line-height:1.25; }
+                    .chaka-action-subtitle { color:rgba(255,255,255,0.58); font-size:12px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                    .chaka-action-arrow { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.82); flex-shrink:0; }
                     
                     .chaka-orb-active { animation: pulse_chaka 2s infinite; background: linear-gradient(135deg, #ff0055, #ff7700) !important; box-shadow: 0 0 35px rgba(255,0,85,0.7) !important; }
                     @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(255,0,85, 0.7); } 70% { box-shadow: 0 0 0 28px rgba(255,0,85, 0); } 100% { box-shadow: 0 0 0 0 rgba(255,0,85, 0); } }
@@ -1971,6 +2028,46 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        escapeHtml(value = '') {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        sanitizeActionUrl(rawUrl = '') {
+            const cleaned = String(rawUrl || '')
+                .trim()
+                .replace(/^['"]+|['"]+$/g, '')
+                .replace(/["'<>`]/g, '');
+            if (!cleaned) return null;
+            if (/^(https:\/\/|http:\/\/|mailto:|tel:)/i.test(cleaned)) return cleaned;
+            return null;
+        }
+
+        renderContactCard(contact) {
+            const safeUrl = this.sanitizeActionUrl(contact.url);
+            if (!safeUrl) return '';
+            const label = this.escapeHtml(contact.label || 'Open contact');
+            const subtitle = this.escapeHtml(contact.subtitle || safeUrl.replace(/^mailto:|^tel:/i, ''));
+            const color = this.escapeHtml(contact.color || '#00d5ff');
+            const icon = contact.iconSvg || `<span style="font-size:20px;line-height:1;">${this.escapeHtml(contact.icon || '')}</span>`;
+            return `
+                <a href="${this.escapeHtml(safeUrl)}" target="_blank" rel="noopener" id="chaka-contact-autoclick" class="chaka-action-card">
+                    <span class="chaka-action-icon" style="background:linear-gradient(135deg, ${color}, rgba(255,255,255,0.16));">${icon}</span>
+                    <span class="chaka-action-main">
+                        <span class="chaka-action-title">${label}</span>
+                        <span class="chaka-action-subtitle">${subtitle}</span>
+                    </span>
+                    <span class="chaka-action-arrow">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"></path><path d="M8 7h9v9"></path></svg>
+                    </span>
+                </a>
+            `;
+        }
+
         appendChatMessage(role, text, isRawHtml = false) {
             const historyArea = document.getElementById('chaka-chat-history');
             const wrapper = document.createElement('div');
@@ -2002,7 +2099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // Post-process links to make them robust buttons
-            wrapper.querySelectorAll('.chaka-msg-ai a').forEach(a => {
+            if (!isRawHtml) wrapper.querySelectorAll('.chaka-msg-ai a').forEach(a => {
                 a.target = "_blank";
                 a.rel = "noopener";
                 
@@ -2608,11 +2705,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
         pauseUserSpeechCapture(duration = 2600) {
             this._ignoreSpeechUntil = Math.max(this._ignoreSpeechUntil || 0, Date.now() + duration);
             if (this._speechRecognitionRestartTimer) clearTimeout(this._speechRecognitionRestartTimer);
-
-            if (this.speechRecognizer && !this._speechRecognitionPausedByAi) {
-                this._speechRecognitionPausedByAi = true;
-                try { this.speechRecognizer.stop(); } catch(e) {}
-            }
+            this._speechRecognitionPausedByAi = true;
 
             this._speechRecognitionRestartTimer = setTimeout(() => {
                 this.resumeUserSpeechCapture();
@@ -2669,10 +2762,6 @@ Current Time: ${new Date().toLocaleTimeString()}`
                         // We do NOT call markActivity() solely from RMS energy, preventing crowded/noisy
                         // background environments from falsely resetting the watchdog timer!
                         // Inactivity reset is handled via Web Speech API word recognition + Gemini server validation.
-                        if (this.isAiSpeaking || this.isPlaying || Date.now() < (this._ignoreSpeechUntil || 0)) {
-                            continue;
-                        }
-
                         this.socket.send(JSON.stringify({
                             realtimeInput: {
                                 audio: {
@@ -3169,48 +3258,33 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     const s = window.siteSettings || {};
                     
                     const contactMap = {
-                        'whatsapp': { url: s.social_whatsapp, label: 'Chat on WhatsApp', icon: '💬', color: '#25D366' },
-                        'phone': { url: s.contact_phone ? `tel:${s.contact_phone.replace(/\s/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, icon: '📞', color: '#4A90D9' },
-                        'call': { url: s.contact_phone ? `tel:${s.contact_phone.replace(/\s/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, icon: '📞', color: '#4A90D9' },
-                        'email': { url: s.contact_email ? `mailto:${s.contact_email}` : null, label: `Email ${s.contact_email || 'us'}`, icon: '✉️', color: '#EA4335' },
-                        'instagram': { url: s.social_instagram, label: 'Instagram', icon: '📸', color: '#E1306C' },
-                        'linkedin': { url: s.social_linkedin, label: 'LinkedIn', icon: '💼', color: '#0077B5' },
-                        'github': { url: s.social_github, label: 'GitHub', icon: '🐙', color: '#6e5494' }
+                        'whatsapp': { url: s.social_whatsapp, label: 'Chat on WhatsApp', subtitle: 'Start a direct conversation', iconSvg: '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20.2 4.4 16A8.4 8.4 0 1 1 8 19.4L3 20.2Z"></path><path d="M8.8 8.7c.3 2.6 2.1 4.5 4.5 5.3l1.4-1.1 2.1.5c.2 1.2-.4 2.3-1.5 2.7-3.9-.3-7.1-3.2-8-7.1.3-1.1 1.3-1.8 2.4-1.6l.6 1.3-1.5 0Z"></path></svg>', color: '#25D366' },
+                        'phone': { url: s.contact_phone ? `tel:${String(s.contact_phone).replace(/[^\d+]/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, subtitle: 'Talk directly', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.7 19.7 0 0 1-8.6-3.1 19.2 19.2 0 0 1-6-6A19.7 19.7 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"></path></svg>', color: '#4A90D9' },
+                        'call': { url: s.contact_phone ? `tel:${String(s.contact_phone).replace(/[^\d+]/g, '')}` : null, label: `Call ${s.contact_phone || 'us'}`, subtitle: 'Talk directly', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.7 19.7 0 0 1-8.6-3.1 19.2 19.2 0 0 1-6-6A19.7 19.7 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"></path></svg>', color: '#4A90D9' },
+                        'email': { url: s.contact_email ? `mailto:${String(s.contact_email).trim().replace(/["'<>`]/g, '')}` : null, label: `Email ${s.contact_email || 'us'}`, subtitle: 'Send project details', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>', color: '#EA4335' },
+                        'instagram': { url: s.social_instagram, label: 'Instagram', subtitle: 'See visual work', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="3.4"></circle><path d="M17.5 6.5h.01"></path></svg>', color: '#E1306C' },
+                        'linkedin': { url: s.social_linkedin, label: 'LinkedIn', subtitle: 'Professional profile', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z"></path><path d="M2 9h4v12H2z"></path><circle cx="4" cy="4" r="2"></circle></svg>', color: '#0077B5' },
+                        'github': { url: s.social_github, label: 'GitHub', subtitle: 'View engineering work', iconSvg: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.2 1.4-4.2-2-6-2.5"></path><path d="M15 22v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1-.3-3.4 1.2a11.8 11.8 0 0 0-6.2 0C6.6 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.7 2.7 5.7 5.5 6-.6.5-.6 1.2-.5 2V22"></path></svg>', color: '#6e5494' }
                     };
                     
                     const contact = contactMap[method];
                     
-                    if (contact && contact.url) {
+                    if (contact && this.sanitizeActionUrl(contact.url)) {
                         // Issue #2: If chat widget is hidden/minimized, bring it back so user can see the card
                         const chatModal = document.getElementById('chaka-chat-modal');
                         if (chatModal && chatModal.style.opacity !== '1') {
                             this.toggleChatWindow(true);
                         }
 
-                        // Create a clickable 2026/2027 interactive action card in the chat
-                        const cardHtml = `<div style="margin:12px 0;width:100%;">
-                            <a href="${contact.url}" target="_blank" rel="noopener" id="chaka-contact-autoclick"
-                               style="display:flex;align-items:center;gap:14px;padding:16px 20px;background:linear-gradient(135deg, ${contact.color}25, ${contact.color}10);border:1px solid ${contact.color}55;border-radius:18px;color:white;text-decoration:none;transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);cursor:pointer;box-shadow:0 8px 20px -6px ${contact.color}33;"
-                               onmouseover="this.style.background='linear-gradient(135deg, ${contact.color}40, ${contact.color}20)';this.style.borderColor='${contact.color}88';this.style.transform='translateY(-3px) scale(1.01)';this.style.boxShadow='0 14px 28px -4px ${contact.color}55';"
-                               onmouseout="this.style.background='linear-gradient(135deg, ${contact.color}25, ${contact.color}10)';this.style.borderColor='${contact.color}55';this.style.transform='translateY(0) scale(1)';this.style.boxShadow='0 8px 20px -6px ${contact.color}33';">
-                                <div style="width:46px;height:46px;border-radius:14px;background:${contact.color}33;border:1px solid ${contact.color}66;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px ${contact.color}22;">${contact.icon}</div>
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:8px;">
-                                        <span>${contact.label}</span>
-                                        <span style="font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,0.15);text-transform:uppercase;letter-spacing:0.5px;font-weight:800;">Instant</span>
-                                    </div>
-                                    <div style="font-size:12.5px;color:rgba(255,255,255,0.75);margin-top:2px;">Click to launch directly &rarr;</div>
-                                </div>
-                                <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:16px;">↗</div>
-                            </a>
-                        </div>`;
+                        const cardHtml = this.renderContactCard(contact);
                         this.appendChatMessage('assistant', cardHtml, true);
                         
                         // Only auto-open if AI explicitly passed auto_open=true (user asked to be taken there)
                         const shouldOpen = args.auto_open === true || args.auto_open === "true";
                         if (shouldOpen) {
                             setTimeout(() => {
-                                const url = contact.url;
+                                const url = this.sanitizeActionUrl(contact.url);
+                                if (!url) return;
                                 if (url.startsWith('tel:') || url.startsWith('mailto:')) {
                                     const tempLink = document.createElement('a');
                                     tempLink.href = url;
@@ -3227,7 +3301,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             }, 500);
                         }
                         
-                        result = { executed: true, method, url: contact.url, displayed: true, autoOpened: shouldOpen };
+                        result = { executed: true, method, url: this.sanitizeActionUrl(contact.url), displayed: true, autoOpened: shouldOpen };
                     } else {
                         // Method not found or no URL configured
                         const available = Object.entries(contactMap)
