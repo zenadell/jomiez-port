@@ -298,7 +298,7 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />`;
 
-  const gscVerification = `<meta name="google-site-verification" content="YOUR_GSC_VERIFICATION_CODE_HERE" />`;
+  const gscVerification = settings.gsc_verification_id ? `<meta name="google-site-verification" content="${settings.gsc_verification_id}" />` : '';
 
   const additionalMetaFull = `${resourceHints}
     ${canonical}
@@ -392,19 +392,19 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
 
   result = result.replace('</head>', `    ${additionalMetaFullWithSchema}\n</head>`);
 
-  const ga4Script = `
+  const ga4Script = settings.google_analytics_id ? `
   <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX', {
+    gtag('config', '${settings.google_analytics_id}', {
       page_title: document.title,
       page_location: window.location.href,
       send_page_view: true
     });
-  </script>`;
+  </script>` : '';
 
   result = result.replace('</body>', `    ${ga4Script}\n</body>`);
 
@@ -676,7 +676,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
 // Static Files
 
-app.use(express.static(path.join(__dirname, ''), { extensions: ['html'] }));
+app.use(express.static(path.join(__dirname, ''), { extensions: ['html'], maxAge: '1y' }));
 
 // --- DATABASE TABLES INIT ---
 db.serialize(() => {
