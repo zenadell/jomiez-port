@@ -613,6 +613,13 @@ Allow: /
 app.get('/sitemap.xml', async (req, res) => {
   const host = `${req.protocol}://${req.get('host')}`;
   const today = new Date().toISOString().split('T')[0];
+  
+  const formatSitemapDate = (dateStr) => {
+    if (!dateStr) return today;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return today;
+    return d.toISOString().split('T')[0];
+  };
 
   const staticPages = [
     { path: '', priority: '1.0', changefreq: 'daily', title: 'Home' },
@@ -653,7 +660,8 @@ app.get('/sitemap.xml', async (req, res) => {
   });
 
   works.forEach(w => {
-    xml += `  <url>\n    <loc>${host}/work/${w.slug}</loc>\n    <lastmod>${w.date || today}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>`;
+    const workDate = formatSitemapDate(w.date);
+    xml += `  <url>\n    <loc>${host}/work/${w.slug}</loc>\n    <lastmod>${workDate}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>`;
     if (w.thumbnail_url) {
       xml += `\n    <image:image>\n      <image:loc>${w.thumbnail_url}</image:loc>\n      <image:title>${(w.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</image:title>\n      <image:caption>${(w.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')} project by Jomiez Innovation</image:caption>\n    </image:image>`;
     }
@@ -661,7 +669,7 @@ app.get('/sitemap.xml', async (req, res) => {
   });
 
   blogPosts.forEach(b => {
-    const postDate = b.published_at ? b.published_at.split(' ')[0] : today;
+    const postDate = formatSitemapDate(b.published_at);
     xml += `  <url>\n    <loc>${host}/blog/${b.slug}</loc>\n    <lastmod>${postDate}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>`;
     if (b.thumbnail_url) {
       xml += `\n    <image:image>\n      <image:loc>${b.thumbnail_url}</image:loc>\n      <image:title>${(b.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</image:title>\n      <image:caption>${(b.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')} article by Jomiez Innovation</image:caption>\n    </image:image>`;
