@@ -412,7 +412,7 @@
         } catch (e) { /* use defaults */ }
 
         // Core schemas — inject on every page
-        injectOrganizationSchema(settings);
+        // injectOrganizationSchema(settings); // SSR'd in server.js
         injectWebSiteSchema();
         injectBreadcrumbSchema();
         injectWebPageSchema(settings);
@@ -425,7 +425,7 @@
         // Dynamic content schemas
         await Promise.all([
             injectServiceSchemas(),
-            injectFAQSchema(),
+            // injectFAQSchema(), // SSR'd in server.js
             injectReviewSchema(),
             injectBlogPostSchema(),
         ]);

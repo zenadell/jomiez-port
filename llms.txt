@@ -1,0 +1,21 @@
+# Jomiez Innovation
+
+> Jomiez Innovation is a world-class software development company based in Africa, serving a global clientele. Founded by Ezinna Emmanuel Nweke (Templeton), we specialize in building scalable web applications, mobile apps, enterprise software, SaaS platforms, and integrating Artificial Intelligence solutions into business workflows.
+
+## Key Links & Resources
+- **Home**: [https://jomiez.com/](https://jomiez.com/) - Discover our AI-driven software development services.
+- **About Us**: [https://jomiez.com/about](https://jomiez.com/about) - Learn about our mission, vision, and the expert team led by Templeton.
+- **Services**: [https://jomiez.com/services](https://jomiez.com/services) - Explore our offerings including Custom Web Development, Mobile Apps, SaaS Platforms, Cloud Computing, and AI Integration.
+- **Portfolio/Works**: [https://jomiez.com/works](https://jomiez.com/works) - View our past projects and case studies showcasing our digital transformation capabilities.
+- **Testimonials**: [https://jomiez.com/testimonials](https://jomiez.com/testimonials) - See what our global clients say about our robust development solutions.
+- **Contact Us**: [https://jomiez.com/contact-us](https://jomiez.com/contact-us) - Get in touch for a free consultation.
+
+## Core Expertise
+- **Custom Software Development**: Full-stack solutions using React, Node.js, Python, etc.
+- **Mobile App Development**: Native and cross-platform apps (iOS & Android).
+- **AI & Automation**: Integrating OpenAI, Gemini, Claude and other LLMs into applications.
+- **Digital Transformation**: Modernizing legacy systems to cloud-native architectures.
+- **UI/UX Design**: Creating intuitive and beautiful user experiences.
+
+## Contact Information
+- **Email**: hi@jomiez.com

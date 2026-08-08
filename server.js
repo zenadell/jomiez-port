@@ -215,7 +215,16 @@ function getSettings() {
   });
 }
 
-function injectSEOMeta(html, meta) {
+function getFaqs() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM faqs ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      if (err || !rows) return resolve([]);
+      resolve(rows);
+    });
+  });
+}
+
+function injectSEOMeta(html, meta, settings = {}, faqs = []) {
   const host = meta.host || '';
   const canonical = `<link rel="canonical" href="${host}${meta.path || '/'}" />`;
   const robotsMeta = `<meta name="robots" content="${meta.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}" />`;
@@ -308,7 +317,80 @@ function injectSEOMeta(html, meta) {
     <meta property="og:type" content="website" />
     <script src="/js/seo-schema.js" defer></script>`;
 
-  result = result.replace('</head>', `    ${additionalMetaFull}\n</head>`);
+  // --- AEO/GEO Server-Side Rendering (SSR) ---
+  if (settings.hero_text) {
+    result = result.replace(
+      /(<p[^>]*class="[^"]*home-hero-text[^"]*"[^>]*>)[\s\S]*?(<\/p>)/,
+      `$1<span class="skeleton" style="color:transparent;">${settings.hero_text}</span>$2`
+    );
+  }
+  
+  if (settings.about_hero_subheading) {
+    result = result.replace(
+      /(<div[^>]*class="[^"]*about-hero-subheading[^"]*"[^>]*>)[\s\S]*?(<\/div>)/,
+      `$1<span class="skeleton" style="color:transparent;">${settings.about_hero_subheading}</span>$2`
+    );
+  }
+
+  if (faqs && faqs.length > 0) {
+    let qIndex = 0;
+    result = result.replace(/<h5 class="faq-question-text">([\s\S]*?)<\/h5>/g, (match, inner) => {
+      if (qIndex < faqs.length) {
+        const text = faqs[qIndex].question;
+        qIndex++;
+        return `<h5 class="faq-question-text"><span class="skeleton" style="color:transparent;">${text}</span></h5>`;
+      }
+      return match;
+    });
+
+    let aIndex = 0;
+    result = result.replace(/<p class="faq-answer-text">([\s\S]*?)<\/p>/g, (match, inner) => {
+      if (aIndex < faqs.length) {
+        const text = faqs[aIndex].answer;
+        aIndex++;
+        return `<p class="faq-answer-text"><span class="skeleton" style="color:transparent;">${text}</span></p>`;
+      }
+      return match;
+    });
+  }
+
+  const orgSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Jomiez Innovation",
+    "url": host,
+    "logo": host + "/uploads/og-image.jpg",
+    "description": settings.seo_site_description || meta.description,
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "email": settings.contact_email || "hi@jomiez.com",
+      "availableLanguage": "en"
+    }
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": f.answer
+      }
+    }))
+  };
+
+  const schemas = `<script type="application/ld+json">${JSON.stringify(orgSchema)}</script>` + 
+                  (faqs.length > 0 ? `\n    <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>` : '');
+
+  const additionalMetaFullWithSchema = additionalMetaFull.replace(
+    '<script src="/js/seo-schema.js" defer></script>',
+    `${schemas}\n    <script src="/js/seo-schema.js" defer></script>`
+  );
+
+  result = result.replace('</head>', `    ${additionalMetaFullWithSchema}\n</head>`);
 
   const ga4Script = `
   <!-- Google Analytics 4 -->
@@ -331,6 +413,7 @@ function injectSEOMeta(html, meta) {
 
 async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
   const settings = await getSettings();
+  const faqs = await getFaqs();
   const host = `${req.protocol}://${req.get('host')}`;
 
   const meta = {
@@ -345,7 +428,7 @@ async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
 
   fs.readFile(filePath, 'utf8', (err, html) => {
     if (err) return res.status(500).send('Error loading page');
-    const injected = injectSEOMeta(html, meta);
+    const injected = injectSEOMeta(html, meta, settings, faqs);
     res.send(injected);
   });
 }
