@@ -392,19 +392,20 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
 
   result = result.replace('</head>', `    ${additionalMetaFullWithSchema}\n</head>`);
 
-  const ga4Script = settings.google_analytics_id ? `
+  const gaId = settings.google_analytics_id || 'G-WZ013C4HN0';
+  const ga4Script = `
   <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', '${settings.google_analytics_id}', {
+    gtag('config', '${gaId}', {
       page_title: document.title,
       page_location: window.location.href,
       send_page_view: true
     });
-  </script>` : '';
+  </script>`;
 
   result = result.replace('</body>', `    ${ga4Script}\n</body>`);
 
