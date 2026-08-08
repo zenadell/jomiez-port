@@ -252,10 +252,10 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
     <meta property="og:url" content="${host}${meta.path || '/'}" />
     <meta property="og:title" content="${meta.title}" />
     <meta property="og:description" content="${meta.description}" />
-    <meta property="og:image" content="${meta.image || host + '/uploads/og-image.jpg'}" />
+    <meta property="og:image" content="${meta.image || host + '/og-image.png'}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:alt" content="${meta.title}" />
     <meta property="og:site_name" content="Jomiez Innovation" />
     <meta property="og:locale" content="en_US" />
@@ -264,7 +264,7 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
     <meta name="twitter:url" content="${host}${meta.path || '/'}" />
     <meta name="twitter:title" content="${meta.title}" />
     <meta name="twitter:description" content="${meta.description}" />
-    <meta name="twitter:image" content="${meta.image || host + '/uploads/og-image.jpg'}" />
+    <meta name="twitter:image" content="${meta.image || host + '/og-image.png'}" />
     <meta name="twitter:image:alt" content="${meta.title}" />
     <meta name="twitter:creator" content="@jomiez" />`;
 
@@ -456,8 +456,8 @@ async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
 // --- PUBLIC ROUTES (SEO-Optimized) ---
 app.get('/', async (req, res) => {
   serveSEOPage(req, res, path.join(__dirname, 'home.html'), {
-    title: 'Jomiez Innovation — Top Software Development & Web Solutions Company | Build Websites, Apps & AI Systems',
-    description: 'Jomiez Innovation is a world-class software development company specializing in custom websites, mobile apps, AI integration, SaaS platforms, and digital transformation. Hire expert full-stack developers for your next project. Led by Templeton (Ezinna Emmanuel Nweke).',
+    title: 'Jomiez | Software Development & AI Development Company',
+    description: 'Jomiez builds custom software, websites, mobile apps, AI systems, and SaaS products for startups and businesses worldwide. Hire our development team.',
     keywords: 'Jomiez, Jomiez Innovation, software development company, web development, mobile app development, AI development, custom software, hire developer, build website, build app, coding services, programming, full stack developer, React developer, Node.js, Python developer, SaaS development, MVP development, startup solutions, digital transformation, IT consulting, UI UX design, e-commerce development, API development, cloud computing, DevOps, business solutions, tech company, web design, app design, freelance developer, software engineer, Templeton, Ezinna Emmanuel Nweke, best software company, top web developer, hire programmer, build my website, build my app, website builder, app builder, custom web application, enterprise software, fintech development, healthcare software, education technology, affordable web development, professional website design, responsive web design, SEO services, digital marketing, online business solutions, technology partner, innovation, software house, coding agency, development agency, offshore development, nearshore development, remote developer'
   });
 });
