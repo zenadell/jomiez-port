@@ -356,17 +356,36 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
 
   const orgSchema = {
     "@context": "https://schema.org",
-    "@type": "Organization",
+    "@type": "ProfessionalService",
     "name": "Jomiez Innovation",
     "url": host,
     "logo": host + "/uploads/og-image.jpg",
+    "image": host + "/uploads/og-image.jpg",
     "description": settings.seo_site_description || meta.description,
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "US"
+    },
+    "areaServed": {
+      "@type": "GeoCircle",
+      "geoMidpoint": {
+        "@type": "GeoCoordinates",
+        "latitude": 39.8283,
+        "longitude": -98.5795
+      },
+      "geoRadius": "40000000",
+      "description": "Worldwide"
+    },
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "customer service",
       "email": settings.contact_email || "hi@jomiez.com",
-      "availableLanguage": "en"
-    }
+      "availableLanguage": ["English", "en"]
+    },
+    "sameAs": [
+      "https://github.com/zenadell",
+      "https://twitter.com/jomiez"
+    ]
   };
 
   const faqSchema = {
