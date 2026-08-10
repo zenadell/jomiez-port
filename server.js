@@ -49,6 +49,23 @@ async function getCountryFromIP(ip) {
 }
 
 const app = express();
+
+// Render (like most hosts) terminates TLS at its edge and forwards over plain HTTP,
+// so req.protocol reports "http" unless Express is told to trust the proxy and read
+// X-Forwarded-Proto. Without this every self-referential URL the site emits —
+// canonical, og:url, og:image, hreflang, and every schema @id — claimed http://
+// while the site actually serves https://. That is a conflicting canonical signal,
+// it makes some link-preview crawlers drop the OG image, and because @id is the
+// identity key for the structured-data graph, it identified the entity at a URL
+// that does not exist.
+app.set('trust proxy', true);
+
+// Belt and braces: if anything still reports http in production, treat it as https.
+// The site is https-only, so there is no case where http is the correct answer.
+function siteHost(req) {
+  const proto = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
+  return `${proto}://${req.get('host')}`;
+}
 const PORT = process.env.PORT || 3000;
 
 // Gzip compression — reduces transfer size by 60-80%
@@ -489,7 +506,7 @@ async function renderPageBody(filePath) {
 async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
   const settings = await getSettings();
   const faqs = await getFaqs();
-  const host = `${req.protocol}://${req.get('host')}`;
+  const host = siteHost(req);
 
   const meta = {
     host,
@@ -657,7 +674,7 @@ app.get('/resume.html', (req, res) => res.redirect('/resume'));
 
 // Robots.txt — Optimized for maximum crawlability
 app.get('/robots.txt', (req, res) => {
-  const host = `${req.protocol}://${req.get('host')}`;
+  const host = siteHost(req);
   res.type('text/plain');
   res.send(`# Jomiez Innovation — Robots.txt
 # https://jomiez.com
@@ -708,7 +725,7 @@ Allow: /
 
 // Dynamic Sitemap.xml — Full Coverage with lastmod, priority, images
 app.get('/sitemap.xml', async (req, res) => {
-  const host = `${req.protocol}://${req.get('host')}`;
+  const host = siteHost(req);
   const today = new Date().toISOString().split('T')[0];
   
   const formatSitemapDate = (dateStr) => {
