@@ -3,3 +3,22 @@ uploads/
 .env
 *.log
 .DS_Store
+
+# Python
+.venv/
+__pycache__/
+
+# Build / tooling output
+graphify-out/
+chaka_vector_index/
+
+# Local data. The app reads Postgres via lib/supabaseAdapter (SUPABASE_DATABASE_URL);
+# these sqlite files are local scratch and were drifting out of sync with production.
+*.sqlite
+*.sqlite.bak
+database_backup.json
+backup-prod-*.json
+
+# Large binaries that don't belong in git
+*.zip
+dummy.mp4

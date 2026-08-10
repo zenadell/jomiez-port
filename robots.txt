@@ -1,7 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
 
-# Allow AI crawlers explicitly (GEO/AEO)
+# AI crawlers — explicitly allowed. These are the agents that answer questions
+# about Jomiez Innovation in ChatGPT, Claude, Perplexity, Gemini and Copilot.
+# None of them execute JavaScript, so every page is server-rendered (see lib/ssr.js)
+# and all structured data ships in the HTML (see lib/schema.js).
 User-agent: GPTBot
 Allow: /
 
@@ -17,13 +23,46 @@ Allow: /
 User-agent: Claude-SearchBot
 Allow: /
 
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
 User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
 Allow: /
 
 User-agent: Google-Extended
 Allow: /
 
+User-agent: Googlebot
+Allow: /
+
 User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: YandexBot
 Allow: /
 
 Sitemap: https://jomiez.com/sitemap.xml

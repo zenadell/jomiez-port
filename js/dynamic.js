@@ -141,68 +141,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.hydrateDynamicContent = function() {
             const { settings, works, skills, services, brands, faqs, marquee, testimonials, counters } = window.dynamicData;
 
-        // 0. SEO & METADATA HYDRATION
-        const setMeta = (name, value, attr = 'name') => {
-            if (!value) return;
-            let el = document.querySelector(`meta[${attr}="${name}"]`);
-            if (!el) {
-                el = document.createElement('meta');
-                el.setAttribute(attr, name);
-                document.head.appendChild(el);
-            }
-            el.setAttribute('content', value);
-        };
-
-        const siteTitle = settings.seo_site_title || 'Jomiez Portfolio';
-        const siteDesc = settings.seo_site_description || '';
-        const siteKeys = settings.seo_site_keywords || '';
-        const ogImage = settings.seo_og_image || '';
-
-        // Dynamic Title based on page
-        let pageTitle = siteTitle;
-        const path = window.location.pathname;
-        if (path.includes('/about')) pageTitle = `About | ${siteTitle}`;
-        else if (path.includes('/services')) pageTitle = `Services | ${siteTitle}`;
-        else if (path.includes('/work')) pageTitle = `Work | ${siteTitle}`;
-        else if (path.includes('/resume')) pageTitle = `Resume | ${siteTitle}`;
-        else if (path.includes('/contact')) pageTitle = `Contact | ${siteTitle}`;
-        
-        document.title = pageTitle;
-
-        setMeta('description', siteDesc);
-        setMeta('keywords', siteKeys);
-        
-        // Open Graph
-        setMeta('og:title', pageTitle, 'property');
-        setMeta('og:description', siteDesc, 'property');
-        setMeta('og:image', ogImage, 'property');
-        setMeta('og:type', 'website', 'property');
-
-        // Twitter
-        setMeta('twitter:card', 'summary_large_image');
-        setMeta('twitter:title', pageTitle);
-        setMeta('twitter:description', siteDesc);
-        setMeta('twitter:image', ogImage);
-        
-        // 0.1 Structured Data (JSON-LD)
-        const schema = {
-          "@context": "https://schema.org",
-          "@type": "Person",
-          "name": settings.resume_full_name || "Ezinna Nweke Emmanuel",
-          "jobTitle": "AI & Fullstack Developer",
-          "url": window.location.origin,
-          "sameAs": [
-            settings.social_linkedin,
-            settings.social_github,
-            settings.social_instagram,
-            settings.social_twitter
-          ].filter(link => link),
-          "description": siteDesc
-        };
-        const script = document.createElement('script');
-        script.type = 'application/ld+json';
-        script.text = JSON.stringify(schema);
-        document.head.appendChild(script);
+        // 0. SEO & METADATA — intentionally NOT handled here.
+        //
+        // server.js/injectSEOMeta already writes a per-route <title>, description,
+        // canonical, OG/Twitter tags and a ProfessionalService JSON-LD block before
+        // the HTML leaves the origin. This block used to overwrite all of that on
+        // load with one site-wide title ("...| Emmanuel Ezinna Nweke - AI & Fullstack
+        // Developer") plus a second, conflicting "Person" JSON-LD schema, so every
+        // page ended up with the same personal-brand title and two schemas
+        // disagreeing about whether Jomiez is a person or a company.
+        //
+        // The server is the single source of truth for everything in <head>.
+        // To change a page title, edit its route in server.js.
 
         // 1. GLOBAL HYDRATION (Home & About)
         
@@ -550,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     el.src = settings.about_me_page_image;
                     el.removeAttribute('srcset');
                 } else {
-                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="${settings.founder_name || 'Ezinna Emmanuel Nweke'} — Founder & CEO of Jomiez Innovation" class="about-image" id="db-about-image" width="600" height="450" style="width: 100%; height: auto; min-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
+                    el.outerHTML = `<img src="${settings.about_me_page_image}" loading="lazy" alt="${settings.founder_name || 'Emmanuel Ezinna Nweke'} — Founder & CEO of Jomiez Innovation" class="about-image" id="db-about-image" width="600" height="450" style="width: 100%; height: auto; min-height: 450px; object-fit: cover; display: block; border-radius: 12px;"/>`;
                 }
             }
         }
@@ -1345,7 +1295,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!b.image_url && !b.name) return;
 
                     const clone = template.cloneNode(true);
-                    const svg = clone.querySelector('svg');
+                    // The logo slot is the template's inline <svg> on a cold export, but
+                    // lib/ssr.js may already have swapped it for a <div class="brands-logo">.
+                    // Match either, otherwise re-hydration finds no <svg>, leaves the
+                    // cloned block untouched, and every brand renders as the first one.
+                    const svg = clone.querySelector('svg, div.brands-logo');
                     if (svg) {
                         const wrapper = document.createElement('div');
                         wrapper.style.display = 'flex';
@@ -1402,6 +1356,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     img.src = m.image_url;
                     img.loading = 'eager';
                     img.className = 'marquee-image';
+                    // Decorative carousel: empty alt + aria-hidden is the correct
+                    // treatment. Screen readers should skip it, not read the same
+                    // keyword string once per slide.
+                    img.alt = '';
+                    img.setAttribute('aria-hidden', 'true');
                     img.style.width = '100%'; 
                     img.style.height = '100%'; 
                     img.style.objectFit = 'cover';
@@ -1427,6 +1386,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     img.src = m.image_url;
                     img.loading = 'eager';
                     img.className = 'marquee-image';
+                    // Decorative carousel: empty alt + aria-hidden is the correct
+                    // treatment. Screen readers should skip it, not read the same
+                    // keyword string once per slide.
+                    img.alt = '';
+                    img.setAttribute('aria-hidden', 'true');
                     img.style.width = '100%'; 
                     img.style.height = '100%'; 
                     img.style.objectFit = 'cover';
@@ -1499,8 +1463,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         } else if (testWrapper) {
-            // Completely eliminate hardcoded fallback if DB is empty
-            testWrapper.style.display = 'none';
+            // Completely eliminate hardcoded fallback if DB is empty.
+            // Hide the whole <section>, not just .testslider-wrapper — the section and
+            // its .space child carry the vertical padding, so hiding only the inner
+            // wrapper collapses the content but leaves an empty band behind.
+            const testSection = testWrapper.closest('.section-testslider') || testWrapper.closest('section') || testWrapper;
+            testSection.style.display = 'none';
         }
 
         // 8.5 TESTIMONIALS PAGE HYDRATION (List view)
@@ -1538,7 +1506,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
         } else if (testCardWrap) {
-            testCardWrap.style.display = 'none';
+            // Same reasoning as the slider above: hide the section so its padding
+            // goes with it instead of leaving an empty band.
+            const cardSection = testCardWrap.closest('section') || testCardWrap;
+            cardSection.style.display = 'none';
         }
 
         const testSliderRightBtn = document.querySelector('.testslider-arrow.right');

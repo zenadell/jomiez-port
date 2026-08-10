@@ -15,6 +15,8 @@ const ApiKeyManager = require('./ai/ApiKeyManager');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const db = require('./lib/supabaseAdapter');
+const { renderContent } = require('./lib/ssr');
+const { buildGraph } = require('./lib/schema');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
@@ -104,7 +106,7 @@ const tempStorage = multer.diskStorage({
 const tempUpload = multer({ storage: tempStorage });
 
 // Database Setup (Turso)
-console.log('Connected to the local SQLite database.');
+console.log('Connected to the Postgres database via supabaseAdapter.');
 global.apiKeyManager = new ApiKeyManager(db);
 global.apiKeyManager.refreshCache(); // Initial load
 
@@ -224,66 +226,117 @@ function getFaqs() {
   });
 }
 
+function getTestimonials() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM testimonials ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+function getWorks() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM works ORDER BY id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+function getBrands() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM brands ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+function getSkills() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM skills ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+function getCounters() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM counters ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+function getServices() {
+  return new Promise((resolve) => {
+    db.all('SELECT * FROM services ORDER BY sort_order ASC, id ASC', [], (err, rows) => {
+      resolve(err || !rows ? [] : rows);
+    });
+  });
+}
+
+// Meta content is attribute-quoted; titles and descriptions contain & and " often
+// enough that unescaped values silently truncate a tag.
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function injectSEOMeta(html, meta, settings = {}, faqs = []) {
   const host = meta.host || '';
   const canonical = `<link rel="canonical" href="${host}${meta.path || '/'}" />`;
   const robotsMeta = `<meta name="robots" content="${meta.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'}" />`;
-  const keywords = `<meta name="keywords" content="${meta.keywords || 'software development, web development, app development, Jomiez, Jomiez Innovation, coding, programming, hire developer, build website, AI solutions, custom software, mobile app, SaaS, startup, MVP, digital transformation, IT consulting, UI UX design, full stack developer, React, Node.js, Python, cloud computing, DevOps, API development, e-commerce, business solutions, tech company, freelance developer, Templeton, Ezinna Emmanuel Nweke'}" />`;
-  const authorMeta = `<meta name="author" content="Jomiez Innovation" />`;
+  const keywords = `<meta name="keywords" content="${meta.keywords || 'software development, web development, app development, Jomiez, Jomiez Innovation, coding, programming, hire developer, build website, AI solutions, custom software, mobile app, SaaS, startup, MVP, digital transformation, IT consulting, UI UX design, full stack developer, React, Node.js, Python, cloud computing, DevOps, API development, e-commerce, business solutions, tech company, freelance developer, Templeton, Emmanuel Ezinna Nweke'}" />`;
+  // Name the human behind the work explicitly and identically everywhere. The site
+  // previously spelled it three different ways (Ezinna Emmanuel Nweke / Ezinna Nweke
+  // Emmanuel / Templeton alone), which splits one person into several weak entities
+  // as far as search and AI systems are concerned.
+  const founder = settings.founder_name || 'Emmanuel Ezinna Nweke';
+  const authorMeta = [
+    `<meta name="author" content="${founder}" />`,
+    `<meta name="creator" content="${founder}" />`,
+    `<meta name="publisher" content="Jomiez Innovation" />`,
+    `<meta name="copyright" content="Jomiez Innovation" />`,
+    // Explicit crawler directives — the defaults are conservative about snippet length,
+    // and long snippets are what AI answers actually quote.
+    `<meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`,
+    `<meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large" />`,
+    `<meta name="rating" content="general" />`
+  ].join('\n    ');
   const geoMeta = `<meta name="geo.region" content="NG" />\n    <meta name="geo.placename" content="Nigeria" />`;
+  // Only claim a Twitter handle if a real profile URL is configured. The hardcoded
+  // "@jomiez" pointed at an account that was never registered.
+  const twHandle = (settings.social_twitter || '').match(/(?:twitter|x)\.com\/@?([A-Za-z0-9_]{1,15})\/?$/);
+  const twitterHandle = twHandle ? `\n    <meta name="twitter:creator" content="@${twHandle[1]}" />\n    <meta name="twitter:site" content="@${twHandle[1]}" />` : '';
   const langAlts = `<link rel="alternate" hreflang="en" href="${host}${meta.path || '/'}" />\n    <link rel="alternate" hreflang="x-default" href="${host}${meta.path || '/'}" />`;
   const themeColor = `<meta name="theme-color" content="#0a0a0a" />`;
   const preconnect = `<link rel="preconnect" href="https://fonts.googleapis.com" />\n    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />`;
 
-  // Build full SEO head injection
-  const seoBlock = `
-    <!-- SEO Meta Tags — Jomiez Innovation -->
-    <title>${meta.title}</title>
-    <meta name="description" content="${meta.description}" />
-    ${keywords}
-    ${authorMeta}
-    ${robotsMeta}
-    ${canonical}
-    ${geoMeta}
-    ${langAlts}
-    ${themeColor}
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="${host}${meta.path || '/'}" />
-    <meta property="og:title" content="${meta.title}" />
-    <meta property="og:description" content="${meta.description}" />
-    <meta property="og:image" content="${meta.image || host + '/og-image.png'}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:alt" content="${meta.title}" />
-    <meta property="og:site_name" content="Jomiez Innovation" />
-    <meta property="og:locale" content="en_US" />
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="${host}${meta.path || '/'}" />
-    <meta name="twitter:title" content="${meta.title}" />
-    <meta name="twitter:description" content="${meta.description}" />
-    <meta name="twitter:image" content="${meta.image || host + '/og-image.png'}" />
-    <meta name="twitter:image:alt" content="${meta.title}" />
-    <meta name="twitter:creator" content="@jomiez" />`;
 
-  // Replace the existing head content
   let result = html;
 
-  // Replace title
   result = result.replace(/<title>[^<]*<\/title>/, `<title>${meta.title}</title>`);
 
-  // Replace or add meta description
-  if (result.includes('name="description"')) {
-    result = result.replace(/<meta[^>]*name="description"[^>]*>/, `<meta name="description" content="${meta.description}" />`);
-  }
-
-  // Replace OG tags
-  result = result.replace(/<meta[^>]*property="og:title"[^>]*>/, `<meta property="og:title" content="${meta.title}" />`);
-  result = result.replace(/<meta[^>]*property="og:description"[^>]*>/, `<meta property="og:description" content="${meta.description}" />`);
-  result = result.replace(/<meta[^>]*property="twitter:title"[^>]*>/, `<meta property="twitter:title" content="${meta.title}" />`);
-  result = result.replace(/<meta[^>]*property="twitter:description"[^>]*>/, `<meta property="twitter:description" content="${meta.description}" />`);
+  // Strip the exported file's own SEO tags before injecting ours.
+  //
+  // Previously we patched a few of them in place and appended a fresh set, which left
+  // every page with TWO of each: two og:type, two og:site_name, two twitter:card, and
+  // — worst — a stale `og:image` pointing at /uploads/og-image.jpg, a file that does
+  // not exist, plus a hardcoded `twitter:creator` for an account that was never
+  // registered. Crawlers are free to pick either copy, so link previews were rolling
+  // the dice on a 404 image. The server is the single source of truth for these.
+  const staleMeta = new RegExp(
+    '[ \\t]*<meta[^>]+(?:' +
+      // NB: the character classes must include "_" — og:site_name and
+      // og:image:secure_url were slipping through a [a-z:]+ class and surviving as
+      // duplicates.
+      'name="(?:description|keywords|author|creator|publisher|copyright|robots|googlebot|bingbot|rating|twitter:[a-z_:]+)"' +
+      '|property="(?:og:[a-z_:]+|twitter:[a-z_:]+|article:[a-z_]+)"' +
+    ')[^>]*>\\s*\\n?', 'gi');
+  result = result.replace(staleMeta, '');
+  // Same for canonical/hreflang — ours carry the correct per-route URL.
+  result = result.replace(/[ \t]*<link[^>]+rel="(?:canonical|alternate)"[^>]*hreflang?[^>]*>\s*\n?/gi, '');
+  result = result.replace(/[ \t]*<link[^>]+rel="canonical"[^>]*>\s*\n?/gi, '');
 
   // Remove stale Webflow domain reference (cosmetic only — keep data-wf-page and data-wf-site for animations!)
   result = result.replace(/data-wf-domain="[^"]*"/g, '');
@@ -300,7 +353,11 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
 
   const gscVerification = settings.gsc_verification_id ? `<meta name="google-site-verification" content="${settings.gsc_verification_id}" />` : '';
 
+  // The single canonical <head> block. Everything social/SEO lives here and nowhere
+  // else — the exported files' own tags are stripped above before this is injected.
+  const ogImage = meta.image || `${host}/og-image.png`;
   const additionalMetaFull = `${resourceHints}
+    <meta name="description" content="${esc(meta.description)}" />
     ${canonical}
     ${robotsMeta}
     ${keywords}
@@ -309,104 +366,66 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
     ${langAlts}
     ${themeColor}
     ${gscVerification}
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:creator" content="@jomiez" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Jomiez Innovation" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="${host}${meta.path || '/'}" />
-    <meta property="og:type" content="website" />
+    <meta property="og:title" content="${esc(meta.title)}" />
+    <meta property="og:description" content="${esc(meta.description)}" />
+    <meta property="og:image" content="${ogImage}" />
+    <meta property="og:image:secure_url" content="${ogImage}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content="${esc(meta.title)}" />
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="${host}${meta.path || '/'}" />
+    <meta name="twitter:title" content="${esc(meta.title)}" />
+    <meta name="twitter:description" content="${esc(meta.description)}" />
+    <meta name="twitter:image" content="${ogImage}" />
+    <meta name="twitter:image:alt" content="${esc(meta.title)}" />${twitterHandle}
+    <!-- Attribution: identical wording everywhere so the person and the studio
+         resolve to one entity rather than several near-duplicates -->
+    <meta property="article:author" content="${founder}" />
+    <meta property="article:publisher" content="Jomiez Innovation" />
+    <meta name="dcterms.creator" content="${founder}" />
+    <meta name="dcterms.publisher" content="Jomiez Innovation" />
     <script src="/js/seo-schema.js" defer></script>`;
 
-  // --- AEO/GEO Server-Side Rendering (SSR) ---
-  if (settings.hero_text) {
-    result = result.replace(
-      /(<p[^>]*class="[^"]*home-hero-text[^"]*"[^>]*>)[\s\S]*?(<\/p>)/,
-      `$1<span class="skeleton" style="color:transparent;">${settings.hero_text}</span>$2`
-    );
-  }
-  
-  if (settings.about_hero_subheading) {
-    result = result.replace(
-      /(<div[^>]*class="[^"]*about-hero-subheading[^"]*"[^>]*>)[\s\S]*?(<\/div>)/,
-      `$1<span class="skeleton" style="color:transparent;">${settings.about_hero_subheading}</span>$2`
-    );
-  }
+  // Body content (hero, FAQs, works, services, testimonials) is rendered by
+  // lib/ssr.js in serveSEOPage. It used to happen here by wrapping text in
+  // <span class="skeleton" style="color:transparent">, which put the text in the
+  // HTML but hid it from actual visitors — the classic hidden-text pattern search
+  // engines penalise. injectSEOMeta is now responsible for <head> only.
 
-  if (faqs && faqs.length > 0) {
-    let qIndex = 0;
-    result = result.replace(/<h5 class="faq-question-text">([\s\S]*?)<\/h5>/g, (match, inner) => {
-      if (qIndex < faqs.length) {
-        const text = faqs[qIndex].question;
-        qIndex++;
-        return `<h5 class="faq-question-text"><span class="skeleton" style="color:transparent;">${text}</span></h5>`;
-      }
-      return match;
-    });
+  // One linked @graph, rendered server-side. Replaces the old standalone
+  // ProfessionalService block, which claimed addressCountry "US" with a geo
+  // midpoint in Kansas (the studio is Nigeria-based, serving worldwide), pointed
+  // logo/image at /uploads/og-image.jpg which does not exist, and listed a
+  // twitter.com/jomiez profile that was never real.
+  const graph = buildGraph({
+    host,
+    path: meta.path || '/',
+    meta,
+    settings,
+    // FAQPage may only describe FAQs the visitor can actually see on that page.
+    // The accordion only exists on the home page, so emitting it everywhere was a
+    // structured-data violation that risks a manual action.
+    faqs: html.includes('faq-question-wrapper') ? faqs : [],
+    services: meta.schemaServices || [],
+    works: meta.schemaWorks || [],
+    testimonials: meta.schemaTestimonials || []
+  });
 
-    let aIndex = 0;
-    result = result.replace(/<p class="faq-answer-text">([\s\S]*?)<\/p>/g, (match, inner) => {
-      if (aIndex < faqs.length) {
-        const text = faqs[aIndex].answer;
-        aIndex++;
-        return `<p class="faq-answer-text"><span class="skeleton" style="color:transparent;">${text}</span></p>`;
-      }
-      return match;
-    });
-  }
+  const schemas = `<script type="application/ld+json">${JSON.stringify(graph)}</script>`;
 
-  const orgSchema = {
-    "@context": "https://schema.org",
-    "@type": "ProfessionalService",
-    "name": "Jomiez Innovation",
-    "url": host,
-    "logo": host + "/uploads/og-image.jpg",
-    "image": host + "/uploads/og-image.jpg",
-    "description": settings.seo_site_description || meta.description,
-    "address": {
-      "@type": "PostalAddress",
-      "addressCountry": "US"
-    },
-    "areaServed": {
-      "@type": "GeoCircle",
-      "geoMidpoint": {
-        "@type": "GeoCoordinates",
-        "latitude": 39.8283,
-        "longitude": -98.5795
-      },
-      "geoRadius": "40000000",
-      "description": "Worldwide"
-    },
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "customer service",
-      "email": settings.contact_email || "hi@jomiez.com",
-      "availableLanguage": ["English", "en"]
-    },
-    "sameAs": [
-      "https://github.com/zenadell",
-      "https://twitter.com/jomiez"
-    ]
-  };
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqs.map(f => ({
-      "@type": "Question",
-      "name": f.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": f.answer
-      }
-    }))
-  };
-
-  const schemas = `<script type="application/ld+json">${JSON.stringify(orgSchema)}</script>` + 
-                  (faqs.length > 0 ? `\n    <script type="application/ld+json">${JSON.stringify(faqSchema)}</script>` : '');
-
+  // js/seo-schema.js no longer injects structured data — the graph above is the
+  // single source, and it ships in the HTML so non-JS crawlers actually see it.
   const additionalMetaFullWithSchema = additionalMetaFull.replace(
     '<script src="/js/seo-schema.js" defer></script>',
-    `${schemas}\n    <script src="/js/seo-schema.js" defer></script>`
+    schemas
   );
 
   result = result.replace('</head>', `    ${additionalMetaFullWithSchema}\n</head>`);
@@ -431,6 +450,42 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
   return result;
 }
 
+// Parsing a ~140KB Webflow page with jsdom costs real time, and the content only
+// changes when someone saves in /admin. Cache the fully rendered body per file and
+// let admin writes bust it (see invalidatePageCache).
+const pageCache = new Map();
+const PAGE_CACHE_TTL_MS = 5 * 60 * 1000;
+function invalidatePageCache() { pageCache.clear(); }
+
+// Any write through the admin API means the rendered pages are stale. Registered
+// here, above the /api routes, so it covers all of them without touching each one.
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') invalidatePageCache();
+  next();
+});
+
+async function renderPageBody(filePath) {
+  const cached = pageCache.get(filePath);
+  if (cached && Date.now() - cached.at < PAGE_CACHE_TTL_MS) return cached.html;
+
+  const raw = await fs.promises.readFile(filePath, 'utf8');
+  const [settings, faqs, testimonials, works, services, brands, skills, counters] = await Promise.all([
+    getSettings(), getFaqs(), getTestimonials(), getWorks(), getServices(), getBrands(),
+    getSkills(), getCounters()
+  ]);
+
+  let html = raw;
+  try {
+    const isHome = path.basename(filePath) === 'home.html';
+    html = renderContent(raw, { settings, faqs, testimonials, works, services, brands, skills, counters, isHome }).html;
+  } catch (err) {
+    // Never let a render bug take the site down — fall back to the raw export.
+    console.error('[SSR] renderContent failed for', filePath, '-', err.message);
+  }
+  pageCache.set(filePath, { html, at: Date.now() });
+  return html;
+}
+
 async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
   const settings = await getSettings();
   const faqs = await getFaqs();
@@ -446,11 +501,20 @@ async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
     ...metaOverrides
   };
 
-  fs.readFile(filePath, 'utf8', (err, html) => {
-    if (err) return res.status(500).send('Error loading page');
-    const injected = injectSEOMeta(html, meta, settings, faqs);
-    res.send(injected);
-  });
+  try {
+    // Feed the real catalogue into the structured-data graph so services, projects
+    // and any genuine testimonials are machine-readable, not just rendered text.
+    const [schemaServices, schemaWorks, schemaTestimonials] = await Promise.all([
+      getServices(), getWorks(), getTestimonials()
+    ]);
+    Object.assign(meta, { schemaServices, schemaWorks, schemaTestimonials });
+
+    const html = await renderPageBody(filePath);
+    res.send(injectSEOMeta(html, meta, settings, faqs));
+  } catch (err) {
+    console.error('[serveSEOPage]', filePath, err.message);
+    res.status(500).send('Error loading page');
+  }
 }
 
 // --- PUBLIC ROUTES (SEO-Optimized) ---
@@ -458,15 +522,15 @@ app.get('/', async (req, res) => {
   serveSEOPage(req, res, path.join(__dirname, 'home.html'), {
     title: 'Jomiez | Software Development & AI Development Company',
     description: 'Jomiez builds custom software, websites, mobile apps, AI systems, and SaaS products for startups and businesses worldwide. Hire our development team.',
-    keywords: 'Jomiez, Jomiez Innovation, software development company, web development, mobile app development, AI development, custom software, hire developer, build website, build app, coding services, programming, full stack developer, React developer, Node.js, Python developer, SaaS development, MVP development, startup solutions, digital transformation, IT consulting, UI UX design, e-commerce development, API development, cloud computing, DevOps, business solutions, tech company, web design, app design, freelance developer, software engineer, Templeton, Ezinna Emmanuel Nweke, best software company, top web developer, hire programmer, build my website, build my app, website builder, app builder, custom web application, enterprise software, fintech development, healthcare software, education technology, affordable web development, professional website design, responsive web design, SEO services, digital marketing, online business solutions, technology partner, innovation, software house, coding agency, development agency, offshore development, nearshore development, remote developer'
+    keywords: 'Jomiez, Jomiez Innovation, software development company, web development, mobile app development, AI development, custom software, hire developer, build website, build app, coding services, programming, full stack developer, React developer, Node.js, Python developer, SaaS development, MVP development, startup solutions, digital transformation, IT consulting, UI UX design, e-commerce development, API development, cloud computing, DevOps, business solutions, tech company, web design, app design, freelance developer, software engineer, Templeton, Emmanuel Ezinna Nweke, best software company, top web developer, hire programmer, build my website, build my app, website builder, app builder, custom web application, enterprise software, fintech development, healthcare software, education technology, affordable web development, professional website design, responsive web design, SEO services, digital marketing, online business solutions, technology partner, innovation, software house, coding agency, development agency, offshore development, nearshore development, remote developer'
   });
 });
 
 app.get('/about', async (req, res) => {
   serveSEOPage(req, res, path.join(__dirname, 'about.html'), {
     title: 'About Jomiez Innovation — Our Story, Mission & Expert Team | Software Development Leaders',
-    description: 'Learn about Jomiez Innovation, a leading software development company founded by Ezinna Emmanuel Nweke (Templeton). We specialize in building custom software, websites, mobile apps, and AI solutions for businesses worldwide. Discover our mission, values, and the expertise behind our innovative solutions.',
-    keywords: 'about Jomiez, Jomiez Innovation team, Templeton developer, Ezinna Emmanuel Nweke, software company about, web development team, app development company, our story, company mission, tech company values, experienced developers, professional software engineers, innovation leaders, technology experts'
+    description: 'Learn about Jomiez Innovation, a leading software development company founded by Emmanuel Ezinna Nweke (Templeton). We specialize in building custom software, websites, mobile apps, and AI solutions for businesses worldwide. Discover our mission, values, and the expertise behind our innovative solutions.',
+    keywords: 'about Jomiez, Jomiez Innovation team, Templeton developer, Emmanuel Ezinna Nweke, software company about, web development team, app development company, our story, company mission, tech company values, experienced developers, professional software engineers, innovation leaders, technology experts'
   });
 });
 
@@ -486,7 +550,12 @@ app.get('/works', async (req, res) => {
   });
 });
 
+// The testimonials page only exists when there are real testimonials to show.
+// With an empty table it 301s to /, and getTestimonials() also strips the
+// section and nav link from every page. Add one in /admin to bring it back.
 app.get('/testimonials', async (req, res) => {
+  const rows = await getTestimonials();
+  if (!rows.length) return res.redirect(301, '/');
   serveSEOPage(req, res, path.join(__dirname, 'testimonials.html'), {
     title: 'Client Testimonials & Reviews — What Our Clients Say About Jomiez Innovation',
     description: 'Read real testimonials and reviews from our satisfied clients worldwide. Discover why businesses trust Jomiez Innovation for their software development, web design, mobile app, and AI solution needs. 5-star rated technology partner.',
@@ -494,7 +563,6 @@ app.get('/testimonials', async (req, res) => {
   });
 });
 
-app.get('/resume', (req, res) => res.sendFile(path.join(__dirname, 'unique-offerring-pages', 'resume.html')));
 
 app.get('/contact-us', async (req, res) => {
   serveSEOPage(req, res, path.join(__dirname, 'contact-us.html'), {
@@ -530,15 +598,25 @@ app.get('/blog/:slug', async (req, res) => {
   });
 });
 
-app.get('/style-guide', async (req, res) => {
-  serveSEOPage(req, res, path.join(__dirname, 'style-guide.html'), { title: 'Style Guide — Jomiez Innovation', description: 'Internal style guide.', robots: 'noindex, nofollow' });
-});
-app.get('/change-log', async (req, res) => {
-  serveSEOPage(req, res, path.join(__dirname, 'change-log.html'), { title: 'Change Log — Jomiez Innovation', description: 'Website change log.', robots: 'noindex, nofollow' });
-});
-app.get('/license', async (req, res) => {
-  serveSEOPage(req, res, path.join(__dirname, 'license.html'), { title: 'License — Jomiez Innovation', description: 'Licensing information.', robots: 'noindex, nofollow' });
-});
+// Retired Webflow template pages (/style-guide, /change-log, /license, /resume).
+// They shipped with the purchased template and contained no Jomiez content.
+// 301 to the closest real page so any indexed URLs don't 404.
+['/style-guide', '/change-log', '/license'].forEach(p => app.get(p, (req, res) => res.redirect(301, '/')));
+app.get('/resume', (req, res) => res.redirect(301, '/about'));
+
+// These must be declared before the express.static below, which is mounted with
+// { extensions: ['html'] } and would otherwise resolve /privacy-policy straight to
+// privacy-policy.html — serving it raw, with no SEO tags and the template's
+// placeholder footer still in place.
+app.get('/privacy-policy', (req, res) => serveSEOPage(req, res, path.join(__dirname, 'privacy-policy.html'), {
+  title: 'Privacy Policy | Jomiez Innovation',
+  description: 'How Jomiez Innovation collects, uses, and protects your personal data.'
+}));
+['/terms-conditions', '/terms-condition'].forEach(p => app.get(p, (req, res) =>
+  serveSEOPage(req, res, path.join(__dirname, 'terms-condition.html'), {
+    title: 'Terms & Conditions | Jomiez Innovation',
+    description: 'The terms that govern your use of the Jomiez Innovation website and services.'
+  })));
 
 app.get('/work/:slug', async (req, res) => {
   // Try to get the actual work details for dynamic meta
@@ -645,14 +723,17 @@ app.get('/sitemap.xml', async (req, res) => {
     { path: '/about', priority: '0.9', changefreq: 'weekly', title: 'About' },
     { path: '/services', priority: '0.9', changefreq: 'weekly', title: 'Services' },
     { path: '/works', priority: '0.9', changefreq: 'weekly', title: 'Portfolio' },
-    { path: '/testimonials', priority: '0.8', changefreq: 'weekly', title: 'Testimonials' },
-    { path: '/resume', priority: '0.7', changefreq: 'monthly', title: 'Resume' },
     { path: '/contact-us', priority: '0.8', changefreq: 'monthly', title: 'Contact' },
     { path: '/blog', priority: '0.9', changefreq: 'weekly', title: 'Blog' },
     { path: '/privacy-policy', priority: '0.3', changefreq: 'yearly', title: 'Privacy Policy' },
-    { path: '/license', priority: '0.2', changefreq: 'yearly', title: 'License' },
-    { path: '/change-log', priority: '0.3', changefreq: 'monthly', title: 'Change Log' }
+    { path: '/terms-conditions', priority: '0.3', changefreq: 'yearly', title: 'Terms & Conditions' }
   ];
+
+  // /testimonials only belongs in the sitemap when it actually has content —
+  // otherwise the route 301s to / and we'd be advertising a redirect to Google.
+  if ((await getTestimonials()).length) {
+    staticPages.push({ path: '/testimonials', priority: '0.8', changefreq: 'weekly', title: 'Testimonials' });
+  }
 
   const [services, works, blogPosts] = await Promise.all([
     new Promise((resolve) => db.all('SELECT slug, title, image_url FROM services', [], (err, rows) => resolve(rows || []))),
@@ -755,8 +836,8 @@ db.serialize(() => {
         ['label_submit_button', 'Let\'s Connect'],
         ['seo_site_title', 'Jomiez Innovation — Software Development, Web & App Solutions'],
         ['seo_site_description', 'Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide.'],
-        ['seo_keywords', 'Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Ezinna Emmanuel Nweke'],
-        ['founder_name', 'Ezinna Emmanuel Nweke'],
+        ['seo_keywords', 'Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Emmanuel Ezinna Nweke'],
+        ['founder_name', 'Emmanuel Ezinna Nweke'],
         ['founder_alias', 'Templeton'],
         ['about_hero_heading', 'Building the Future of Software — One Innovation at a Time'],
         ['about_hero_subheading', 'We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences.'],
@@ -1783,22 +1864,26 @@ app.use((req, res) => {
 
 
     // Utility / Footer Pages
-    '/utility/license': '/licence.html',
-    '/utility/style-guide': '/style-guide.html',
-    '/utility/change-log': '/change-log.html',
+    // /license, /style-guide and /change-log were retired Webflow template pages;
+    // they 301 to / from a route registered above this fallback.
     '/utility/privacy-policy': '/privacy-policy.html',
     '/utility/terms-conditions': '/terms-condition.html',
-    '/license': '/licence.html',
-    '/licence': '/licence.html',
-    '/style-guide': '/style-guide.html',
     '/privacy-policy': '/privacy-policy.html',
     '/terms-condition': '/terms-condition.html',
     '/terms-conditions': '/terms-condition.html',
   };
 
-  // Check exact match first
+  // Check exact match first. Go through serveSEOPage rather than sendFile so these
+  // pages get the same <head> tags and rendered footer as everything else —
+  // previously they shipped raw, still carrying the template's placeholder footer.
   if (routeMap[p]) {
-    return res.sendFile(path.join(__dirname, routeMap[p]));
+    const legalTitles = {
+      '/privacy-policy': ['Privacy Policy | Jomiez Innovation', 'How Jomiez Innovation collects, uses, and protects your personal data.'],
+      '/terms-condition': ['Terms & Conditions | Jomiez Innovation', 'The terms that govern your use of the Jomiez Innovation website and services.'],
+      '/terms-conditions': ['Terms & Conditions | Jomiez Innovation', 'The terms that govern your use of the Jomiez Innovation website and services.']
+    };
+    const [title, description] = legalTitles[p] || [];
+    return serveSEOPage(req, res, path.join(__dirname, routeMap[p]), title ? { title, description } : {});
   }
 
   // Work detail pages: /work/<slug>
