@@ -113,8 +113,11 @@ function renderApiKeys() {
   apiKeysCache.forEach(k => {
     const div = document.createElement('div');
     div.style = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #111; border: 1px solid #333; border-radius: 6px;';
-    const rawKey = k.api_key;
-    const hiddenStr = rawKey.substring(0, 8) + '...' + rawKey.substring(rawKey.length - 4);
+    // The API no longer returns key material — it was being masked here anyway,
+    // which meant the full secret was travelling to the browser only to be hidden
+    // in the DOM. The server now sends a pre-masked value. To change a key,
+    // delete it and add the new one.
+    const hiddenStr = k.key_masked || '••••';
     div.innerHTML = `
       <div>
         <strong style="color: #00e0ff;">${k.provider.toUpperCase()}</strong>

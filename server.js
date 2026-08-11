@@ -141,11 +141,43 @@ app.use(session({
 // Auth Middleware
 function isAuthenticated(req, res, next) {
     if (req.session.user) return next();
-    // Whitelist public Chaka AI endpoints
-    const publicPaths = ['/api/chaka/chat_text', '/api/chaka/execute_tool', '/api/chaka/knowledge', '/api/chaka/site-state', '/api/chaka/stream'];
-    if (publicPaths.some(p => req.path.startsWith(p))) return next();
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
     res.redirect('/admin/login');
+}
+
+// ── API access control ────────────────────────────────────────────────────────
+// Private by default. Previously each route was expected to guard itself and
+// several never did: GET /api/leads returned the whole CRM (names, emails, full
+// project enquiries) and GET /api/apikeys returned live DeepSeek, Gemini and
+// NVIDIA keys in full — both unauthenticated, in production.
+//
+// Anything the public site genuinely needs is listed here explicitly. Everything
+// else now requires an admin session, so forgetting a guard fails closed.
+const PUBLIC_API = [
+    { m: 'GET',  p: /^\/api\/(works|services|skills|brands|faqs|testimonials|counters|marquee|blog)(\/|$)/ },
+    { m: 'GET',  p: /^\/api\/settings$/ },        // public site copy; filtered below
+    { m: 'GET',  p: /^\/api\/status$/ },
+    { m: 'GET',  p: /^\/api\/check-auth$/ },
+    { m: 'GET',  p: /^\/api\/chaka\/(knowledge|site-state|voice-token)$/ },
+    { m: 'POST', p: /^\/api\/chaka\/(chat_text|chat_audio|tts|execute_tool)$/ },
+    { m: 'POST', p: /^\/api\/contact$/ },
+    { m: 'POST', p: /^\/api\/(login|logout)$/ }
+];
+
+app.use('/api', (req, res, next) => {
+    if (req.session.user) return next();
+    const path = req.baseUrl + req.path;      // req.path is relative to the mount
+    const ok = PUBLIC_API.some(r => r.m === req.method && r.p.test(path));
+    if (ok) return next();
+    return res.status(401).json({ error: 'Unauthorized' });
+});
+
+// Settings drive public page copy, so the site needs to read them — but the table
+// also holds API keys, verification tokens and other operational values. Strip
+// anything sensitive for callers without a session.
+const SENSITIVE_SETTING = /(key|token|secret|password|credential|api)/i;
+function publicSettings(rows) {
+    return rows.filter(r => !SENSITIVE_SETTING.test(r.key));
 }
 
 // Global Middleware to track visits (Safe usage of db)
@@ -897,8 +929,11 @@ app.get('/api/settings', (req, res) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
+    // The settings table holds operational secrets alongside page copy. Admins get
+    // everything; the public site gets only what it renders.
+    const visible = req.session.user ? rows : publicSettings(rows);
     const settings = {};
-    rows.forEach(row => {
+    visible.forEach(row => {
       settings[row.key] = row.value;
     });
     res.json(settings);
@@ -915,11 +950,48 @@ app.post('/api/settings', (req, res) => {
 });
 
 // AI API Keys Base Route
+// Admin only (enforced by the /api gate above). Even here the full secret is not
+// returned: the panel needs to identify and manage keys, not read them back, and
+// a masked value cannot be harvested from a logged-in browser session or a
+// screenshot. Editing a key means replacing it.
 app.get('/api/apikeys', (req, res) => {
   db.all('SELECT id, provider, api_key, is_active FROM api_keys ORDER BY provider ASC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+    res.json((rows || []).map(r => {
+      const k = String(r.api_key || '');
+      return {
+        id: r.id,
+        provider: r.provider,
+        is_active: r.is_active,
+        key_masked: k.length > 10 ? `${k.slice(0, 6)}…${k.slice(-4)}` : '••••',
+        key_length: k.length
+      };
+    }));
   });
+});
+
+// The voice widget talks to Gemini Live straight from the browser, so it needs a
+// key client-side. That key is therefore public by definition — no endpoint design
+// changes that; only proxying the socket through this server would.
+//
+// What this does fix is the blast radius. The widget used to pull the entire
+// api_keys table, which exposed the DeepSeek and NVIDIA keys too — and those are
+// only ever used server-side by the Python swarm, so they were leaking for nothing.
+// This hands over exactly one active key for the provider the browser actually
+// speaks to, and nothing else.
+app.get('/api/chaka/voice-token', (req, res) => {
+  const provider = req.query.provider === 'groq' ? 'groq' : 'gemini';
+  // is_active is a TEXT column; comparing it to an integer errors on Postgres
+  // ("operator does not exist: text = integer").
+  db.all(
+    "SELECT api_key FROM api_keys WHERE provider = ? AND (is_active IS NULL OR is_active IN ('1','true','t','yes')) ORDER BY id ASC",
+    [provider],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'unavailable' });
+      res.set('Cache-Control', 'no-store');
+      res.json({ provider, keys: (rows || []).map(r => r.api_key).filter(Boolean) });
+    }
+  );
 });
 
 app.post('/api/apikeys', (req, res) => {
@@ -1507,6 +1579,61 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ executed: true, _action: "FAQ removed." });
       });
+    }
+  } else if (name === 'matchProjects') {
+    // Given a visitor's description of what they want built, return the projects
+    // that are genuinely closest to it. Semantic search over the indexed portfolio
+    // first; keyword overlap as a fallback when the vector index is cold.
+    const brief = (args.brief || '').trim();
+    if (!brief) return res.json({ executed: false, reason: 'No brief provided.' });
+
+    try {
+      const cms = await getCmsData();
+      const works = cms.works || [];
+      let matched = [];
+
+      try {
+        const hits = await searchVectorDB(brief, db, 6);
+        const wanted = hits
+          .filter(h => h.item?.metadata?.type === 'work')
+          .map(h => String(h.item.metadata.title || '').toLowerCase());
+        matched = works.filter(w => wanted.includes(String(w.title).toLowerCase()));
+      } catch (e) {
+        console.warn('[matchProjects] vector search unavailable:', e.message);
+      }
+
+      if (matched.length < 2) {
+        // Fallback: score on shared meaningful words between the brief and each
+        // project's title/description/category.
+        const stop = new Set(['the','and','for','with','that','this','have','need','want','build','make','like','some','from','into','your','our','are','was','app','site']);
+        const terms = brief.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length > 3 && !stop.has(t));
+        const scored = works.map(w => {
+          const hay = `${w.title} ${w.description} ${w.category || ''}`.toLowerCase();
+          return { w, score: terms.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0) };
+        }).filter(s => s.score > 0).sort((a, b) => b.score - a.score);
+        for (const s of scored) {
+          if (matched.length >= 3) break;
+          if (!matched.find(m => m.id === s.w.id)) matched.push(s.w);
+        }
+      }
+
+      // Never come back empty-handed — a visitor who described a project and got
+      // "nothing matches" is a lost lead. Fall back to the strongest work.
+      if (!matched.length) matched = works.slice(0, 2);
+
+      res.json({
+        executed: true,
+        brief,
+        projects: matched.slice(0, 3).map(w => ({
+          title: w.title,
+          slug: w.slug,
+          url: w.slug ? `/work/${w.slug}` : '/works',
+          summary: (w.description || '').slice(0, 200)
+        })),
+        instruction: 'Name each project and say in one clause why it is relevant to what they described. Do not describe every project — two is usually enough. Then offer to open one, or to send the brief over on WhatsApp.'
+      });
+    } catch (e) {
+      res.status(500).json({ executed: false, error: e.message });
     }
   } else if (name === 'captureLead') {
     const { name: cName, email, project_scope, budget } = args;

@@ -1703,10 +1703,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('[Chaka] Failed to inject UI:', e);
             }
             try {
-                const res = await fetch('/api/apikeys');
-                const keys = await res.json();
-                this.apiKeys = keys.filter(k => k.provider === 'gemini' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
-                this.groqKeys = keys.filter(k => k.provider === 'groq' && (k.is_active === 1 || k.is_active === '1' || k.is_active == null)).map(k => k.api_key);
+                // Ask only for the provider this browser actually connects to.
+                // This used to fetch /api/apikeys, which returned every key in the
+                // table — including the DeepSeek and NVIDIA keys that are only used
+                // server-side and had no business reaching a browser at all.
+                const [gem, groq] = await Promise.all([
+                    fetch('/api/chaka/voice-token?provider=gemini').then(r => r.ok ? r.json() : { keys: [] }).catch(() => ({ keys: [] })),
+                    fetch('/api/chaka/voice-token?provider=groq').then(r => r.ok ? r.json() : { keys: [] }).catch(() => ({ keys: [] }))
+                ]);
+                this.apiKeys = gem.keys || [];
+                this.groqKeys = groq.keys || [];
                 console.log(`[Chaka] Engine: ${this.engine} | Gemini keys: ${this.apiKeys.length} | Groq keys: ${this.groqKeys.length}`);
             } catch(e) { console.warn('[Chaka] Failed to load API keys:', e); }
 
