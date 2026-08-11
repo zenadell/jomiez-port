@@ -131,12 +131,23 @@ global.apiKeyManager.refreshCache(); // Initial load
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(session({
-  secret: 'chaka-secret-key-2025',
+// Held in a variable so the WebSocket upgrade can reuse the exact same parser and
+// decide admin rights from a real session instead of a client-supplied header.
+const sessionParser = session({
+  // A hardcoded secret means every deployment of this code signs cookies the same
+  // way, so anyone with the source can forge an admin session. Set SESSION_SECRET
+  // in the environment; the literal is only a fallback for local development.
+  secret: process.env.SESSION_SECRET || 'chaka-secret-key-2025',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 hours
-}));
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+});
+app.use(sessionParser);
 
 // Auth Middleware
 function isAuthenticated(req, res, next) {
@@ -2219,4 +2230,4 @@ const server = app.listen(PORT, () => {
 });
 
 const wss = new WebSocketServer({ server, path: '/api/chaka/stream' });
-initChakaStream(wss);
+initChakaStream(wss, sessionParser);

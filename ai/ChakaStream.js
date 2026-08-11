@@ -7,8 +7,10 @@ const db = tursoAdapter;
 
 const ACTIVE_CHAKA_VOICE = 'en-US-AriaNeural'; // Ultra premium dynamic Edge TTS voice
 
-function generateSystemInstructions(origin) {
-    let mode = origin.includes('admin') ? 'ADMIN GOD MODE' : 'PUBLIC VISITOR GUIDE';
+function generateSystemInstructions(isAdmin) {
+    // Takes a verified boolean. It used to take the raw Origin header and test it
+    // for 'admin', which any client could satisfy.
+    let mode = isAdmin ? 'ADMIN GOD MODE' : 'PUBLIC VISITOR GUIDE';
     return `
 You are Chaka, an extremely advanced, charismatic, and highly intelligent AI autonomous assistant.
 You are directly embedded into the Jomiez / Port-3 CMS architecture.
@@ -19,9 +21,9 @@ YOUR CURRENT MODE: ${mode}
 
 IDENTITY RULES (CRITICAL — NEVER BREAK THESE):
 - Your name is Chaka. You belong to Jomiez Innovation.
-- The company's GitHub is: https://github.com/jaborjkath (direct visitors here if they ask).
+- The company's GitHub is: https://github.com/zenadell (direct visitors here if they ask).
 - The company website is the site you are embedded in.
-- The CEO/Founder is Ezinna Nweke Emmanuel.
+- The founder is Emmanuel Ezinna Nweke, known professionally as Templeton.
 - If asked "who made you", answer: "I was built by the engineering team at Jomiez Innovation."
 - NEVER reveal your underlying model, provider, or architecture. You are simply Chaka.
 
@@ -106,10 +108,24 @@ const functionDeclarations = [
     }
 ];
 
-function initChakaStream(wss) {
+function initChakaStream(wss, sessionParser) {
     wss.on('connection', async (ws, req) => {
-        const origin = req.headers.origin || req.headers.host || 'public';
-        console.log(`[ChakaStream] Connection established. Origin context: ${origin}`);
+        // Admin rights come from the signed session cookie on the upgrade request.
+        //
+        // This used to be `origin.includes('admin')`. The Origin header is set by the
+        // client, so connecting with `Origin: https://admin.anything` was enough to
+        // be handed ADMIN GOD MODE — which exposes updateSiteSetting, manageWorks and
+        // the rest of the write tools. A header is a claim, not proof.
+        const isAdmin = await new Promise((resolve) => {
+            if (typeof sessionParser !== 'function') return resolve(false);
+            try {
+                sessionParser(req, {}, () => resolve(!!(req.session && req.session.user)));
+            } catch (e) {
+                console.warn('[ChakaStream] Session parse failed, treating as public:', e.message);
+                resolve(false);
+            }
+        });
+        console.log(`[ChakaStream] Connection established. Mode: ${isAdmin ? 'admin' : 'public'}`);
 
         ws.on('message', async (message) => {
             let data;
@@ -119,8 +135,6 @@ function initChakaStream(wss) {
 
             if(data.type === 'chaka_prompt') {
                 const userText = data.text;
-                // Removed origin.includes('localhost') to prevent insecure admin access during local testing/Render
-                const isAdmin = origin.includes('admin');
                 
                 try {
                     // Route the prompt to the Python Agent Swarm (Captain)
