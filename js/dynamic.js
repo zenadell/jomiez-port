@@ -1789,9 +1789,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 <!-- Launcher -->
                 <div id="chaka-orb-container">
-                    <canvas id="chaka-vis"></canvas>
                     <div id="chaka-status-bubble">System Ready</div>
                     <div id="chaka-orb" role="button" tabindex="0" title="Chat with Chaka">
+                        <!-- Rings ride the live audio amplitude (--ck-amp) instead of the
+                             old blue bar canvas that sat off to the side of the orb. -->
+                        <span class="chaka-ring r1"></span>
+                        <span class="chaka-ring r2"></span>
+                        <span class="chaka-ring r3"></span>
                         <span class="chaka-sphere chaka-sphere--md" id="chaka-icon"></span>
                     </div>
                 </div>
@@ -2104,7 +2108,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     /* ---- launcher ---- */
                     #chaka-orb-container { position: fixed; bottom: 24px; right: 24px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-                    #chaka-vis { width: 118px; height: 26px; opacity: 0; transition: opacity .5s; mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent); }
                     #chaka-status-bubble {
                         display: none; background: var(--ck-panel); border: 1px solid var(--ck-line);
                         box-shadow: 0 14px 34px -8px rgba(0,0,0,.7); color: #fff; padding: 10px 15px;
@@ -2112,20 +2115,71 @@ document.addEventListener('DOMContentLoaded', async () => {
                         font-weight: 400; max-width: 270px; line-height: 1.45;
                     }
                     #chaka-orb {
+                        /* Must stay positioned: .chaka-ring is absolutely placed with
+                           inset:0 and would otherwise anchor to the fixed container,
+                           stretching the wave into a full-height ellipse. */
+                        position: relative;
                         width: 56px; height: 56px; border-radius: 50%; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
                         transition: transform .22s var(--ck-out);
                     }
                     #chaka-orb:hover { transform: translateY(-2px) scale(1.04); }
                     #chaka-orb:active { transform: scale(.96); }
-                    /* Voice live: the sphere itself goes red and pulses — no icon swap needed */
+                    /* ---- LIVE VOICE ORB ----
+                       Bottom-lit, the way the reference reads: incandescent at the base,
+                       falling through orange and oxblood to near-black at the crown, with
+                       the light bleeding out underneath. The gradient's light source drifts
+                       and the hue cycles slightly, so it looks lit rather than painted.
+                       --ck-amp (0-1) is written from the live analyser each frame. */
+                    #chaka-orb.chaka-orb-active { --ck-amp: 0; }
                     .chaka-orb-active .chaka-sphere {
-                        background: radial-gradient(circle at 36% 28%, #ffb3c0 0%, #ff4d6d 18%, #e11d48 52%, #6b0f22 100%) !important;
-                        box-shadow: inset -6px -9px 20px rgba(0,0,0,.5), inset 5px 6px 16px rgba(255,180,195,.3), 0 0 46px -4px rgba(225,29,72,.75) !important;
-                        animation: chakaLive 1.8s ease-in-out infinite;
+                        /* Light source sits just inside the lower edge, so the hot core
+                           lands ON the sphere and falls to near-black by the crown. */
+                        background:
+                            radial-gradient(ellipse 122% 86% at 50% 104%,
+                                #fff8e4 0%, #ffdf9a 5%, #ffab3d 12%, #ff7714 21%,
+                                #d94406 31%, #8d2404 42%, #4a1308 55%, #240d0e 70%,
+                                #110b0e 85%, #08080a 100%) !important;
+                        box-shadow:
+                            inset 0 -14px 30px rgba(255,160,60,.55),
+                            inset 0 10px 26px rgba(0,0,0,.9),
+                            0 16px 50px -8px rgba(255,110,20,calc(.5 + var(--ck-amp) * .45)),
+                            0 0 var(--ck-glow, 34px) rgba(255,140,40,calc(.32 + var(--ck-amp) * .5)) !important;
+                        animation: chakaLiquid 7s ease-in-out infinite;
+                        transform: scale(calc(1 + var(--ck-amp) * .06));
+                        transition: transform .09s linear;
                     }
-                    @keyframes chakaLive { 0%,100% { transform: scale(1) } 50% { transform: scale(1.07) } }
-                    @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(225,29,72,.6) } 70% { box-shadow: 0 0 0 18px rgba(225,29,72,0) } 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0) } }
+                    /* A lit sphere catches a faint edge along its crown — not the glossy
+                       white dot the idle sphere carries, which read as grey plastic here. */
+                    .chaka-orb-active .chaka-sphere::after {
+                        left: 26%; top: 3%; width: 48%; height: 12%;
+                        background: radial-gradient(ellipse at 50% 100%, rgba(255,214,170,.22), rgba(255,255,255,0) 76%);
+                        filter: blur(4px);
+                    }
+                    @keyframes chakaLiquid {
+                        0%,100% { background-position: 50% 122%; filter: hue-rotate(0deg) saturate(1); }
+                        33%     { background-position: 44% 116%; filter: hue-rotate(-7deg) saturate(1.1); }
+                        66%     { background-position: 56% 126%; filter: hue-rotate(6deg) saturate(.95); }
+                    }
+
+                    /* Speaking: rings breathe outward from the sphere, scaled by amplitude */
+                    .chaka-ring {
+                        position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+                        border: 1px solid rgba(255,150,60,.5);
+                        opacity: 0; transform: scale(1);
+                    }
+                    .chaka-orb-active .chaka-ring {
+                        animation: chakaWave 2.4s cubic-bezier(.2,.6,.3,1) infinite;
+                        opacity: calc(.15 + var(--ck-amp) * .85);
+                    }
+                    .chaka-orb-active .chaka-ring.r2 { animation-delay: .8s; }
+                    .chaka-orb-active .chaka-ring.r3 { animation-delay: 1.6s; }
+                    @keyframes chakaWave {
+                        0%   { transform: scale(1); opacity: .55; border-color: rgba(255,170,80,.55); }
+                        70%  { opacity: .12; }
+                        100% { transform: scale(calc(1.75 + var(--ck-amp) * .5)); opacity: 0; border-color: rgba(255,110,20,.05); }
+                    }
+                    @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(255,120,30,.55) } 70% { box-shadow: 0 0 0 18px rgba(255,120,30,0) } 100% { box-shadow: 0 0 0 0 rgba(255,120,30,0) } }
 
                     /* ---- small screens ---- */
                     @media (max-width: 600px) {
@@ -2478,7 +2532,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         updateUI(state) {
             const orb = document.getElementById('chaka-orb');
-            const vis = document.getElementById('chaka-vis');
             const mic = document.getElementById('chaka-mic-btn');
             const live = state === 'connected';
             // The launcher is a glass sphere now, not an <svg>, so the listening state is
@@ -2486,7 +2539,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // than by swapping icon paths into it.
             if (orb) orb.classList.toggle('chaka-orb-active', live);
             if (mic) mic.classList.toggle('is-live', live);
-            if (vis) vis.style.opacity = live ? '1' : '0';
+            if (!live && orb) { orb.style.removeProperty('--ck-amp'); orb.style.removeProperty('--ck-glow'); }
             if (live) this.showBubble('Chaka is listening…', 3000);
         }
 
@@ -2608,22 +2661,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.log('[Chaka] AI goodbye complete — disconnecting session.');
                         setTimeout(() => { if (this.isConnected) this.disconnect(); }, 1500);
                     }
-                    // Post-warning turn tracking:
-                    // First turnComplete after warning = AI speaking the warning itself
-                    // Second turnComplete = user actually responded → cancel disconnect
+                    // First turnComplete after the warning is the AI speaking the warning
+                    // itself. Start the disconnect countdown from the moment it stops
+                    // talking, so the user gets the full window to reply.
                     else if (this._idleWarned && !this._warningSpoken) {
                         this._warningSpoken = true;
-                        // Update activity time AFTER warning speech so the 20s disconnect
-                        // countdown starts from when the AI finishes the warning question
                         this._lastActivityTime = Date.now();
-                        console.log('[Chaka] Warning speech delivered. 20s countdown to goodbye starts now.');
+                        console.log(`[Chaka] Warning delivered. ${this.IDLE_DISCONNECT_S - this.IDLE_WARNING_S}s to goodbye.`);
                     }
-                    else if (this._idleWarned && this._warningSpoken && !this._idleGoodbyeSent) {
-                        console.log('[Chaka] User responded after idle warning — cancelling disconnect.');
-                        this._idleWarned = false;
-                        this._warningSpoken = false;
-                        this._lastActivityTime = Date.now();
-                    }
+                    // NOTE: there used to be a third branch here that cleared _idleWarned
+                    // on any further turnComplete, on the assumption that a second turn
+                    // meant "the user replied". turnComplete fires when the *AI* finishes
+                    // a turn, not when the user speaks — so a continuation or a tool
+                    // response re-armed the warning and the session never reached phase 2.
+                    // That is why the check-in repeated forever and the socket stayed open
+                    // burning quota. Genuine user speech is handled by markActivity(),
+                    // which resets the same state and already guards against the AI
+                    // hearing itself.
                 }
 
                 // D. Tool Calls from Gemini
@@ -2873,6 +2927,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
         // ──────────────────────────────────────────────────────
         startIdleWatchdog() {
             this.stopIdleWatchdog();
+            this.clearGoodbyeFailsafe();
             this._lastActivityTime = Date.now();
             this._idleWarned = false;
             this._idleGoodbyeSent = false;
@@ -2938,6 +2993,19 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     }
                     this._pendingGoodbyeDisconnect = true;
                     this.stopIdleWatchdog();
+
+                    // Failsafe. The actual disconnect is triggered by turnComplete once
+                    // the goodbye finishes speaking — but if that turn never arrives
+                    // (stalled socket, dropped response) the watchdog is already stopped
+                    // and nothing else would ever close the session. It would sit open
+                    // against the API indefinitely.
+                    clearTimeout(this._goodbyeFailsafe);
+                    this._goodbyeFailsafe = setTimeout(() => {
+                        if (this.isConnected) {
+                            console.warn('[Chaka] Goodbye turn never completed — forcing disconnect.');
+                            this.disconnect();
+                        }
+                    }, 15000);
                 }
             }, 2000); // Check every 2 seconds for crisp timing
         }
@@ -2946,6 +3014,15 @@ Current Time: ${new Date().toLocaleTimeString()}`
             if (this._idleCheckInterval) {
                 clearInterval(this._idleCheckInterval);
                 this._idleCheckInterval = null;
+            }
+        }
+
+        // Clears the goodbye failsafe — call whenever the session ends by any route,
+        // so a stale timer can't disconnect a session the user has since restarted.
+        clearGoodbyeFailsafe() {
+            if (this._goodbyeFailsafe) {
+                clearTimeout(this._goodbyeFailsafe);
+                this._goodbyeFailsafe = null;
             }
         }
 
@@ -2968,6 +3045,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
             console.log("[Chaka] Intentional disconnect requested.");
             this.intentionalDisconnect = true;
             this.stopIdleWatchdog();
+            this.clearGoodbyeFailsafe();
             this.cleanup();
         }
 
@@ -3272,22 +3350,32 @@ Current Time: ${new Date().toLocaleTimeString()}`
             this._tourAdvanceTimer = null;
         }
 
+        // Feeds live audio amplitude into the orb as the --ck-amp custom property, which
+        // the rings and the sphere's glow read. Replaces the old canvas that painted cyan
+        // bars in a strip beside the orb — off-brand, and detached from the thing talking.
         drawVisualizer() {
             if (!this.analyser) return;
             requestAnimationFrame(() => this.drawVisualizer());
+
+            const orb = document.getElementById('chaka-orb');
+            if (!orb) return;
+
             this.analyser.getByteFrequencyData(this.visData);
-            const canvas = document.getElementById('chaka-vis');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const barWidth = (canvas.width / this.visData.length) * 2.5;
-            let x = 0;
-            for (let i = 0; i < this.visData.length; i++) {
-                const barHeight = this.visData[i] / 4;
-                ctx.fillStyle = `rgba(0, 243, 255, ${barHeight / 64})`;
-                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
-            }
+
+            // Average the low/mid bands — that is where speech energy sits, so the ring
+            // tracks voice rather than hiss.
+            const bins = Math.min(32, this.visData.length);
+            let sum = 0;
+            for (let i = 0; i < bins; i++) sum += this.visData[i];
+            const raw = Math.min(1, (sum / bins) / 140);
+
+            // Ease upward fast, fall slowly, so the ring pulses with speech instead of
+            // flickering on every frame.
+            const prev = this._ampSmoothed || 0;
+            this._ampSmoothed = raw > prev ? raw : prev + (raw - prev) * 0.12;
+
+            orb.style.setProperty('--ck-amp', this._ampSmoothed.toFixed(3));
+            orb.style.setProperty('--ck-glow', `${34 + this._ampSmoothed * 46}px`);
         }
 
         ensureSpotlightStyles() {
