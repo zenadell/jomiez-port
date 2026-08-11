@@ -1720,67 +1720,68 @@ document.addEventListener('DOMContentLoaded', async () => {
         injectUI() {
             const uiHTML = `
                 <!-- Proactive Welcome Popup -->
-                <div id="chaka-welcome-popup" class="chaka-surface">
+                <div id="chaka-welcome-popup">
                     <div class="chaka-pop-head">
-                        <div class="chaka-avatar chaka-avatar--lg">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
-                        </div>
+                        <div class="chaka-sphere chaka-sphere--xs"></div>
                         <div>
                             <div class="chaka-name">Chaka</div>
                             <div class="chaka-status"><span class="chaka-dot"></span>Online</div>
                         </div>
                     </div>
-                    <p class="chaka-pop-body">Want a quick tour of the site? I can walk you through the work, or just answer questions.</p>
+                    <p class="chaka-pop-body">Want a quick tour? I can walk you through the work, or just answer questions.</p>
                     <div class="chaka-pop-actions">
                         <button id="chaka-btn-yes" class="chaka-btn chaka-btn--primary">Yes, show me</button>
                         <button id="chaka-btn-no" class="chaka-btn chaka-btn--ghost">No thanks</button>
                     </div>
                 </div>
 
-                <!-- Live Chat Panel -->
-                <div id="chaka-chat-modal" class="chaka-surface">
+                <!-- Chat panel -->
+                <div id="chaka-chat-modal">
+                    <!-- Volumetric glow. Sits behind everything and recedes once the
+                         conversation starts, so the drama is in the empty state and the
+                         reading surface stays calm. -->
+                    <div class="chaka-glow" aria-hidden="true">
+                        <div class="chaka-glow-base"></div>
+                        <div class="chaka-blob left"></div>
+                        <div class="chaka-blob right"></div>
+                        <div class="chaka-sparks"></div>
+                    </div>
+
                     <div class="chaka-head">
                         <div class="chaka-head-id">
-                            <div class="chaka-avatar">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
-                                <span id="chaka-ping"></span>
-                            </div>
-                            <div>
-                                <div class="chaka-name">Chaka</div>
-                                <div class="chaka-status"><span class="chaka-dot"></span>AI assistant &middot; Jomiez</div>
-                            </div>
+                            <div class="chaka-name">Chaka</div>
+                            <div class="chaka-status"><span class="chaka-dot" id="chaka-ping"></span>Jomiez assistant</div>
                         </div>
                         <button id="chaka-close-chat" class="chaka-icon-btn" aria-label="Close chat">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
 
-                    <div id="chaka-chat-history" class="chaka-scrollbar">
-                        <div class="chaka-msg-wrapper ai">
-                            <div class="chaka-msg-avatar">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
-                            </div>
-                            <div class="chaka-msg-ai">
-                                <p>Hi, I'm Chaka. Ask me anything about Jomiez — the work, the services, or starting a project.</p>
-                            </div>
-                        </div>
-                        <!-- Openers. A blank prompt is the hardest thing to answer, and these
-                             also steer the conversation toward the questions that turn into work. -->
+                    <!-- Idle state: sphere + greeting, replaced by the transcript on first send -->
+                    <div class="chaka-idle" id="chaka-idle">
+                        <div class="chaka-sphere chaka-sphere--lg"></div>
+                        <p class="chaka-greet-sub">Hello there</p>
+                        <h2 class="chaka-greet">How can I help<br>you today?</h2>
                         <div class="chaka-chips" id="chaka-chips">
-                            <button type="button" class="chaka-chip" style="animation-delay:.05s">See your work</button>
-                            <button type="button" class="chaka-chip" style="animation-delay:.09s">What do you build?</button>
-                            <button type="button" class="chaka-chip" style="animation-delay:.13s">Start a project</button>
-                            <button type="button" class="chaka-chip" style="animation-delay:.17s">Talk on WhatsApp</button>
+                            <button type="button" class="chaka-chip" style="animation-delay:.06s">See your work</button>
+                            <button type="button" class="chaka-chip" style="animation-delay:.12s">What do you build?</button>
+                            <button type="button" class="chaka-chip" style="animation-delay:.18s">Start a project</button>
+                            <button type="button" class="chaka-chip" style="animation-delay:.24s">Talk on WhatsApp</button>
                         </div>
                     </div>
+
+                    <div id="chaka-chat-history" class="chaka-scrollbar"></div>
 
                     <div class="chaka-composer">
                         <form id="chaka-chat-form">
                             <div id="chaka-input-wrapper">
-                                <textarea id="chaka-chat-input" placeholder="Ask about our work, services, or pricing…" rows="1"></textarea>
+                                <textarea id="chaka-chat-input" placeholder="Ask anything…" rows="1"></textarea>
+                                <button type="button" id="chaka-mic-btn" class="chaka-mic" aria-label="Talk to Chaka">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>
+                                </button>
                             </div>
                             <button type="submit" id="chaka-send-btn" aria-label="Send message">
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                             </button>
                         </form>
                     </div>
@@ -1790,86 +1791,141 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div id="chaka-orb-container">
                     <canvas id="chaka-vis"></canvas>
                     <div id="chaka-status-bubble">System Ready</div>
-                    <div id="chaka-orb" title="Chat with Chaka, or tap to talk">
-                        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="chaka-icon">
-                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line>
-                        </svg>
+                    <div id="chaka-orb" role="button" tabindex="0" title="Chat with Chaka">
+                        <span class="chaka-sphere chaka-sphere--md" id="chaka-icon"></span>
                     </div>
                 </div>
-                
-                <!-- Render Styles - 2026/2027 Premium Aesthetic -->
+
                 <style>
                     /* Chaka widget.
-                       Built on the site's own tokens (css/main.css :root). Two contrast
-                       problems were measured and fixed rather than assumed:
-                         - the secondary text colour was 3.78:1 (fails AA body),
-                         - white on the brand orange is 2.50:1, below even the 3:1 UI
-                           minimum. Dark ink on the accent measures 5.19-7.82:1, so the
-                           gradient stays exactly as the brand defines it. */
+                       Visual language follows the reference in gemini tts/chaka-gemini.html:
+                       pure black, a volumetric glow rising from the bottom edge built from
+                       organically morphing blobs, and an idle state that gives way to the
+                       transcript. Palette is the Jomiez ramp (#f63c0c -> #fe812e) rather
+                       than the reference's Google blues.
+
+                       Contrast was measured, not assumed: white on the brand orange is
+                       2.50:1 (below even the 3:1 UI floor), so anything sitting ON the
+                       accent uses dark ink (5.19-7.82:1). Secondary text is #8b9199
+                       (5.94:1); the previous #6b7075 was 3.78:1 and failed AA. */
                     #chaka-welcome-popup, #chaka-chat-modal, #chaka-orb-container, #chaka-status-bubble {
-                        --ck-panel: #101114;
-                        --ck-raised: #17181d;
+                        --ck-black: #000000;
+                        --ck-panel: #08080a;
+                        --ck-raised: #1a1a1d;
                         --ck-line: rgba(255,255,255,0.07);
-                        --ck-line-2: rgba(255,255,255,0.13);
-                        --ck-text: #ffffff;      /* 18.9:1 */
-                        --ck-muted: #b3b8b5;     /*  9.4:1 */
-                        --ck-dim: #8b9199;       /*  5.9:1 */
-                        --ck-accent: #fe812e;    /*  7.6:1 as text on panel */
+                        --ck-line-2: rgba(255,255,255,0.14);
+                        --ck-text: #ececec;
+                        --ck-muted: #b3b8b5;
+                        --ck-dim: #8b9199;
+                        --ck-accent: #fe812e;
                         --ck-accent-2: #f63c0c;
                         --ck-grad: linear-gradient(135deg, #f63c0c, #fe812e);
-                        --ck-ink: #0b0c0f;       /* text/icons ON the accent */
-                        --ck-r: 18px;
-                        --ck-r-s: 10px;
+                        --ck-ink: #12060a;
+                        --ck-r: 26px;
+                        --ck-r-s: 12px;
                         --ck-font: 'Plus Jakarta Sans', sans-serif;
-                        --ck-out: cubic-bezier(0.22, 1, 0.36, 1);
+                        --ck-out: cubic-bezier(0.4, 0, 0.2, 1);
                         font-family: var(--ck-font);
                     }
 
-                    /* ---- shell ---- */
-                    .chaka-surface {
+                    #chaka-welcome-popup, #chaka-chat-modal {
                         position: fixed; right: 24px;
                         background: var(--ck-panel);
                         border: 1px solid var(--ck-line);
                         border-radius: var(--ck-r);
-                        box-shadow: 0 1px 1px rgba(0,0,0,.2), 0 18px 50px -12px rgba(0,0,0,.7);
+                        box-shadow: 0 1px 1px rgba(0,0,0,.4), 0 24px 70px -14px rgba(0,0,0,.85);
                         opacity: 0; pointer-events: none;
-                        transition: opacity .26s var(--ck-out), transform .26s var(--ck-out);
+                        transition: opacity .3s var(--ck-out), transform .3s var(--ck-out);
                         overflow: hidden;
                     }
-                    /* signature: a single accent hairline along the top edge */
-                    .chaka-surface::before {
-                        content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
-                        background: linear-gradient(90deg, transparent, rgba(254,129,46,.85), transparent);
-                        opacity: .8; pointer-events: none;
+
+                    /* ---- glossy sphere (idle centrepiece, launcher, avatars) ---- */
+                    .chaka-sphere {
+                        position: relative; border-radius: 50%; flex-shrink: 0;
+                        background:
+                            radial-gradient(circle at 36% 28%, #ffc48c 0%, #fe812e 16%, #f63c0c 46%, #8f1f02 74%, #350c00 100%);
+                        box-shadow:
+                            inset -6px -9px 20px rgba(0,0,0,.55),
+                            inset 5px 6px 16px rgba(255,196,140,.32),
+                            0 0 42px -6px rgba(246,60,12,.6);
+                    }
+                    /* specular highlight — what makes it read as glass rather than a disc */
+                    .chaka-sphere::after {
+                        content: ""; position: absolute; left: 22%; top: 12%;
+                        width: 40%; height: 28%; border-radius: 50%;
+                        background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.85), rgba(255,255,255,0) 70%);
+                        filter: blur(1px);
+                    }
+                    .chaka-sphere--xs { width: 34px; height: 34px; }
+                    .chaka-sphere--md { width: 46px; height: 46px; }
+                    .chaka-sphere--lg { width: 92px; height: 92px; }
+                    .chaka-sphere--lg { animation: chakaFloat 6s var(--ck-out) infinite; }
+                    @keyframes chakaFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+
+                    /* ---- volumetric glow ---- */
+                    .chaka-glow {
+                        position: absolute; inset: 0; overflow: hidden; z-index: 0;
+                        pointer-events: none;
+                        transition: opacity 1s var(--ck-out), transform 1s var(--ck-out);
+                    }
+                    #chaka-chat-modal.is-chatting .chaka-glow { opacity: 0; transform: translateY(18%); }
+                    .chaka-glow-base {
+                        position: absolute; bottom: -14%; left: -10%; width: 120%; height: 52%;
+                        background: radial-gradient(circle at 50% 100%, #612105 0%, #23090a 46%, transparent 70%);
+                        border-radius: 50% 50% 20% 20% / 100% 100% 0 0;
+                        animation: chakaFlow 11s var(--ck-out) infinite;
+                    }
+                    @keyframes chakaFlow {
+                        0%,100% { transform: translateX(0) scale(1); border-radius: 50% 50% 20% 20% / 80% 80% 0 0; }
+                        33%     { transform: translateX(-4%) scale(1.03); border-radius: 40% 60% 30% 20% / 90% 70% 10% 20%; }
+                        66%     { transform: translateX(4%) scale(.97); border-radius: 60% 40% 20% 30% / 70% 90% 20% 10%; }
+                    }
+                    .chaka-blob {
+                        position: absolute; bottom: -10%; height: 38%; width: 72%;
+                        background: radial-gradient(ellipse at 50% 100%, rgba(254,129,46,.3) 0%, rgba(246,60,12,.15) 48%, transparent 70%);
+                        mix-blend-mode: screen;
+                        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+                    }
+                    .chaka-blob.left  { left: -16%;  animation: chakaBlobL 8s var(--ck-out) infinite alternate; }
+                    .chaka-blob.right { right: -16%; animation: chakaBlobR 8.5s var(--ck-out) infinite alternate; }
+                    @keyframes chakaBlobL { 0%{transform:translateX(0) scale(1)} 50%{transform:translateX(28%) scale(1.1)} 100%{transform:translateX(-5%) scale(.95)} }
+                    @keyframes chakaBlobR { 0%{transform:translateX(0) scale(1)} 50%{transform:translateX(-28%) scale(1.1)} 100%{transform:translateX(5%) scale(.95)} }
+                    /* Sparks read as light scattering in the glow, not as a tiled texture:
+                       finer grid, tighter mask, and a much lower peak opacity than the
+                       reference used — its pink-on-navy tolerates far more than orange
+                       on pure black does. */
+                    .chaka-sparks {
+                        position: absolute; bottom: 0; left: -10%; width: 120%; height: 34%;
+                        background-image: url("data:image/svg+xml,%3Csvg width='26' height='26' viewBox='0 0 18 18' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 4 C9 6.8, 11.2 9, 14 9 C11.2 9, 9 11.2, 9 14 C9 11.2, 6.8 9, 4 9 C6.8 9, 9 6.8, 9 4' fill='%23ffcb9a'/%3E%3C/svg%3E");
+                        background-size: 26px 26px;
+                        -webkit-mask-image: radial-gradient(ellipse at 50% 100%, #000 0%, transparent 42%);
+                        mask-image: radial-gradient(ellipse at 50% 100%, #000 0%, transparent 42%);
+                        mix-blend-mode: screen;
+                        animation: chakaBreathe 9s var(--ck-out) infinite;
+                    }
+                    @keyframes chakaBreathe {
+                        0%,100% { opacity: 0; transform: scale(1) }
+                        15%     { opacity: .03 }
+                        50%     { opacity: .22; transform: scale(1.02) translateY(-1%) }
+                        85%     { opacity: .03 }
                     }
 
+                    /* ---- popup ---- */
                     #chaka-welcome-popup {
                         bottom: 100px; width: min(324px, calc(100vw - 32px));
-                        padding: 20px; z-index: 999998;
-                        transform: translateY(10px) scale(.985);
+                        padding: 20px; z-index: 999998; transform: translateY(10px) scale(.985);
                     }
                     .chaka-pop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
-                    .chaka-pop-body { color: var(--ck-muted); font-size: 14px; line-height: 1.55; margin: 0 0 18px; }
+                    .chaka-pop-body { color: var(--ck-muted); font-size: 14px; line-height: 1.55; margin: 0 0 18px; font-weight: 300; }
                     .chaka-pop-actions { display: flex; gap: 8px; }
 
-                    /* ---- identity ---- */
-                    .chaka-avatar {
-                        position: relative; width: 36px; height: 36px; border-radius: 11px;
-                        background: var(--ck-grad); color: var(--ck-ink);
-                        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-                    }
-                    .chaka-avatar--lg { width: 40px; height: 40px; border-radius: 13px; }
-                    .chaka-name { color: var(--ck-text); font-weight: 650; font-size: 15px; letter-spacing: -.01em; }
-                    .chaka-status {
-                        display: flex; align-items: center; gap: 6px; margin-top: 2px;
-                        color: var(--ck-dim); font-size: 12px; font-weight: 500;
-                    }
-                    .chaka-dot, #chaka-ping { width: 6px; height: 6px; border-radius: 50%; background: #35c66b; flex-shrink: 0; }
-                    #chaka-ping { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; border: 2px solid var(--ck-panel); }
+                    .chaka-name { color: #fff; font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
+                    .chaka-status { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--ck-dim); font-size: 12px; font-weight: 500; }
+                    .chaka-dot { width: 6px; height: 6px; border-radius: 50%; background: #35c66b; flex-shrink: 0; }
 
                     /* ---- controls ---- */
                     .chaka-btn {
-                        flex: 1; min-height: 40px; padding: 10px 14px; border-radius: var(--ck-r-s);
+                        flex: 1; min-height: 44px; padding: 11px 14px; border-radius: var(--ck-r-s);
                         font-family: var(--ck-font); font-weight: 600; font-size: 13.5px;
                         cursor: pointer; border: 1px solid transparent;
                         transition: filter .18s var(--ck-out), background .18s var(--ck-out), color .18s var(--ck-out);
@@ -1877,214 +1933,216 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .chaka-btn--primary { background: var(--ck-grad); color: var(--ck-ink); }
                     .chaka-btn--primary:hover { filter: brightness(1.07); }
                     .chaka-btn--ghost { background: transparent; color: var(--ck-muted); border-color: var(--ck-line-2); }
-                    .chaka-btn--ghost:hover { background: rgba(255,255,255,.05); color: var(--ck-text); }
+                    .chaka-btn--ghost:hover { background: rgba(255,255,255,.06); color: #fff; }
                     .chaka-icon-btn {
-                        position: relative;
-                        background: transparent; border: 1px solid var(--ck-line); color: var(--ck-dim);
-                        cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center;
-                        justify-content: center; border-radius: 50%; transition: all .18s var(--ck-out);
+                        position: relative; background: transparent; border: 1px solid var(--ck-line);
+                        color: var(--ck-dim); cursor: pointer; width: 32px; height: 32px;
+                        display: flex; align-items: center; justify-content: center;
+                        border-radius: 50%; transition: all .18s var(--ck-out);
                     }
-                    /* Keeps the 32px visual circle but extends the tap area to the 44px
-                       minimum — the button sits in a corner where mis-taps are costly. */
                     .chaka-icon-btn::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
-                    .chaka-icon-btn:hover { background: rgba(255,255,255,.06); color: var(--ck-text); }
-                    /* keyboard users get a visible ring; mouse users don't */
-                    .chaka-btn:focus-visible, .chaka-icon-btn:focus-visible,
-                    #chaka-send-btn:focus-visible, .chaka-chip:focus-visible, #chaka-orb:focus-visible {
+                    .chaka-icon-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
+                    .chaka-btn:focus-visible, .chaka-icon-btn:focus-visible, #chaka-send-btn:focus-visible,
+                    .chaka-chip:focus-visible, #chaka-orb:focus-visible, .chaka-mic:focus-visible {
                         outline: 2px solid var(--ck-accent); outline-offset: 2px;
                     }
 
                     /* ---- panel ---- */
                     #chaka-chat-modal {
-                        bottom: 100px; width: min(396px, calc(100vw - 32px));
-                        height: min(552px, calc(100vh - 140px));
+                        bottom: 100px; width: min(400px, calc(100vw - 32px));
+                        height: min(580px, calc(100vh - 140px));
                         z-index: 999997; display: flex; flex-direction: column;
                         transform: translateY(14px) scale(.985);
+                        background: var(--ck-black);
                     }
                     .chaka-head {
-                        flex: 0 0 auto; padding: 15px 16px; border-bottom: 1px solid var(--ck-line);
+                        position: relative; z-index: 3; flex: 0 0 auto; padding: 16px 18px;
                         display: flex; justify-content: space-between; align-items: center;
                     }
-                    .chaka-head-id { display: flex; align-items: center; gap: 11px; }
-                    #chaka-chat-history {
-                        flex: 1 1 auto; padding: 18px 16px; overflow-y: auto;
-                        display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth;
-                        overscroll-behavior: contain;
+                    .chaka-head-id { display: flex; flex-direction: column; }
+
+                    /* ---- idle state ---- */
+                    .chaka-idle {
+                        position: absolute; inset: 0; z-index: 2;
+                        display: flex; flex-direction: column; align-items: center; justify-content: center;
+                        padding: 0 24px 96px; text-align: center; pointer-events: none;
+                        transition: opacity .5s var(--ck-out), transform .5s var(--ck-out);
                     }
+                    .chaka-idle .chaka-chips { pointer-events: auto; }
+                    #chaka-chat-modal.is-chatting .chaka-idle { opacity: 0; transform: scale(.95) translateY(-18px); pointer-events: none; }
+                    .chaka-greet-sub { color: var(--ck-dim); font-size: 13px; font-weight: 500; margin: 22px 0 6px; }
+                    .chaka-greet {
+                        color: var(--ck-text); font-size: 27px; font-weight: 300;
+                        line-height: 1.25; letter-spacing: -.01em; margin: 0 0 22px;
+                    }
+
+                    /* ---- transcript ---- */
+                    #chaka-chat-history {
+                        position: relative; z-index: 3; flex: 1 1 auto; padding: 6px 18px 8px;
+                        overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+                        scroll-behavior: smooth; overscroll-behavior: contain;
+                        opacity: 0; pointer-events: none;
+                        transition: opacity .6s var(--ck-out) .15s;
+                    }
+                    #chaka-chat-modal.is-chatting #chaka-chat-history { opacity: 1; pointer-events: auto; }
 
                     /* ---- quick replies ---- */
-                    .chaka-chips { display: flex; flex-wrap: wrap; gap: 7px; padding-left: 35px; }
+                    .chaka-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
                     .chaka-chip {
-                        background: var(--ck-raised); border: 1px solid var(--ck-line-2);
+                        background: rgba(255,255,255,.05); border: 1px solid var(--ck-line-2);
                         color: var(--ck-muted); font-family: var(--ck-font); font-size: 12.5px;
-                        font-weight: 550; padding: 9px 14px; min-height: 44px; border-radius: 999px; cursor: pointer;
+                        font-weight: 500; padding: 9px 15px; min-height: 44px; border-radius: 999px;
+                        cursor: pointer; backdrop-filter: blur(8px);
                         transition: border-color .18s var(--ck-out), color .18s var(--ck-out), background .18s var(--ck-out);
-                        opacity: 0; animation: chakaChipIn .34s var(--ck-out) forwards;
+                        opacity: 0; animation: chakaChipIn .4s var(--ck-out) forwards;
                     }
-                    .chaka-chip:hover { border-color: rgba(254,129,46,.5); color: var(--ck-text); background: rgba(254,129,46,.08); }
-                    @keyframes chakaChipIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+                    .chaka-chip:hover { border-color: rgba(254,129,46,.55); color: #fff; background: rgba(254,129,46,.1); }
+                    @keyframes chakaChipIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 
                     /* ---- composer ---- */
-                    .chaka-composer { flex: 0 0 auto; padding: 12px 16px 15px; border-top: 1px solid var(--ck-line); }
+                    .chaka-composer { position: relative; z-index: 3; flex: 0 0 auto; padding: 10px 16px 18px; }
                     #chaka-chat-form { display: flex; gap: 8px; align-items: flex-end; }
                     #chaka-input-wrapper {
                         flex: 1; background: var(--ck-raised); border: 1px solid var(--ck-line-2);
-                        border-radius: 14px; padding: 0 14px; display: flex;
+                        border-radius: 26px; padding: 0 6px 0 18px; display: flex; align-items: center;
                         transition: border-color .18s var(--ck-out), box-shadow .18s var(--ck-out);
                     }
-                    #chaka-input-wrapper:focus-within {
-                        border-color: rgba(254,129,46,.55);
-                        box-shadow: 0 0 0 3px rgba(254,129,46,.12);
-                    }
+                    #chaka-input-wrapper:focus-within { border-color: rgba(254,129,46,.5); box-shadow: 0 0 0 3px rgba(254,129,46,.12); }
                     #chaka-chat-input {
-                        flex: 1; background: transparent; border: none; padding: 12px 0;
-                        color: var(--ck-text); font-family: var(--ck-font); font-size: 14px;
-                        line-height: 1.5; outline: none; resize: none; max-height: 116px; min-height: 44px;
+                        flex: 1; background: transparent; border: none; padding: 14px 0;
+                        color: #fff; font-family: var(--ck-font); font-size: 14.5px; font-weight: 300;
+                        line-height: 1.5; outline: none; resize: none; max-height: 112px; min-height: 46px;
                     }
-                    #chaka-chat-input::placeholder { color: var(--ck-dim); }
+                    #chaka-chat-input::placeholder { color: var(--ck-dim); font-weight: 300; }
+                    .chaka-mic {
+                        background: transparent; border: none; color: var(--ck-dim); cursor: pointer;
+                        width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+                        border-radius: 50%; flex-shrink: 0; transition: color .18s var(--ck-out), background .18s var(--ck-out);
+                    }
+                    .chaka-mic:hover { color: var(--ck-accent); background: rgba(254,129,46,.1); }
+                    .chaka-mic.is-live { color: #fff; background: #e11d48; animation: pulse_chaka 2s infinite; }
                     #chaka-send-btn {
                         background: var(--ck-grad); color: var(--ck-ink); border: none;
-                        width: 44px; height: 44px; border-radius: 14px; display: flex;
+                        width: 46px; height: 46px; border-radius: 50%; display: flex;
                         align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
-                        transition: filter .18s var(--ck-out);
+                        transition: filter .18s var(--ck-out), transform .18s var(--ck-out);
                     }
                     #chaka-send-btn:hover { filter: brightness(1.07); }
+                    #chaka-send-btn:active { transform: scale(.95); }
 
                     /* ---- scrollbar ---- */
-                    .chaka-scrollbar::-webkit-scrollbar { width: 4px; }
-                    .chaka-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                    .chaka-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.13); border-radius: 10px; }
-                    .chaka-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.24); }
+                    .chaka-scrollbar::-webkit-scrollbar { width: 0; }
+                    .chaka-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 
                     /* ---- messages ---- */
-                    .chaka-msg-wrapper { display: flex; gap: 9px; width: 100%; }
+                    .chaka-msg-wrapper { display: flex; gap: 12px; width: 100%; }
                     .chaka-msg-wrapper.user { justify-content: flex-end; }
                     .chaka-msg-wrapper.ai { justify-content: flex-start; align-items: flex-start; }
                     .chaka-msg-avatar {
-                        width: 26px; height: 26px; border-radius: 8px; background: var(--ck-grad);
-                        color: var(--ck-ink); display: flex; align-items: center; justify-content: center;
-                        flex-shrink: 0; margin-top: 1px;
+                        width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+                        background: radial-gradient(circle at 36% 28%, #ffc48c 0%, #fe812e 18%, #f63c0c 52%, #7d1c02 100%);
                     }
                     .chaka-msg-ai {
-                        color: rgba(255,255,255,.92); font-family: var(--ck-font); font-size: 14px;
-                        line-height: 1.62; word-break: break-word; background: var(--ck-raised);
-                        border: 1px solid var(--ck-line);
-                        border-radius: 4px var(--ck-r) var(--ck-r) var(--ck-r);
-                        padding: 12px 14px; max-width: 87%;
+                        color: var(--ck-text); font-family: var(--ck-font); font-size: 15px;
+                        font-weight: 300; line-height: 1.62; word-break: break-word; max-width: 90%;
+                        animation: chakaFadeUp .45s var(--ck-out) forwards;
                     }
+                    @keyframes chakaFadeUp { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
                     .chaka-msg-ai p { margin: 0 0 11px 0; }
                     .chaka-msg-ai p:last-child { margin: 0; }
-                    .chaka-msg-ai strong { color: var(--ck-text); font-weight: 700; }
+                    .chaka-msg-ai strong { color: #fff; font-weight: 600; }
                     .chaka-msg-ai code {
-                        background: rgba(254,129,46,.11); padding: 2px 6px; border-radius: 5px;
+                        background: rgba(254,129,46,.12); padding: 2px 6px; border-radius: 5px;
                         font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
-                        color: var(--ck-accent); border: 1px solid rgba(254,129,46,.2);
+                        color: var(--ck-accent); border: 1px solid rgba(254,129,46,.22);
                     }
-                    .chaka-msg-ai pre {
-                        background: #0b0c0f; padding: 13px; border-radius: var(--ck-r-s);
-                        overflow-x: auto; margin: 10px 0; border: 1px solid var(--ck-line);
-                    }
+                    .chaka-msg-ai pre { background: #101013; padding: 14px; border-radius: var(--ck-r-s); overflow-x: auto; margin: 10px 0; border: 1px solid var(--ck-line); }
                     .chaka-msg-ai pre code { background: transparent; padding: 0; border: none; color: #e4e4e7; }
                     .chaka-msg-ai ul, .chaka-msg-ai ol { margin: 0 0 11px 0; padding-left: 18px; }
                     .chaka-msg-ai li { margin-bottom: 6px; }
-                    .chaka-msg-ai a {
-                        color: var(--ck-accent); text-decoration: none;
-                        border-bottom: 1px solid rgba(254,129,46,.35);
-                        font-weight: 600; pointer-events: auto; transition: color .18s, border-color .18s;
-                    }
-                    .chaka-msg-ai a:hover { color: var(--ck-text); border-bottom-color: var(--ck-text); }
+                    .chaka-msg-ai a { color: var(--ck-accent); text-decoration: none; border-bottom: 1px solid rgba(254,129,46,.35); font-weight: 500; pointer-events: auto; transition: color .18s, border-color .18s; }
+                    .chaka-msg-ai a:hover { color: #fff; border-bottom-color: #fff; }
                     .chaka-msg-user {
-                        background: rgba(254,129,46,.13); border: 1px solid rgba(254,129,46,.24);
-                        padding: 12px 14px; border-radius: var(--ck-r) var(--ck-r) 4px var(--ck-r);
-                        max-width: 84%; color: var(--ck-text); font-family: var(--ck-font);
-                        font-size: 14px; line-height: 1.5;
+                        background: #26262a; padding: 13px 19px; border-radius: 24px; max-width: 84%;
+                        color: #fff; font-family: var(--ck-font); font-size: 14.5px; font-weight: 300; line-height: 1.5;
+                        animation: chakaPopIn .38s cubic-bezier(.2,.8,.2,1) forwards; transform-origin: bottom right;
                     }
+                    @keyframes chakaPopIn { from { opacity: 0; transform: scale(.92) translateY(10px) } to { opacity: 1; transform: none } }
                     .chaka-msg-user p { margin: 0; }
 
-                    /* ---- typing indicator (in-panel, where the user is looking) ---- */
-                    .chaka-typing { display: flex; gap: 4px; align-items: center; padding: 4px 2px; }
-                    .chaka-typing span {
-                        width: 6px; height: 6px; border-radius: 50%; background: var(--ck-dim);
-                        animation: chakaBlink 1.3s infinite ease-in-out;
-                    }
-                    .chaka-typing span:nth-child(2) { animation-delay: .16s; }
-                    .chaka-typing span:nth-child(3) { animation-delay: .32s; }
-                    @keyframes chakaBlink { 0%,80%,100% { opacity:.28; transform: translateY(0);} 40% { opacity:1; transform: translateY(-2px);} }
+                    /* ---- typing ---- */
+                    .chaka-typing { display: flex; gap: 5px; align-items: center; height: 24px; }
+                    .chaka-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--ck-accent); animation: chakaBlink 1.4s infinite ease-in-out both; }
+                    .chaka-typing span:nth-child(1) { animation-delay: -.32s; }
+                    .chaka-typing span:nth-child(2) { animation-delay: -.16s; }
+                    @keyframes chakaBlink { 0%,80%,100% { transform: scale(0); opacity: .4 } 40% { transform: scale(1); opacity: 1 } }
 
                     /* ---- contact pills ---- */
-                    .chaka-msg-ai a[href*="wa.me"],
-                    .chaka-msg-ai a[href^="tel:"],
-                    .chaka-msg-ai a[href^="mailto:"] {
-                        display: flex; align-items: center; gap: 10px; min-height: 44px;
-                        padding: 11px 15px; font-size: 14px; border-radius: var(--ck-r-s);
-                        text-decoration: none !important; border: 1px solid transparent;
-                        font-weight: 650; margin: 10px 0; transition: filter .18s var(--ck-out);
+                    .chaka-msg-ai a[href*="wa.me"], .chaka-msg-ai a[href^="tel:"], .chaka-msg-ai a[href^="mailto:"] {
+                        display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 12px 16px;
+                        font-size: 14px; border-radius: var(--ck-r-s); text-decoration: none !important;
+                        border: 1px solid transparent; font-weight: 600; margin: 10px 0;
+                        transition: filter .18s var(--ck-out);
                     }
                     .chaka-msg-ai a[href*="wa.me"] { background: #1da851; color: #fff; }
                     .chaka-msg-ai a[href^="tel:"], .chaka-msg-ai a[href^="mailto:"] { background: var(--ck-grad); color: var(--ck-ink); }
-                    .chaka-msg-ai a[href*="wa.me"]:hover,
-                    .chaka-msg-ai a[href^="tel:"]:hover,
-                    .chaka-msg-ai a[href^="mailto:"]:hover { filter: brightness(1.07); }
+                    .chaka-msg-ai a[href*="wa.me"]:hover, .chaka-msg-ai a[href^="tel:"]:hover, .chaka-msg-ai a[href^="mailto:"]:hover { filter: brightness(1.07); }
 
                     /* ---- action cards ---- */
                     .chaka-action-card {
                         display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px;
                         border-radius: var(--ck-r-s); border: 1px solid var(--ck-line);
-                        background: var(--ck-raised); color: var(--ck-text); text-decoration: none !important;
+                        background: rgba(255,255,255,.04); color: #fff; text-decoration: none !important;
                         transition: border-color .18s var(--ck-out), background .18s var(--ck-out);
                     }
-                    .chaka-action-card:hover { border-color: rgba(254,129,46,.42); background: rgba(254,129,46,.07); }
+                    .chaka-action-card:hover { border-color: rgba(254,129,46,.45); background: rgba(254,129,46,.08); }
                     .chaka-action-icon { width: 38px; height: 38px; border-radius: var(--ck-r-s); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
                     .chaka-action-main { flex: 1; min-width: 0; }
-                    .chaka-action-title { color: var(--ck-text); font-weight: 650; font-size: 14px; line-height: 1.25; }
+                    .chaka-action-title { color: #fff; font-weight: 600; font-size: 14px; line-height: 1.25; }
                     .chaka-action-subtitle { color: var(--ck-dim); font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                    .chaka-action-arrow { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.06); color: var(--ck-muted); flex-shrink: 0; }
+                    .chaka-action-arrow { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.07); color: var(--ck-muted); flex-shrink: 0; }
 
                     /* ---- launcher ---- */
-                    #chaka-orb-container {
-                        position: fixed; bottom: 24px; right: 24px; z-index: 999999;
-                        display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
-                    }
+                    #chaka-orb-container { position: fixed; bottom: 24px; right: 24px; z-index: 999999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
                     #chaka-vis { width: 118px; height: 26px; opacity: 0; transition: opacity .5s; mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent); }
                     #chaka-status-bubble {
                         display: none; background: var(--ck-panel); border: 1px solid var(--ck-line);
-                        box-shadow: 0 14px 34px -8px rgba(0,0,0,.65); color: var(--ck-text);
-                        padding: 10px 15px; border-radius: var(--ck-r-s); font-family: var(--ck-font);
-                        font-size: 13px; font-weight: 500; max-width: 270px; line-height: 1.45;
+                        box-shadow: 0 14px 34px -8px rgba(0,0,0,.7); color: #fff; padding: 10px 15px;
+                        border-radius: var(--ck-r-s); font-family: var(--ck-font); font-size: 13px;
+                        font-weight: 400; max-width: 270px; line-height: 1.45;
                     }
                     #chaka-orb {
-                        width: 56px; height: 56px; border-radius: 50%; background: var(--ck-grad);
-                        color: var(--ck-ink); cursor: pointer;
-                        box-shadow: 0 8px 24px -6px rgba(246,60,12,.55);
+                        width: 56px; height: 56px; border-radius: 50%; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
-                        transition: transform .22s var(--ck-out), box-shadow .22s var(--ck-out);
+                        transition: transform .22s var(--ck-out);
                     }
-                    #chaka-orb:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -6px rgba(246,60,12,.7); }
-                    #chaka-orb:active { transform: translateY(0) scale(.97); }
-
-                    /* recording must read as unmistakably different from idle */
-                    .chaka-orb-active { animation: pulse_chaka 2s infinite; background: #e11d48 !important; color: #fff !important; box-shadow: 0 0 0 0 rgba(225,29,72,.6) !important; }
-                    @keyframes pulse_chaka {
-                        0%   { box-shadow: 0 0 0 0 rgba(225,29,72,.6); }
-                        70%  { box-shadow: 0 0 0 22px rgba(225,29,72,0); }
-                        100% { box-shadow: 0 0 0 0 rgba(225,29,72,0); }
+                    #chaka-orb:hover { transform: translateY(-2px) scale(1.04); }
+                    #chaka-orb:active { transform: scale(.96); }
+                    /* Voice live: the sphere itself goes red and pulses — no icon swap needed */
+                    .chaka-orb-active .chaka-sphere {
+                        background: radial-gradient(circle at 36% 28%, #ffb3c0 0%, #ff4d6d 18%, #e11d48 52%, #6b0f22 100%) !important;
+                        box-shadow: inset -6px -9px 20px rgba(0,0,0,.5), inset 5px 6px 16px rgba(255,180,195,.3), 0 0 46px -4px rgba(225,29,72,.75) !important;
+                        animation: chakaLive 1.8s ease-in-out infinite;
                     }
+                    @keyframes chakaLive { 0%,100% { transform: scale(1) } 50% { transform: scale(1.07) } }
+                    @keyframes pulse_chaka { 0% { box-shadow: 0 0 0 0 rgba(225,29,72,.6) } 70% { box-shadow: 0 0 0 18px rgba(225,29,72,0) } 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0) } }
 
                     /* ---- small screens ---- */
                     @media (max-width: 600px) {
                         #chaka-chat-modal, #chaka-welcome-popup { right: 12px; left: 12px; width: auto; }
-                        #chaka-chat-modal { bottom: 90px; height: min(72vh, calc(100vh - 124px)); }
-                        #chaka-welcome-popup { bottom: 90px; }
+                        #chaka-chat-modal { bottom: 88px; height: min(74vh, calc(100vh - 120px)); }
+                        #chaka-welcome-popup { bottom: 88px; }
                         #chaka-orb-container { bottom: 16px; right: 16px; }
-                        #chaka-orb { width: 52px; height: 52px; }
-                        .chaka-chips { padding-left: 0; }
+                        .chaka-greet { font-size: 24px; }
                     }
 
                     @media (prefers-reduced-motion: reduce) {
-                        .chaka-surface, #chaka-orb, .chaka-btn, #chaka-send-btn, .chaka-chip,
-                        .chaka-icon-btn, .chaka-action-card { transition: none; }
+                        .chaka-glow-base, .chaka-blob, .chaka-sparks, .chaka-sphere--lg,
+                        .chaka-orb-active .chaka-sphere, .chaka-typing span, .chaka-mic.is-live { animation: none; }
                         .chaka-chip { animation: none; opacity: 1; }
-                        .chaka-orb-active, .chaka-typing span { animation: none; }
+                        #chaka-welcome-popup, #chaka-chat-modal, #chaka-orb, .chaka-btn,
+                        #chaka-send-btn, .chaka-chip, .chaka-icon-btn, .chaka-action-card { transition: none; }
+                        .chaka-msg-ai, .chaka-msg-user { animation: none; }
                     }
                 </style>
             `;
@@ -2102,18 +2160,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
             
-            // Quick-reply chips: send the chip's text as if the visitor typed it,
-            // then retire the row so it doesn't linger above the conversation.
+            // Quick-reply chips: send the chip's text as if the visitor typed it. The
+            // whole idle panel fades out on the first message, so the row goes with it.
             const chips = document.getElementById('chaka-chips');
             if (chips) {
                 chips.addEventListener('click', (e) => {
                     const chip = e.target.closest('.chaka-chip');
                     if (!chip) return;
-                    const text = chip.textContent.trim();
-                    chips.remove();
-                    this.sendTextMessage(text);
+                    this.sendTextMessage(chip.textContent.trim());
                 });
             }
+
+            // Voice is now opt-in from inside the composer rather than something that
+            // fires the moment a stranger accepts a tour.
+            const micBtn = document.getElementById('chaka-mic-btn');
+            if (micBtn) micBtn.addEventListener('click', () => this.toggleSession());
 
             // Auto-resize textarea
             const chatInput = document.getElementById('chaka-chat-input');
@@ -2148,9 +2209,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('chaka-welcome-popup').style.pointerEvents = 'none';
                 sessionStorage.setItem('chakaVisited', 'true');
                 this.toggleChatWindow(true);
-                if(!this.isConnected) {
-                    this.toggleSession(); // Auto-connect voice
-                }
+                // Deliberately does NOT auto-connect voice. Demanding microphone access
+                // seconds into a first visit triggers a browser permission prompt most
+                // people reflexively deny — and a denied prompt is hard to recover from.
+                // The mic button in the composer makes voice a choice instead.
             });
 
             document.getElementById('chaka-btn-no').addEventListener('click', () => {
@@ -2259,6 +2321,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         appendChatMessage(role, text, isRawHtml = false) {
             const historyArea = document.getElementById('chaka-chat-history');
+            // First message swaps the panel out of its idle state: the greeting and the
+            // ambient glow recede so the transcript reads against calm black.
+            const modal = document.getElementById('chaka-chat-modal');
+            if (modal) modal.classList.add('is-chatting');
             const wrapper = document.createElement('div');
             wrapper.className = `chaka-msg-wrapper ${role === 'user' ? 'user' : 'ai'}`;
             
@@ -2280,9 +2346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 wrapper.innerHTML = `<div class="chaka-msg-user">${formattedText}</div>`;
             } else {
                 wrapper.innerHTML = `
-                    <div class="chaka-msg-avatar">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path></svg>
-                    </div>
+                    <div class="chaka-msg-avatar"></div>
                     <div class="chaka-msg-ai">${formattedText}</div>
                 `;
             }
@@ -2349,9 +2413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.setAttribute('aria-live', 'polite');
             row.setAttribute('aria-label', 'Chaka is typing');
             row.innerHTML = `
-                <div class="chaka-msg-avatar">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
-                </div>
+                <div class="chaka-msg-avatar"></div>
                 <div class="chaka-msg-ai"><div class="chaka-typing"><span></span><span></span><span></span></div></div>`;
             history.appendChild(row);
             history.scrollTop = history.scrollHeight;
@@ -2359,8 +2421,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         async sendTextMessage(text) {
             this.appendChatMessage('user', text);
+            // The in-panel typing dots are the "thinking" signal now. The launcher
+            // bubble stays for voice mode, where there is no transcript to put it in —
+            // firing both just overlaps the panel.
             this.setChatTyping(true);
-            this.showBubble('Thinking...');
 
             try {
                 const res = await fetch('/api/chaka/chat_text', {
@@ -2414,18 +2478,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         updateUI(state) {
             const orb = document.getElementById('chaka-orb');
-            const icon = document.getElementById('chaka-icon');
             const vis = document.getElementById('chaka-vis');
-            if (state === 'connected') {
-                orb.classList.add('chaka-orb-active');
-                icon.innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"></rect>';
-                if (vis) vis.style.opacity = '1';
-                this.showBubble("Chaka is listening...", 3000);
-            } else {
-                orb.classList.remove('chaka-orb-active');
-                icon.innerHTML = '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line>';
-                if (vis) vis.style.opacity = '0';
-            }
+            const mic = document.getElementById('chaka-mic-btn');
+            const live = state === 'connected';
+            // The launcher is a glass sphere now, not an <svg>, so the listening state is
+            // expressed by the sphere itself (red + pulse via .chaka-orb-active) rather
+            // than by swapping icon paths into it.
+            if (orb) orb.classList.toggle('chaka-orb-active', live);
+            if (mic) mic.classList.toggle('is-live', live);
+            if (vis) vis.style.opacity = live ? '1' : '0';
+            if (live) this.showBubble('Chaka is listening…', 3000);
         }
 
         // ========================
