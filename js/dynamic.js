@@ -1628,6 +1628,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             this._speechEndTimer = null;
             this._ignoreSpeechUntil = 0;
             this._tourExploreNoticeSent = false;
+            // Filled from /api/chaka/site-state during init, so the tour route always
+            // matches what is actually on the site rather than a list baked into code.
+            this.tourStops = [];
             this._speechRecognitionPausedByAi = false;
             this._speechRecognitionRestartTimer = null;
             this.speechRecognizer = null;
@@ -1715,6 +1718,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     this.siteKnowledge = await kRes.text();
                 }
             } catch(e) { console.warn('[Chaka] Failed to load site knowledge:', e); }
+
+            // Live tour route + content counts. Derived server-side from the CMS, so
+            // adding or removing a section changes the tour without touching this file.
+            try {
+                const sRes = await fetch('/api/chaka/site-state');
+                if (sRes.ok) {
+                    const state = await sRes.json();
+                    this.tourStops = Array.isArray(state.tourStops) ? state.tourStops : [];
+                    this.siteCounts = state.counts || {};
+                    this.siteStats = Array.isArray(state.stats) ? state.stats : [];
+                    console.log('[Chaka] Live tour stops:', this.tourStops.join(' -> '));
+                }
+            } catch(e) { console.warn('[Chaka] Failed to load site state:', e); }
         }
 
         injectUI() {
@@ -2771,7 +2787,9 @@ CORE CAPABILITIES:
 4. CONTENT MANAGEMENT (Admin only): Use manageWorks, manageServices, updateSiteSetting.
 5. IMAGE SOURCING: Use searchImages to find professional imagery.
 6. SPOTLIGHT: Use highlightElement to make any section glow/pulse to draw the visitor's attention. Great for showcasing.
-7. GUIDED TOUR: When a visitor asks for a tour of the site, behave like a calm human guide who keeps the flow moving. Start with guidedTour(section='hero'), speak only about the visible stop, then let the system auto-cue the next stop after your voice finishes. NEVER ask "shall we continue?", "ready?", "should we move on?", "do you want me to proceed?", or any permission question between tour stops. You may gently bridge with statements like "Next, I'll take you into the About page." The tour includes the About stats stack, where you should mention 7+ years of experience, 80+ successful projects, and strong client satisfaction.
+7. GUIDED TOUR: When a visitor asks for a tour, be a calm guide who keeps the flow moving. Start with guidedTour(section='hero'), speak only about the visible stop, then let the system auto-cue the next stop after your voice finishes. Do not ask "shall we continue?", "ready?", or any permission question BETWEEN stops — bridge with statements like "Next, I'll take you into the About page."
+   THE VISITOR IS ALWAYS IN CONTROL. The moment they signal they want out — "stop", "skip", "I've seen this", "I already know the site", "just take me to X", or any request that isn't about the current stop — call endTour FIRST, then do what they asked. Never talk them back into the tour, never resume it afterwards, and never treat "keep the flow moving" as a reason to override a direct request. Being unstoppable is not confidence, it is a bad guide.
+   Only visit stops listed under GUIDED TOUR STOPS in the site knowledge. That list is generated from the live site; a section missing from it is not on the site any more, so never announce or navigate to it.
 8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
 
 INTELLIGENCE PROTOCOLS:
@@ -2865,8 +2883,13 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "guidedTour",
-                                description: "Navigate to and highlight one guided-tour stop. This tool opens the real page when needed: about/stats -> /about, services -> /services, works -> /works, testimonials -> /testimonials, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then stop. The system auto-cues the next stop, so never ask the visitor for permission to continue.",
-                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The section to show: 'hero', 'about', 'stats', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'." } }, required: ["section"] }
+                                description: "Navigate to and highlight one guided-tour stop. Opens the real page when needed: about/stats -> /about, services -> /services, works -> /works, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then stop. The system auto-cues the next stop, so do not ask permission to continue. Only use stops listed as available in the site knowledge — never a section that is not on the live site.",
+                                parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The stop to show. Use only stops listed under GUIDED TOUR STOPS in the site knowledge." } }, required: ["section"] }
+                            },
+                            {
+                                name: "endTour",
+                                description: "Immediately cancel the guided tour. Call this the MOMENT the visitor signals they want out of it — 'stop', 'skip', 'I've seen this', 'just show me X', or any request that isn't the current stop. Call it BEFORE doing what they asked, otherwise the tour resumes over the top of their request. Also call it if they say they already know the site.",
+                                parameters: { type: "OBJECT", properties: { reason: { type: "STRING", description: "Brief reason, e.g. 'visitor asked to skip to projects'." } } }
                             },
                             {
                                 name: "toggleTheme",
@@ -3290,6 +3313,36 @@ Current Time: ${new Date().toLocaleTimeString()}`
             }, 550);
         }
 
+        // Stats narration comes from the counters table, not from figures baked into
+        // this file. The old wording also told the model to claim "work not all listed
+        // publicly", which is an instruction to embellish — a visitor who asks a
+        // follow-up about that unlisted work gets an invented answer.
+        statsNarration() {
+            const stats = (this.siteStats || []).filter(Boolean);
+            if (!stats.length) return 'Describe only what is visible on screen. Do not quote any figures.';
+            return `State these figures exactly as given, and claim nothing beyond them: ${stats.join('; ')}.`;
+        }
+
+        // Cancels the guided tour and every timer that would resume it.
+        //
+        // Previously nothing could stop a tour once it started: isGuidedTourActive was
+        // only cleared by reaching the final stop, so a visitor who said "skip this, just
+        // show me the projects" got taken to the projects and then dragged back into the
+        // sequence by the pending auto-advance. Any exit route has to clear the timers,
+        // not just the flag, or onAiSpeechEnd re-arms it on the next utterance.
+        abortTour(reason = 'visitor request') {
+            if (!this.isGuidedTourActive) return false;
+            console.log(`[Chaka] Guided tour cancelled — ${reason}.`);
+            this.isGuidedTourActive = false;
+            this.currentTourSection = null;
+            this.nextTourSection = null;
+            this._tourPausedForScroll = false;
+            this._tourExploreNoticeSent = false;
+            if (this._tourTimer) { clearInterval(this._tourTimer); this._tourTimer = null; }
+            if (this._tourAdvanceTimer) { clearTimeout(this._tourAdvanceTimer); this._tourAdvanceTimer = null; }
+            return true;
+        }
+
         onAiSpeechEnd() {
             if (!this.isConnected || !this.isGuidedTourActive) return;
             if (this._tourTimer) clearInterval(this._tourTimer);
@@ -3335,7 +3388,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     this.sendSystemPrompt(`[SYSTEM: I tried to continue the tour to "${nextSec}", but the page element was not found. Apologize briefly and continue with the next best useful part of the portfolio without asking permission.]`);
                     return;
                 }
-                this.sendSystemPrompt(`[SYSTEM: The screen has already moved to and highlighted the "${nextSec}" stop at ${result.currentPage}. Narrate only what is visible in 1-2 natural sentences. ${nextSec === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not call guidedTour again for this same stop. Do not ask whether to continue, do not ask if they are ready, and do not wait for permission. You may briefly say where you are taking them next at the end.]`);
+                this.sendSystemPrompt(`[SYSTEM: The screen has already moved to and highlighted the "${nextSec}" stop at ${result.currentPage}. Narrate only what is visible in 1-2 natural sentences. ${nextSec === 'stats' ? this.statsNarration() : ''} Do not call guidedTour again for this same stop. Do not ask whether to continue, do not ask if they are ready, and do not wait for permission. You may briefly say where you are taking them next at the end.]`);
             }, 350);
         }
 
@@ -3524,7 +3577,11 @@ Current Time: ${new Date().toLocaleTimeString()}`
 
             this.isGuidedTourActive = true;
             this.currentTourSection = section;
-            const tourOrder = ['hero', 'about', 'stats', 'services', 'works', 'testimonials', 'contact'];
+            // Route comes from /api/chaka/site-state, which derives it from live CMS
+            // content. The hardcoded list this replaced still included 'testimonials'
+            // after that section was removed, so the tour walked visitors into nothing.
+            const tourOrder = this.tourStops.length ? this.tourStops
+                : ['hero', 'about', 'services', 'works', 'contact'];
             const idx = tourOrder.indexOf(section);
             this.nextTourSection = (idx !== -1 && idx + 1 < tourOrder.length) ? tourOrder[idx + 1] : null;
             this._ignoreScrollUntil = Date.now() + 1200;
@@ -3534,7 +3591,7 @@ Current Time: ${new Date().toLocaleTimeString()}`
                 currentPage: window.location.pathname,
                 navigated: navigatedForTour,
                 nextSection: this.nextTourSection,
-                instruction: `You are now showing the real "${section}" ${section === 'hero' || section === 'stats' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. ${section === 'stats' ? 'Mention the credibility stack clearly: 7+ years of experience, 80+ successful projects including work not all listed publicly, and strong client satisfaction.' : ''} Do not claim you are on any other page. Do not ask to move on, do not ask if they are ready, and do not narrate future stops. You may end with a short statement of where you are taking them next, but the system will move automatically.`
+                instruction: `You are now showing the real "${section}" ${section === 'hero' || section === 'stats' ? 'section' : 'page'} at ${window.location.pathname}. Explain only what is currently visible in 1-2 warm, natural sentences. ${section === 'stats' ? this.statsNarration() : ''} Do not claim you are on any other page. Do not ask to move on, do not ask if they are ready, and do not narrate future stops. You may end with a short statement of where you are taking them next, but the system will move automatically.`
             };
         }
 
@@ -3605,11 +3662,30 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     console.log('[Chaka] AI triggered endSession — closing stream gracefully.');
                     this._pendingGoodbyeDisconnect = true;
                     result = { executed: true, action: 'session_ending' };
+                } else if (name === 'endTour') {
+                    const wasActive = this.abortTour(args.reason || 'visitor asked to stop');
+                    result = {
+                        executed: true,
+                        tourWasActive: wasActive,
+                        instruction: 'The guided tour is cancelled and will not resume. Acknowledge in one short sentence, then do exactly what the visitor asked for. Do not offer to restart the tour unless they ask.'
+                    };
                 } else if (name === 'highlightElement' || name === 'guidedTour') {
                     // ━━━ SPOTLIGHT HIGHLIGHT & SYNCHRONIZED TOUR STEP ━━━
                     const section = (args.section || (name === 'guidedTour' ? 'hero' : '')).toLowerCase().trim();
                     const isTourStep = name === 'guidedTour';
-                    result = await this.showGuidedTourStop(section, isTourStep);
+                    // A stop that is not on the live site cannot be shown. Rather than
+                    // scrolling to nothing, tell the model why and let it move on.
+                    if (isTourStep && this.tourStops.length && !this.tourStops.includes(section)) {
+                        this.abortTour(`requested stop "${section}" is not on the live site`);
+                        result = {
+                            executed: false,
+                            reason: `"${section}" is not a section of this site any more.`,
+                            availableStops: this.tourStops,
+                            instruction: `That section does not exist on the live site, so do not mention it. Do not apologise at length. Move on to something that does exist: ${this.tourStops.join(', ')}.`
+                        };
+                    } else {
+                        result = await this.showGuidedTourStop(section, isTourStep);
+                    }
                 } else if (name === 'toggleTheme') {
                     // ━━━ THEME TOGGLE — dark/light mode ━━━
                     const theme = (args.theme || 'light').toLowerCase();

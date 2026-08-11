@@ -142,7 +142,7 @@ app.use(session({
 function isAuthenticated(req, res, next) {
     if (req.session.user) return next();
     // Whitelist public Chaka AI endpoints
-    const publicPaths = ['/api/chaka/chat_text', '/api/chaka/execute_tool', '/api/chaka/knowledge', '/api/chaka/stream'];
+    const publicPaths = ['/api/chaka/chat_text', '/api/chaka/execute_tool', '/api/chaka/knowledge', '/api/chaka/site-state', '/api/chaka/stream'];
     if (publicPaths.some(p => req.path.startsWith(p))) return next();
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
     res.redirect('/admin/login');
@@ -486,11 +486,14 @@ let cmsCacheAt = 0;
 
 async function getCmsData() {
   if (cmsCache && Date.now() - cmsCacheAt < PAGE_CACHE_TTL_MS) return cmsCache;
-  const [settings, faqs, testimonials, works, services, brands, skills, counters] = await Promise.all([
+  const [settings, faqs, testimonials, works, services, brands, skills, counters, blog] = await Promise.all([
     getSettings(), getFaqs(), getTestimonials(), getWorks(), getServices(), getBrands(),
-    getSkills(), getCounters()
+    getSkills(), getCounters(),
+    // Blog feeds the site manifest: with zero posts, /blog is listed as absent so
+    // Chaka never offers to walk someone into an empty page.
+    new Promise((resolve) => db.all('SELECT slug, title FROM blog_posts', [], (e, r) => resolve(e || !r ? [] : r)))
   ]);
-  cmsCache = { settings, faqs, testimonials, works, services, brands, skills, counters };
+  cmsCache = { settings, faqs, testimonials, works, services, brands, skills, counters, blog };
   cmsCacheAt = Date.now();
   return cmsCache;
 }
@@ -1567,18 +1570,67 @@ app.post('/api/chaka/tts', async (req, res) => {
 // CHAKA KNOWLEDGE BASE & CONTEXT (RAG-enhanced)
 
 // SITE MANIFEST — The AI's complete understanding of the site structure
-function getSiteManifest() {
-  return `SITE MAP (CRITICAL — use ONLY these exact paths for navigation):
-  / = Home page (hero, featured works, services overview)
-  /about = About Me / About Us page
-  /works = Portfolio / Projects listing page
-  /services = All services listing page
-  /contact-us = Contact page with form
-  /resume = Resume / CV page
-  /testimonials = Client testimonials
-  /blog = Blog listing
-  /work/:slug = Individual project detail (e.g. /work/e-commerce-website-design)
-  /services/:slug = Individual service detail (e.g. /services/branding)
+/**
+ * Tour stops that actually have something to show. A stop for a section that was
+ * removed from the page is how the tour ended up walking visitors into an empty
+ * testimonials slot.
+ */
+function buildTourStops(cms = {}) {
+  const { testimonials = [], works = [], services = [], counters = [] } = cms;
+  const stops = ['hero', 'about'];
+  if (counters.length) stops.push('stats');
+  if (services.length) stops.push('services');
+  if (works.length) stops.push('works');
+  if (testimonials.length) stops.push('testimonials');
+  stops.push('contact');
+  return stops;
+}
+
+/**
+ * Describes the site as it is RIGHT NOW, derived from live CMS state.
+ *
+ * This used to be a hardcoded string. It still advertised /testimonials, /resume
+ * and /blog long after those were retired, so Chaka would confidently offer to
+ * show a visitor "what our clients say" and walk them into a redirect. Anything
+ * added or removed in /admin now flows through here on the next cache cycle
+ * without a code change.
+ *
+ * The absent list matters as much as the present one: an LLM that is not told a
+ * thing is gone will happily invent a reason to visit it.
+ */
+function buildSiteManifest(cms = {}) {
+  const { testimonials = [], works = [], services = [], blog = [] } = cms;
+
+  const routes = [
+    ['/', 'Home page (hero, featured projects, services, FAQ)'],
+    ['/about', 'About the studio and its founder'],
+    ['/works', 'Portfolio / projects listing'],
+    ['/services', 'All services listing'],
+    ['/contact-us', 'Contact page with enquiry form'],
+    ['/privacy-policy', 'Privacy policy'],
+    ['/terms-conditions', 'Terms and conditions']
+  ];
+  const absent = [];
+
+  if (testimonials.length) routes.push(['/testimonials', `Client testimonials (${testimonials.length} published)`]);
+  else absent.push('/testimonials — there are NO published testimonials. The page does not exist and redirects to the home page. Never offer to show testimonials, client reviews, or "what clients say".');
+
+  if (blog.length) routes.push(['/blog', `Blog listing (${blog.length} posts)`]);
+  else absent.push('/blog — no published posts. Do not offer the blog.');
+
+  absent.push('/resume — retired, redirects to /about. Never link to it.');
+
+  if (works.length) routes.push(['/work/:slug', `Project detail. Live slugs: ${works.map(w => w.slug).filter(Boolean).join(', ')}`]);
+  if (services.length) routes.push(['/services/:slug', `Service detail. Live slugs: ${services.map(s => s.slug).filter(Boolean).join(', ')}`]);
+
+  return `SITE MAP (live — use ONLY these exact paths for navigation):
+${routes.map(([p, d]) => `  ${p} = ${d}`).join('\n')}
+
+NOT AVAILABLE — never mention, link to, or offer to show these:
+${absent.map(a => `  ${a}`).join('\n')}
+
+GUIDED TOUR STOPS (in order, and ONLY these):
+  ${buildTourStops(cms).join(' -> ')}
 
 WARNING: NEVER use .html extensions in URLs. /work.html does NOT exist. Use /works instead.
 WARNING: The works/portfolio page is /works (plural), NOT /work.
@@ -1601,28 +1653,27 @@ API ENDPOINTS:
 }
 
 async function getSiteKnowledge(query) {
-  // 1. Always include base site settings (small, constant cost)
-  const baseCtx = await new Promise((resolve) => {
-    db.all("SELECT key, value FROM settings", [], (err, settingsRows) => {
-      let ctx = "SITE KNOWLEDGE:\n";
-      if (settingsRows) {
-        const sets = settingsRows.reduce((acc, row) => ({ ...acc, [row.key]: row.value }), {});
-        ctx += `- Company: "${sets.company_name || sets.hero_headline || ''}". About: "${sets.about_hero_heading || ''}". Email: ${sets.contact_email || 'N/A'}. Phone: ${sets.contact_phone || 'N/A'}. WhatsApp: ${sets.social_whatsapp || sets.contact_whatsapp || 'N/A'}.\n`;
-      }
-      ctx += getSiteManifest() + '\n';
-      // Always include service & work titles (lightweight summary)
-      db.all("SELECT title FROM services", [], (err2, svcRows) => {
-        if (svcRows && svcRows.length) ctx += `- Services: ${svcRows.map(s => s.title).join(', ')}.\n`;
-        db.all("SELECT title, slug FROM works", [], (err3, wrkRows) => {
-          if (wrkRows && wrkRows.length) {
-             const links = wrkRows.map(w => w.slug ? `[${w.title}](/work/${w.slug})` : w.title);
-             ctx += `- Portfolio: ${links.join(', ')}.\n`;
-          }
-          resolve(ctx);
-        });
-      });
-    });
-  });
+  // Built from the shared CMS snapshot, so what Chaka knows and what the page
+  // renders come from one source and cannot drift apart.
+  const cms = await getCmsData();
+  const sets = cms.settings || {};
+  const founder = sets.founder_name || 'Emmanuel Ezinna Nweke';
+
+  let baseCtx = 'SITE KNOWLEDGE (live — reflects the site exactly as it is now):\n';
+  baseCtx += `- Company: ${sets.company_name || 'Jomiez Innovation'}. Founded and led by ${founder}, known as Templeton.\n`;
+  baseCtx += `- Contact: email ${sets.contact_email || 'N/A'}, phone ${sets.contact_phone || 'N/A'}, WhatsApp ${sets.social_whatsapp || sets.contact_whatsapp || 'N/A'}.\n`;
+  baseCtx += buildSiteManifest(cms) + '\n';
+
+  if (cms.services?.length) {
+    baseCtx += `- Services (${cms.services.length}): ${cms.services.map(s => s.title).join(', ')}.\n`;
+  }
+  if (cms.works?.length) {
+    baseCtx += `- Portfolio (${cms.works.length}): ${cms.works.map(w => w.slug ? `[${w.title}](/work/${w.slug})` : w.title).join(', ')}.\n`;
+  }
+  if (cms.faqs?.length) {
+    baseCtx += `- FAQs answered on the site: ${cms.faqs.map(f => f.question).join(' | ')}\n`;
+  }
+  baseCtx += `- Testimonials currently published: ${cms.testimonials?.length || 0}.\n`;
 
   // 2. If we have a query, use RAG to find the most relevant documents
   if (query && query.trim()) {
@@ -1650,6 +1701,33 @@ app.get('/api/chaka/knowledge', async (req, res) => {
     res.send(knowledge);
   } catch (e) {
     res.status(500).send('');
+  }
+});
+
+// Machine-readable view of the same live state, for the widget itself. The guided
+// tour used to walk a hardcoded list of stops that included sections no longer on
+// the page; it now takes its route from here, so removing something in /admin
+// removes it from the tour on the next cache cycle.
+app.get('/api/chaka/site-state', async (req, res) => {
+  try {
+    const cms = await getCmsData();
+    res.json({
+      tourStops: buildTourStops(cms),
+      counts: {
+        works: cms.works?.length || 0,
+        services: cms.services?.length || 0,
+        testimonials: cms.testimonials?.length || 0,
+        faqs: cms.faqs?.length || 0,
+        blog: cms.blog?.length || 0
+      },
+      workSlugs: (cms.works || []).map(w => w.slug).filter(Boolean),
+      serviceSlugs: (cms.services || []).map(s => s.slug).filter(Boolean),
+      // The stats stop used to narrate hardcoded figures. Sourcing them from the
+      // counters table means editing a counter in /admin changes what Chaka says.
+      stats: (cms.counters || []).map(c => `${c.value}${c.suffix || ''} ${c.label}`)
+    });
+  } catch (e) {
+    res.status(500).json({ tourStops: ['hero', 'about', 'services', 'works', 'contact'], counts: {} });
   }
 });
 
