@@ -472,7 +472,34 @@ function injectSEOMeta(html, meta, settings = {}, faqs = []) {
 // let admin writes bust it (see invalidatePageCache).
 const pageCache = new Map();
 const PAGE_CACHE_TTL_MS = 5 * 60 * 1000;
-function invalidatePageCache() { pageCache.clear(); }
+
+// One CMS snapshot shared by every consumer in a request.
+//
+// The database is remote (Neon/Supabase) and each round trip costs ~300ms. Before
+// this, a single page view issued up to 13 queries — renderPageBody fetched eight,
+// serveSEOPage fetched settings and faqs again, then three more for the schema
+// graph — and five of those still ran even when the rendered page was cached,
+// because they happened before the cache was consulted. That put ~2s of pure
+// database latency on every request. Now it is six queries once per TTL.
+let cmsCache = null;
+let cmsCacheAt = 0;
+
+async function getCmsData() {
+  if (cmsCache && Date.now() - cmsCacheAt < PAGE_CACHE_TTL_MS) return cmsCache;
+  const [settings, faqs, testimonials, works, services, brands, skills, counters] = await Promise.all([
+    getSettings(), getFaqs(), getTestimonials(), getWorks(), getServices(), getBrands(),
+    getSkills(), getCounters()
+  ]);
+  cmsCache = { settings, faqs, testimonials, works, services, brands, skills, counters };
+  cmsCacheAt = Date.now();
+  return cmsCache;
+}
+
+function invalidatePageCache() {
+  pageCache.clear();
+  cmsCache = null;
+  cmsCacheAt = 0;
+}
 
 // Any write through the admin API means the rendered pages are stale. Registered
 // here, above the /api routes, so it covers all of them without touching each one.
@@ -481,20 +508,15 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-async function renderPageBody(filePath) {
+async function renderPageBody(filePath, cms) {
   const cached = pageCache.get(filePath);
   if (cached && Date.now() - cached.at < PAGE_CACHE_TTL_MS) return cached.html;
 
   const raw = await fs.promises.readFile(filePath, 'utf8');
-  const [settings, faqs, testimonials, works, services, brands, skills, counters] = await Promise.all([
-    getSettings(), getFaqs(), getTestimonials(), getWorks(), getServices(), getBrands(),
-    getSkills(), getCounters()
-  ]);
-
   let html = raw;
   try {
     const isHome = path.basename(filePath) === 'home.html';
-    html = renderContent(raw, { settings, faqs, testimonials, works, services, brands, skills, counters, isHome }).html;
+    html = renderContent(raw, { ...cms, isHome }).html;
   } catch (err) {
     // Never let a render bug take the site down — fall back to the raw export.
     console.error('[SSR] renderContent failed for', filePath, '-', err.message);
@@ -504,8 +526,8 @@ async function renderPageBody(filePath) {
 }
 
 async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
-  const settings = await getSettings();
-  const faqs = await getFaqs();
+  const cms = await getCmsData();
+  const { settings, faqs } = cms;
   const host = siteHost(req);
 
   const meta = {
@@ -521,12 +543,13 @@ async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
   try {
     // Feed the real catalogue into the structured-data graph so services, projects
     // and any genuine testimonials are machine-readable, not just rendered text.
-    const [schemaServices, schemaWorks, schemaTestimonials] = await Promise.all([
-      getServices(), getWorks(), getTestimonials()
-    ]);
-    Object.assign(meta, { schemaServices, schemaWorks, schemaTestimonials });
+    Object.assign(meta, {
+      schemaServices: cms.services,
+      schemaWorks: cms.works,
+      schemaTestimonials: cms.testimonials
+    });
 
-    const html = await renderPageBody(filePath);
+    const html = await renderPageBody(filePath, cms);
     res.send(injectSEOMeta(html, meta, settings, faqs));
   } catch (err) {
     console.error('[serveSEOPage]', filePath, err.message);
