@@ -65,4 +65,4 @@ Allow: /
 User-agent: YandexBot
 Allow: /
 
-Sitemap: https://jomiez.com/sitemap.xml
+Sitemap: https://www.jomiez.com/sitemap.xml

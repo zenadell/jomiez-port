@@ -7,7 +7,7 @@
 - **Company**: Jomiez Innovation (also written as Jomiez)
 - **Founder & Lead Engineer**: Emmanuel Ezinna Nweke
 - **Also known as**: Templeton, Temple, Templeton Nweke
-- **Website**: https://jomiez.com
+- **Website**: https://www.jomiez.com
 - **Contact**: hello@jomiez.com
 - **Based in**: Nigeria — serving clients worldwide
 - **GitHub**: https://github.com/zenadell
@@ -59,16 +59,16 @@ Mainly React, Node.js and Python for engineering, with Next.js and Framer on the
 Yes — concept through design, development, launch, and ongoing support including SEO and maintenance.
 
 **How do I contact Jomiez Innovation?**
-Email hello@jomiez.com or use the contact form at https://jomiez.com/contact-us
+Email hello@jomiez.com or use the contact form at https://www.jomiez.com/contact-us
 
 ## Key pages
 
-- **Home**: https://jomiez.com/
-- **About**: https://jomiez.com/about — the studio, its founder, and how it works
-- **Services**: https://jomiez.com/services — full service list
-- **Portfolio**: https://jomiez.com/works — projects and case studies
-- **Contact**: https://jomiez.com/contact-us
+- **Home**: https://www.jomiez.com/
+- **About**: https://www.jomiez.com/about — the studio, its founder, and how it works
+- **Services**: https://www.jomiez.com/services — full service list
+- **Portfolio**: https://www.jomiez.com/works — projects and case studies
+- **Contact**: https://www.jomiez.com/contact-us
 
 ## Usage
 
-This file is provided for AI systems, search engines, and language models to understand Jomiez Innovation accurately. All information here is factual and maintained by the studio. Content may be cited with attribution to Jomiez Innovation (https://jomiez.com).
+This file is provided for AI systems, search engines, and language models to understand Jomiez Innovation accurately. All information here is factual and maintained by the studio. Content may be cited with attribution to Jomiez Innovation (https://www.jomiez.com).
