@@ -552,20 +552,24 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-async function renderPageBody(filePath, cms) {
-  const cached = pageCache.get(filePath);
+async function renderPageBody(filePath, cms, extra = {}) {
+  // Every project shares work-detail-page.html, so the cache key has to include
+  // which project is being rendered — otherwise the first one requested would be
+  // served for all nine.
+  const cacheKey = extra.work ? `${filePath}#${extra.work.slug || extra.work.id}` : filePath;
+  const cached = pageCache.get(cacheKey);
   if (cached && Date.now() - cached.at < PAGE_CACHE_TTL_MS) return cached.html;
 
   const raw = await fs.promises.readFile(filePath, 'utf8');
   let html = raw;
   try {
     const isHome = path.basename(filePath) === 'home.html';
-    html = renderContent(raw, { ...cms, isHome }).html;
+    html = renderContent(raw, { ...cms, ...extra, isHome }).html;
   } catch (err) {
     // Never let a render bug take the site down — fall back to the raw export.
     console.error('[SSR] renderContent failed for', filePath, '-', err.message);
   }
-  pageCache.set(filePath, { html, at: Date.now() });
+  pageCache.set(cacheKey, { html, at: Date.now() });
   return html;
 }
 
@@ -593,7 +597,7 @@ async function serveSEOPage(req, res, filePath, metaOverrides = {}) {
       schemaTestimonials: cms.testimonials
     });
 
-    const html = await renderPageBody(filePath, cms);
+    const html = await renderPageBody(filePath, cms, metaOverrides.work ? { work: metaOverrides.work } : {});
     res.send(injectSEOMeta(html, meta, settings, faqs));
   } catch (err) {
     console.error('[serveSEOPage]', filePath, err.message);
@@ -703,19 +707,22 @@ app.get('/privacy-policy', (req, res) => serveSEOPage(req, res, path.join(__dirn
   })));
 
 app.get('/work/:slug', async (req, res) => {
-  // Try to get the actual work details for dynamic meta
-  const work = await new Promise((resolve) => {
-    db.get('SELECT * FROM works WHERE slug = ?', [req.params.slug], (err, row) => resolve(row || null));
-  });
+  // Read from the cached snapshot rather than a fresh query per request.
+  const cms = await getCmsData();
+  const work = (cms.works || []).find(w => w.slug === req.params.slug) || null;
+  if (!work) return res.redirect(302, '/works');
 
-  const title = work ? `${work.title} — Project Case Study | Jomiez Innovation` : 'Project Details — Portfolio | Jomiez Innovation';
-  const description = work ? (work.description || '').substring(0, 160) + ' — A project by Jomiez Innovation.' : 'Detailed case study of a project by Jomiez Innovation. See our approach, technologies used, and results delivered.';
+  const title = `${work.title} — Project Case Study | Jomiez Innovation`;
+  const description = ((work.description || '').substring(0, 155) + ' — A project by Jomiez Innovation.').trim();
 
   serveSEOPage(req, res, path.join(__dirname, 'work-detail-page', 'work-detail-page.html'), {
     title,
     description,
-    image: work ? work.thumbnail_url : '',
-    keywords: `${work ? work.title : 'project'}, case study, portfolio, Jomiez Innovation, software development, web development`
+    image: work.thumbnail_url || '',
+    keywords: `${work.title}, ${work.category || 'project'}, case study, portfolio, Jomiez Innovation`,
+    // Passing the record through renders the write-up into the HTML instead of
+    // leaving it to client-side hydration.
+    work
   });
 });
 
