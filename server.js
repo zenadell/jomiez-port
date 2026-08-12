@@ -257,11 +257,9 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Global API Protection for mutations
-app.use('/api', (req, res, next) => {
-    if (req.method === 'GET' || ['/login', '/check-auth', '/logout', '/contact', '/chaka/chat_text'].includes(req.path)) return next();
-    if (req.session.user) return next();
-    res.status(401).json({ error: 'Unauthorized' });
-});
+// (An older /api gate lived here. It allowed every GET through, which is exactly
+// how /api/leads and /api/apikeys ended up world-readable. The gate above replaces
+// it and is allowlist-based in both directions.)
 
 // --- SEO: Server-Side Meta Tag Injection ---
 // Injects real title, description, OG tags, canonical URL, and keywords into HTML before serving
@@ -1462,8 +1460,18 @@ app.post('/api/resume/upload', upload.single('file'), (req, res) => {
 app.get('/api/status', (req, res) => res.json({ status: 'running', database: 'sqlite' }));
 
 // CHAKA BIDI TOOL EXECUTION ENDPOINT
+// This endpoint dispatches BOTH visitor tools and admin write tools, so it cannot
+// be public or private wholesale — it has to be gated per tool. Anything not named
+// here needs an admin session; a new admin tool is therefore locked by default.
+const VISITOR_TOOLS = new Set(['matchProjects', 'captureLead', 'saveUserInsight']);
+
 app.post('/api/chaka/execute_tool', async (req, res) => {
   const { name, args } = req.body;
+
+  if (!VISITOR_TOOLS.has(name) && !req.session.user) {
+    console.warn(`[execute_tool] Blocked unauthenticated call to admin tool "${name}"`);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   if (name === 'updateSiteSetting') {
     const { key, value } = args;
@@ -1605,10 +1613,15 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
 
       try {
         const hits = await searchVectorDB(brief, db, 6);
-        const wanted = hits
-          .filter(h => h.item?.metadata?.type === 'work')
-          .map(h => String(h.item.metadata.title || '').toLowerCase());
-        matched = works.filter(w => wanted.includes(String(w.title).toLowerCase()));
+        // Walk the HITS in order and resolve each to a project. Filtering the works
+        // table by the hit set instead returns them in table order, which put the
+        // same project first for every brief regardless of relevance.
+        const byTitle = new Map(works.map(w => [String(w.title).toLowerCase(), w]));
+        for (const h of hits) {
+          if (h.item?.metadata?.type !== 'work') continue;
+          const w = byTitle.get(String(h.item.metadata.title || '').toLowerCase());
+          if (w && !matched.find(m => m.id === w.id)) matched.push(w);
+        }
       } catch (e) {
         console.warn('[matchProjects] vector search unavailable:', e.message);
       }

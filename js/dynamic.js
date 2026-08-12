@@ -2797,6 +2797,12 @@ CORE CAPABILITIES:
    THE VISITOR IS ALWAYS IN CONTROL. The moment they signal they want out — "stop", "skip", "I've seen this", "I already know the site", "just take me to X", or any request that isn't about the current stop — call endTour FIRST, then do what they asked. Never talk them back into the tour, never resume it afterwards, and never treat "keep the flow moving" as a reason to override a direct request. Being unstoppable is not confidence, it is a bad guide.
    Only visit stops listed under GUIDED TOUR STOPS in the site knowledge. That list is generated from the live site; a section missing from it is not on the site any more, so never announce or navigate to it.
 8. THEME CONTROL: Use toggleTheme to switch between dark and light modes on command.
+9. TURNING INTEREST INTO WORK — this is the job that matters:
+   - The moment a visitor mentions what they are building, what industry they are in, or a problem they have, call matchProjects with their own words. Then name the one or two closest projects and say in a clause why each is relevant. Showing them something real that was already built is the entire argument for hiring Jomiez; a generic list of services is not.
+   - Ask ONE useful question at a time, the way a person would: what they are building, who it is for, roughly when they need it. Never fire off a form's worth of questions, and never ask for a budget before you have shown them anything.
+   - When you have a name and any way to reach them, call captureLead quietly in the background. Never invent a detail to fill a field — capture only what they actually said.
+   - When they ask about hiring, pricing or timelines, or say they want to speak to someone, call handoffToWhatsApp and write their brief for them in their own voice, first person. They should arrive in WhatsApp with the message already written and only need to press send.
+   - Be honest about cost and time: you do not know their price. Say the team will confirm scope and cost, and get them to a human. Inventing a number to seem helpful loses the job later.
 
 INTELLIGENCE PROTOCOLS:
 - ANTICIPATE NEEDS: If someone asks about a project, proactively offer to show it. If they seem interested in hiring, guide them toward contact.
@@ -2891,6 +2897,21 @@ Current Time: ${new Date().toLocaleTimeString()}`
                                 name: "guidedTour",
                                 description: "Navigate to and highlight one guided-tour stop. Opens the real page when needed: about/stats -> /about, services -> /services, works -> /works, contact -> /contact-us. Call it for one stop, narrate that visible stop briefly, then stop. The system auto-cues the next stop, so do not ask permission to continue. Only use stops listed as available in the site knowledge — never a section that is not on the live site.",
                                 parameters: { type: "OBJECT", properties: { section: { type: "STRING", description: "The stop to show. Use only stops listed under GUIDED TOUR STOPS in the site knowledge." } }, required: ["section"] }
+                            },
+                            {
+                                name: "matchProjects",
+                                description: "Given what the visitor says they want built, find the projects in the real portfolio that are closest to it. Call this as soon as they describe a project, an industry, or a problem — before offering anything generic. Returns 2-3 projects with titles and URLs.",
+                                parameters: { type: "OBJECT", properties: { brief: { type: "STRING", description: "The visitor's description of what they want, in their own words." } }, required: ["brief"] }
+                            },
+                            {
+                                name: "captureLead",
+                                description: "Save a prospective client into the CRM. Call this once you have a name and any way to reach them (email or phone) plus a sense of what they want. Do not interrogate — capture what you already have from the conversation. Never invent details.",
+                                parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, email: { type: "STRING" }, project_scope: { type: "STRING", description: "What they want built, in one or two sentences." }, budget: { type: "STRING", description: "Only if they mentioned one." } }, required: ["name", "project_scope"] }
+                            },
+                            {
+                                name: "handoffToWhatsApp",
+                                description: "Open WhatsApp with the visitor's brief already written out, so they do not have to retype it. Use when they want to talk to a human, ask about hiring, pricing or timelines, or when the conversation is ready to become a real enquiry. Write the summary in the VISITOR's voice, first person, as if they typed it.",
+                                parameters: { type: "OBJECT", properties: { summary: { type: "STRING", description: "The message, written as the visitor. e.g. 'Hi, I need a booking site for my clinic. I saw Job Foundry Hub on your site.'" } }, required: ["summary"] }
                             },
                             {
                                 name: "endTour",
@@ -3668,6 +3689,60 @@ Current Time: ${new Date().toLocaleTimeString()}`
                     console.log('[Chaka] AI triggered endSession — closing stream gracefully.');
                     this._pendingGoodbyeDisconnect = true;
                     result = { executed: true, action: 'session_ending' };
+                } else if (name === 'matchProjects') {
+                    // A visitor who describes their project and hears a generic pitch
+                    // leaves. Showing them the two closest things already built is the
+                    // whole argument for hiring.
+                    this.abortTour('visitor described a project');
+                    const r = await fetch('/api/chaka/execute_tool', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: 'matchProjects', args })
+                    }).then(x => x.json()).catch(() => ({ executed: false }));
+                    if (r.projects && r.projects.length) {
+                        this.lastMatchedProjects = r.projects;
+                        // Put the strongest match on screen while it is being described.
+                        const top = r.projects[0];
+                        if (top.url && window.location.pathname !== top.url) {
+                            this.softNavigate(top.url);
+                        }
+                    }
+                    result = r;
+                } else if (name === 'captureLead') {
+                    const r = await fetch('/api/chaka/execute_tool', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: 'captureLead', args })
+                    }).then(x => x.json()).catch(e => ({ executed: false, error: String(e) }));
+                    result = {
+                        ...r,
+                        instruction: 'Confirm briefly and naturally that you have their details and someone will follow up. Do not read the details back like a form.'
+                    };
+                } else if (name === 'handoffToWhatsApp') {
+                    // The point of difference: the visitor arrives in WhatsApp with their
+                    // brief already typed. Nobody re-explains themselves, and the enquiry
+                    // lands with context instead of "hi".
+                    // Same source showContactMethod uses, so there is one place the
+                    // number comes from and it stays whatever /admin says it is.
+                    const s = window.siteSettings || {};
+                    const digits = String(s.social_whatsapp || s.contact_whatsapp || '').replace(/[^\d]/g, '');
+                    const summary = (args.summary || '').trim();
+                    if (!digits) {
+                        result = { executed: false, reason: 'No WhatsApp number configured.', instruction: 'Offer the email address instead.' };
+                    } else {
+                        const url = `https://wa.me/${digits}?text=${encodeURIComponent(summary)}`;
+                        this.appendChatMessage('assistant', this.renderContactCard({
+                            url,
+                            label: 'Continue on WhatsApp',
+                            subtitle: 'Your message is already written',
+                            color: '#1da851',
+                            iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.8 14.2c-.2.7-1.2 1.3-2 1.4-.5.1-1.2.1-3.4-.8-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.2.1.4.1.5-.1l.7-.9c.2-.2.3-.2.6-.1l2 .9c.3.1.4.2.5.3.1.2.1.6-.1 1.2Z"/></svg>'
+                        }), true);
+                        result = {
+                            executed: true,
+                            instruction: 'Tell them in one sentence that you have written the message out for them and they just need to hit send. Do not read the message aloud.'
+                        };
+                    }
                 } else if (name === 'endTour') {
                     const wasActive = this.abortTour(args.reason || 'visitor asked to stop');
                     result = {
