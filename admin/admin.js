@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadTestimonials();
   loadLeads();
   loadMemory();
+  loadInbox();
+  // Keeps the red dot honest while the panel sits open on another tab.
+  setInterval(refreshInboxBadge, 60000);
 });
 
 let leadsCache = [];
@@ -991,6 +994,98 @@ function renderAnalytics() {
     lucide.createIcons();
 }
 
+
+// ── Inbox ─────────────────────────────────────────────────────────────────────
+let inboxCache = [];
+let inboxOpenId = null;
+
+async function loadInbox(sync) {
+  try {
+    const r = await (await fetch('/api/inbox' + (sync ? '?sync=1' : ''))).json();
+    inboxCache = r.messages || [];
+    window.__inboxConfigured = r.configured;
+    window.__inboxMissing = r.missing || [];
+    if (currentLeadTab === 'inbox') renderLeads();
+    refreshInboxBadge();
+  } catch (e) { console.error('inbox load failed', e); }
+}
+
+// Polled so a message arriving while another tab is open still surfaces.
+async function refreshInboxBadge() {
+  try {
+    const { unread } = await (await fetch('/api/inbox/unread-count')).json();
+    const b = document.getElementById('inbox-badge');
+    if (!b) return;
+    b.textContent = unread > 99 ? '99+' : String(unread);
+    b.style.display = unread > 0 ? 'inline-flex' : 'none';
+    // Mirror onto the Inbox tab so the count is visible once inside the panel too.
+    const t = document.getElementById('inbox-tab-count');
+    if (t) t.textContent = unread > 0 ? `(${unread > 99 ? '99+' : unread})` : '';
+  } catch (e) { /* badge is cosmetic; never block on it */ }
+}
+
+async function openInboxMessage(id) {
+  inboxOpenId = inboxOpenId === id ? null : id;
+  if (inboxOpenId) {
+    const m = inboxCache.find(x => x.id === id);
+    if (m && m.is_read === '0') {
+      m.is_read = '1';
+      fetch(`/api/inbox/${id}/read`, { method: 'POST' }).then(refreshInboxBadge);
+    }
+  }
+  renderLeads();
+}
+
+function renderInbox(container) {
+  if (!window.__inboxConfigured) {
+    container.innerHTML = `<div style="padding:20px;color:#ffb648;">
+      Inbox not connected — missing ${(window.__inboxMissing || []).join(', ')}.
+      Add these in Render and mail sent to hello@jomiez.com will appear here.
+    </div>`;
+    return;
+  }
+  const unread = inboxCache.filter(m => m.is_read === '0').length;
+  container.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+      <strong style="color:#00e0ff;">Inbox</strong>
+      <span style="color:#777;font-size:12px;">${inboxCache.length} messages · ${unread} unread</span>
+      <span style="flex:1"></span>
+      <button class="btn btn-sm btn-outline" onclick="loadInbox(true)">Check for new mail</button>
+    </div>` + (inboxCache.length ? inboxCache.map(m => {
+      const open = inboxOpenId === m.id;
+      const isUnread = m.is_read === '0';
+      return `
+      <div class="work-item" style="display:block;padding:14px;border:1px solid ${isUnread ? '#00e0ff44' : '#333'};
+           margin-bottom:10px;background:${isUnread ? 'rgba(0,224,255,.04)' : 'transparent'};cursor:pointer;"
+           onclick="openInboxMessage(${m.id})">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <div style="min-width:0;">
+            <div style="color:${isUnread ? '#fff' : '#bbb'};font-weight:${isUnread ? '700' : '500'};">
+              ${isUnread ? '<span style="color:#ff3b3b;">●</span> ' : ''}${m.subject || '(no subject)'}
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:2px;">
+              ${m.from_name || ''} &lt;${m.from_email || 'unknown'}&gt;
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            ${m.triage_verdict === 'junk'
+              ? '<span style="background:rgba(255,107,107,.12);color:#ff6b6b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">Likely junk</span>'
+              : ''}
+            <div style="font-size:11px;color:#555;margin-top:4px;">
+              ${m.received_at ? new Date(m.received_at).toLocaleString() : ''}
+            </div>
+          </div>
+        </div>
+        ${open ? `<pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;color:#ddd;
+          margin-top:12px;padding-top:12px;border-top:1px solid #333;">${
+            (m.body || '(empty message)').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;')
+          }</pre>` : `<div style="font-size:12px;color:#666;margin-top:6px;">
+            ${String(m.body || '').replace(/\s+/g, ' ').slice(0, 110)}… <span style="color:#00e0ff;">click to read</span>
+          </div>`}
+      </div>`;
+    }).join('') : `<p style="color:var(--text-muted);padding:20px;text-align:center">No mail yet. Hit "Check for new mail".</p>`);
+}
+
 function leadBadge(triage) {
   if (!triage) return '';
   const map = {
@@ -1006,6 +1101,8 @@ function leadBadge(triage) {
 function renderLeads() {
   const container = document.getElementById('leads-container');
   if (!container) return;
+
+  if (currentLeadTab === 'inbox') { renderInbox(container); return; }
 
   if (currentLeadTab === 'memory') {
     const data = memoryCache;

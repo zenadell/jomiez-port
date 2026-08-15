@@ -114,8 +114,23 @@
         <i data-lucide="cpu" class="nav-icon"></i> Agent Console
       </div>
       <div class="nav-item" onclick="showSection('leads')">
-        <i data-lucide="brain-circuit" class="nav-icon"></i> AI Insights & Leads
+        <i data-lucide="brain-circuit" class="nav-icon"></i> AI Insights &amp; Leads
+        <!-- Unread badge. Sits on the nav, not inside the panel, so it is visible
+             from any other tab — otherwise a new enquiry goes unnoticed until the
+             panel happens to be open. -->
+        <span id="inbox-badge" style="display:none;margin-left:auto;background:#ff3b3b;color:#fff;
+          font-size:11px;font-weight:800;min-width:18px;height:18px;border-radius:9px;
+          padding:0 5px;align-items:center;justify-content:center;
+          box-shadow:0 0 0 0 rgba(255,59,59,.7);animation:inboxPulse 2s infinite;"></span>
       </div>
+      <style>
+        @keyframes inboxPulse {
+          0%   { box-shadow: 0 0 0 0 rgba(255,59,59,.65); }
+          70%  { box-shadow: 0 0 0 8px rgba(255,59,59,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,59,59,0); }
+        }
+        @media (prefers-reduced-motion: reduce) { #inbox-badge { animation: none; } }
+      </style>
       <div class="nav-item" onclick="showSection('resume')">
         <i data-lucide="file-text" class="nav-icon"></i> My Resume / CV
       </div>
@@ -436,6 +451,7 @@
           <p class="logo-sub" style="margin-bottom:20px;">Insights and inquiries Chaka has autonomously harvested from your visitors.</p>
           <div class="tabs">
             <button class="btn btn-outline active" onclick="switchLeadTab('leads')">Inquiries (Leads)</button>
+            <button class="btn btn-outline" onclick="switchLeadTab('inbox')">Inbox<span id="inbox-tab-count" style="margin-left:6px;color:#ff3b3b;font-weight:800;"></span></button>
             <button class="btn btn-outline" onclick="switchLeadTab('memory')">AI Memories (Insights)</button>
             <button class="btn btn-outline" onclick="switchLeadTab('analytics')">Visitor Insights</button>
           </div>

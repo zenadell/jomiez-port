@@ -19,6 +19,7 @@ const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
+const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
@@ -1426,6 +1427,62 @@ app.post('/api/upload', (req, res, next) => {
 });
 
 // CLIENT LEADS & AI MEMORY API
+// ── Inbox ─────────────────────────────────────────────────────────────────────
+// Mail sent to hello@jomiez.com, readable inside the admin panel so there is no
+// second webmail to keep open. Pulled over IMAP from the existing Hostinger
+// mailbox rather than redirected, so no DNS changes and no risk to delivery.
+async function syncInbox() {
+  const r = await fetchInbox(60);
+  if (!r.ok) return r;
+
+  let added = 0;
+  for (const m of r.messages) {
+    const exists = await new Promise((resolve) =>
+      db.get('SELECT id FROM inbox_messages WHERE uid = ?', [m.uid], (e, row) => resolve(!!row)));
+    if (exists) continue;
+
+    // Same triage as leads: cold pitches sort away from real enquiries.
+    const verdict = scoreLead({
+      name: m.from_name, email: m.from_email, project_scope: `${m.subject}\n${m.body}`
+    }).verdict;
+
+    await new Promise((resolve) => db.run(
+      `INSERT INTO inbox_messages (uid, subject, from_name, from_email, body, received_at, is_read, triage_verdict, fetched_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [m.uid, m.subject, m.from_name, m.from_email, m.body, m.received_at,
+       m.seen ? '1' : '0', verdict, new Date().toISOString()], () => resolve()));
+    added++;
+  }
+  return { ok: true, added, total: r.messages.length };
+}
+
+app.get('/api/inbox', async (req, res) => {
+  try {
+    if (req.query.sync === '1') await syncInbox();
+    db.all('SELECT * FROM inbox_messages ORDER BY received_at DESC LIMIT 100', [], (e, rows) => {
+      if (e) return res.status(500).json({ error: e.message });
+      res.json({ configured: inboxConfigured(), missing: missingInboxConfig(), messages: rows || [] });
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Drives the red dot on the nav. Cheap enough to poll.
+app.get('/api/inbox/unread-count', (req, res) => {
+  db.get("SELECT COUNT(*)::int AS n FROM inbox_messages WHERE is_read = '0'", [], (e, row) => {
+    if (e) return res.json({ unread: 0 });
+    res.json({ unread: (row && row.n) || 0 });
+  });
+});
+
+app.post('/api/inbox/:id/read', (req, res) => {
+  db.run("UPDATE inbox_messages SET is_read = '1' WHERE id = ?", [req.params.id], (e) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json({ ok: true });
+  });
+});
+
 // ── Lead reply drafting ───────────────────────────────────────────────────────
 // Three modes, stored in settings as lead_reply_mode:
 //   manual — no drafting; you write it yourself in the panel
