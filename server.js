@@ -17,6 +17,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const db = require('./lib/supabaseAdapter');
 const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
+const { scoreLead } = require('./lib/leadTriage');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
@@ -247,8 +248,11 @@ app.post('/api/contact', async (req, res) => {
     const name = `${firstName || ''} ${lastName || ''}`.trim();
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const country = await getCountryFromIP(ip);
-    db.run(`INSERT INTO client_leads (name, email, project_scope, country, ip_address) VALUES (?, ?, ?, ?, ?)`,
-        [name || 'Anonymous', email, message || subject || 'Direct Contact Form', country, ip],
+    // created_at was never written, so every lead rendered as 1/1/1970 in the admin.
+    // The live table has created_at TEXT with no default; the CREATE TABLE in this
+    // file declares a different column and never ran, because the table pre-existed.
+    db.run(`INSERT INTO client_leads (name, email, project_scope, country, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        [name || 'Anonymous', email, message || subject || 'Direct Contact Form', country, ip, new Date().toISOString()],
         (err) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true, message: 'Message sent successfully!' });
@@ -1421,10 +1425,122 @@ app.post('/api/upload', (req, res, next) => {
 });
 
 // CLIENT LEADS & AI MEMORY API
+// ── Lead reply drafting ───────────────────────────────────────────────────────
+// Three modes, stored in settings as lead_reply_mode:
+//   manual — no drafting; you write it yourself in the panel
+//   semi   — Chaka drafts, it waits in the queue for you to approve  (default)
+//   auto   — Chaka drafts and sends without asking
+//
+// Default is semi deliberately. In auto, a model is writing to a stranger in your
+// name about work you will be held to; there is no undo on a sent email. Auto also
+// refuses anything triage does not rate genuine, because replying to a scraped
+// address confirms it is live and multiplies the spam.
+async function draftLeadReply(lead) {
+  const cms = await getCmsData();
+  const s = cms.settings || {};
+  const triage = scoreLead(lead);
+
+  const keys = await new Promise((resolve) => {
+    db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active IS NULL OR is_active IN ('1','true','t','yes')) ORDER BY id ASC",
+      [], (e, r) => resolve(e || !r ? [] : r.map(x => x.api_key)));
+  });
+  if (!keys.length) throw new Error('No active Gemini key configured.');
+
+  const portfolio = (cms.works || []).slice(0, 9)
+    .map(w => `- ${w.title}: ${(w.description || '').slice(0, 120)}`).join('\n');
+
+  const prompt = `You are writing a reply on behalf of ${s.founder_name || 'Emmanuel Ezinna Nweke'} (Templeton), founder of Jomiez Innovation, a software studio.
+
+A prospective client sent this enquiry:
+  Name: ${lead.name || 'Unknown'}
+  Email: ${lead.email || 'not given'}
+  Budget mentioned: ${lead.budget || 'none'}
+  Their message: "${lead.project_scope || ''}"
+
+Relevant work you can reference (only these — do not invent projects):
+${portfolio}
+
+Write a short reply email. Rules, in order of importance:
+1. NEVER quote a price, a rate, a timeline, or a delivery date. You do not know them. Say the team will confirm scope and cost after a short conversation.
+2. Never invent a project, a client name, a credential, or a past result. Reference only the work listed above.
+3. Reference ONE relevant project by name, in one clause, and only if it genuinely fits what they asked for.
+4. Ask at most ONE clarifying question — the single most useful thing you do not know.
+5. Invite them to continue on WhatsApp (${s.social_whatsapp || s.contact_whatsapp || 'WhatsApp'}), and say email is fine if they prefer.
+6. Plain text. No markdown, no bold, no bullet points. Six sentences maximum.
+7. Warm and direct. No "I hope this email finds you well". No hard selling.
+
+Return strictly this JSON and nothing else:
+{"subject": "...", "body": "..."}`;
+
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  // gemini-2.0-flash is retired and 404s; the "-latest" aliases move with Google so
+  // a future retirement can't silently break lead replies the way that one did.
+  // Flash models also return 503 under load, which is transient — fall through the
+  // list and across keys rather than dropping a real enquiry on the floor.
+  const MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+  const client = new GoogleGenerativeAI(keys[0]);
+  let out = null, lastErr = null;
+  for (const name of MODELS) {
+    try {
+      out = (await client.getGenerativeModel({ model: name }).generateContent(prompt)).response.text();
+      break;
+    } catch (err) {
+      lastErr = err;
+      const transient = /50\d|overload|high demand|quota|rate/i.test(err.message || '');
+      console.warn(`[leads/draft] ${name} failed (${transient ? 'transient' : 'hard'}): ${err.message.slice(0, 90)}`);
+      if (!transient && !/404|not available/i.test(err.message || '')) break;
+    }
+  }
+  if (out === null) throw new Error(`All models failed. Last: ${lastErr && lastErr.message}`);
+
+  let parsed;
+  try {
+    parsed = JSON.parse(out.replace(/^```(?:json)?|```$/gm, '').trim());
+  } catch (e) {
+    parsed = { subject: `Re: your enquiry`, body: out.trim() };
+  }
+  return { ...parsed, triage };
+}
+
+app.post('/api/leads/:id/draft', async (req, res) => {
+  try {
+    const lead = await new Promise((resolve) =>
+      db.get('SELECT * FROM client_leads WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+
+    const mode = (await getCmsData()).settings?.lead_reply_mode || 'semi';
+    if (mode === 'manual') {
+      return res.json({ mode, drafted: false, reason: 'Reply mode is manual — write it yourself below.' });
+    }
+
+    const draft = await draftLeadReply(lead);
+    await new Promise((resolve, reject) =>
+      db.run(`INSERT INTO lead_replies (lead_id, subject, body, status, mode, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        [lead.id, draft.subject, draft.body, 'draft', mode, new Date().toISOString()],
+        (e) => e ? reject(e) : resolve()));
+
+    res.json({ mode, drafted: true, subject: draft.subject, body: draft.body, triage: draft.triage });
+  } catch (e) {
+    console.error('[leads/draft]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/leads/:id/replies', (req, res) => {
+  db.all('SELECT * FROM lead_replies WHERE lead_id = ? ORDER BY id DESC', [req.params.id], (e, r) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json(r || []);
+  });
+});
+
 app.get('/api/leads', (req, res) => {
-  db.all('SELECT * FROM client_leads ORDER BY created_at DESC', [], (err, rows) => {
+  // Order by id: created_at is TEXT and was null on older rows, so sorting by it
+  // put undated leads in an arbitrary place.
+  db.all('SELECT * FROM client_leads ORDER BY id DESC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
+    // Attach triage so the panel can separate real enquiries from cold pitches,
+    // and so nothing automated ever answers a scraped address.
+    res.json((rows || []).map(r => ({ ...r, triage: scoreLead(r) })));
   });
 });
 
@@ -1671,7 +1787,11 @@ app.post('/api/chaka/execute_tool', async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const country = await getCountryFromIP(ip);
 
-    db.run(`INSERT INTO client_leads (name, email, project_scope, budget, country, ip_address) VALUES (?, ?, ?, ?, ?, ?)`, [cName, email, project_scope, budget || 'Unknown', country, ip], function (err) {
+    // Budgets were being stored as ",000 - ,000" — the currency symbol lost somewhere
+    // upstream, which makes the number meaningless. Keep whatever was said verbatim.
+    const cleanBudget = (budget && String(budget).trim()) || 'Unknown';
+    db.run(`INSERT INTO client_leads (name, email, project_scope, budget, country, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [cName, email, project_scope, cleanBudget, country, ip, new Date().toISOString()], function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ executed: true, _action: "Lead Securely Added to CRM Database!" });
     });
