@@ -35,6 +35,9 @@ let leadsCache = [];
 let memoryCache = [];
 let analyticsCache = null;
 let currentLeadTab = 'leads';
+// Which lead folder is showing. Junk is a view, not a deletion — the scoring is
+// conservative on purpose, so anything it misjudges stays reachable.
+let leadsShowJunk = false;
 
 // Setup navigation
 function showSection(id) {
@@ -988,37 +991,25 @@ function renderAnalytics() {
     lucide.createIcons();
 }
 
+function leadBadge(triage) {
+  if (!triage) return '';
+  const map = {
+    junk:    ['#ff6b6b', 'rgba(255,107,107,.12)', 'Likely junk'],
+    unsure:  ['#ffb648', 'rgba(255,182,72,.12)', 'Unsure'],
+    genuine: ['#35c66b', 'rgba(53,198,107,.12)', 'Genuine']
+  };
+  const [c, bg, label] = map[triage.verdict] || map.unsure;
+  return `<span title="${(triage.reasons || []).join('; ').replace(/"/g, '&quot;')}"
+    style="background:${bg};color:${c};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">${label}</span>`;
+}
+
 function renderLeads() {
   const container = document.getElementById('leads-container');
   if (!container) return;
-  const data = currentLeadTab === 'leads' ? leadsCache : memoryCache;
 
-  if (data.length === 0) {
-    container.innerHTML = `<p style="color:var(--text-muted);padding:20px;text-align:center">No ${currentLeadTab} stored yet.</p>`;
-    return;
-  }
-
-  if (currentLeadTab === 'leads') {
-    container.innerHTML = data.map(l => `
-      <div class="work-item" style="padding:15px; border:1px solid #333; margin-bottom:10px;">
-        <div class="work-info">
-          <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div class="work-title" style="color:#00e0ff;">${l.name || 'Anonymous'}</div>
-            <div style="background:rgba(0,224,255,0.1); color:#00e0ff; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">
-                ${l.country === 'Localhost' ? '🏠 Localhost' : l.country || 'Global'}
-            </div>
-          </div>
-          <div style="font-size:12px; color:#aaa;">${l.email} | Budget: ${l.budget}</div>
-          <p style="margin-top:8px; font-size:13px;">${l.project_scope}</p>
-          <div style="font-size:11px; color:#555; margin-top:5px;">Captured: ${new Date(l.created_at).toLocaleString()} | IP: ${l.ip_address || 'Hidden'}</div>
-        </div>
-        <div class="work-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteLead(${l.id})">Delete</button>
-        </div>
-      </div>
-    `).join('');
-  } else {
-    container.innerHTML = data.map(m => `
+  if (currentLeadTab === 'memory') {
+    const data = memoryCache;
+    container.innerHTML = data.length ? data.map(m => `
       <div class="work-item" style="padding:15px; border:1px solid #333; margin-bottom:10px;">
         <div class="work-info">
           <div class="work-title" style="color:#ff00ff;">[${m.insight_type.toUpperCase()}] ${m.key}</div>
@@ -1028,8 +1019,140 @@ function renderLeads() {
         <div class="work-actions">
           <button class="btn btn-danger btn-sm" onclick="deleteMemory(${m.id})">Delete</button>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('') : `<p style="color:var(--text-muted);padding:20px;text-align:center">No memory stored yet.</p>`;
+    return;
+  }
+
+  // Cold SEO pitches are separated from real enquiries rather than deleted — the
+  // scoring is deliberately conservative, so anything it gets wrong stays reachable.
+  const inbox = leadsCache.filter(l => (l.triage || {}).verdict !== 'junk');
+  const junk  = leadsCache.filter(l => (l.triage || {}).verdict === 'junk');
+  const showing = leadsShowJunk ? junk : inbox;
+
+  const tabs = `
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+      <button class="btn btn-sm ${leadsShowJunk ? 'btn-outline' : ''}" onclick="setLeadFolder(false)">Inbox (${inbox.length})</button>
+      <button class="btn btn-sm ${leadsShowJunk ? '' : 'btn-outline'}" onclick="setLeadFolder(true)">Junk (${junk.length})</button>
+      <span style="flex:1"></span>
+      <span id="mail-status" style="font-size:11px;color:#777;"></span>
+    </div>`;
+
+  const list = showing.length ? showing.map(l => {
+    const dated = l.created_at && l.created_at !== 'unknown'
+      ? new Date(l.created_at).toLocaleString()
+      : 'date not recorded';
+    const scope = String(l.project_scope || '');
+    const isLong = scope.length > 220;
+    return `
+      <div class="work-item" style="padding:15px; border:1px solid #333; margin-bottom:10px; display:block;">
+        <div style="display:flex; justify-content:space-between; align-items:start; gap:10px;">
+          <div class="work-title" style="color:#00e0ff;">${l.name || 'Anonymous'}</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            ${leadBadge(l.triage)}
+            <span style="background:rgba(0,224,255,0.1); color:#00e0ff; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">
+              ${l.country === 'Localhost' ? 'Localhost' : (l.country || 'Global')}
+            </span>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#aaa; margin-top:4px;">${l.email || 'no email'} | Budget: ${l.budget || 'not given'}</div>
+
+        <p id="scope-${l.id}" style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${
+          isLong ? scope.slice(0, 220) + '…' : scope
+        }</p>
+        ${isLong ? `<button class="btn btn-sm btn-outline" onclick="toggleLeadFull(${l.id})" id="toggle-${l.id}">View full message</button>` : ''}
+
+        <div style="font-size:11px; color:#555; margin-top:6px;">Captured: ${dated} | IP: ${l.ip_address || 'Hidden'}</div>
+
+        <div id="reply-${l.id}" style="margin-top:12px;"></div>
+
+        <div class="work-actions" style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="draftReply(${l.id})">Draft reply</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteLead(${l.id})">Delete</button>
+        </div>
+      </div>`;
+  }).join('') : `<p style="color:var(--text-muted);padding:20px;text-align:center">Nothing in ${leadsShowJunk ? 'junk' : 'the inbox'}.</p>`;
+
+  container.innerHTML = tabs + list;
+  refreshMailStatus();
+}
+
+function setLeadFolder(showJunk) { leadsShowJunk = showJunk; renderLeads(); }
+
+// The preview truncates so the list stays scannable; this reveals the rest in
+// place. Previously a long enquiry could only be read by querying the database.
+function toggleLeadFull(id) {
+  const lead = leadsCache.find(l => l.id === id);
+  const el = document.getElementById('scope-' + id);
+  const btn = document.getElementById('toggle-' + id);
+  if (!lead || !el) return;
+  const full = String(lead.project_scope || '');
+  const expanded = el.dataset.expanded === '1';
+  el.textContent = expanded ? full.slice(0, 220) + '…' : full;
+  el.dataset.expanded = expanded ? '0' : '1';
+  if (btn) btn.textContent = expanded ? 'View full message' : 'Show less';
+}
+
+async function refreshMailStatus() {
+  const el = document.getElementById('mail-status');
+  if (!el) return;
+  try {
+    const s = await (await fetch('/api/leads/mail-status')).json();
+    el.textContent = s.configured
+      ? `Sending as ${s.from} · mode: ${s.mode}`
+      : `Email not configured — missing ${(s.missing || []).join(', ')}`;
+    el.style.color = s.configured ? '#35c66b' : '#ffb648';
+  } catch (e) { el.textContent = ''; }
+}
+
+async function draftReply(id) {
+  const box = document.getElementById('reply-' + id);
+  if (!box) return;
+  box.innerHTML = `<div style="color:#888;font-size:12px;">Drafting…</div>`;
+  try {
+    const r = await (await fetch(`/api/leads/${id}/draft`, { method: 'POST' })).json();
+    if (!r.drafted) {
+      box.innerHTML = `<div style="color:#ffb648;font-size:12px;">${r.reason || r.error || 'Could not draft.'}</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div style="border:1px solid #333;border-radius:8px;padding:12px;background:#0d0d0f;">
+        <input id="subj-${id}" value="${String(r.subject).replace(/"/g, '&quot;')}"
+          style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
+        <textarea id="body-${id}" rows="9"
+          style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;">${r.body}</textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+          <button class="btn btn-sm" onclick="sendReply(${id})">Approve &amp; send</button>
+          <button class="btn btn-sm btn-outline" onclick="draftReply(${id})">Redraft</button>
+          <span style="font-size:11px;color:#777;">Edit anything before sending — your version is what goes out.</span>
+        </div>
+      </div>`;
+  } catch (e) {
+    box.innerHTML = `<div style="color:#ff6b6b;font-size:12px;">${e.message}</div>`;
+  }
+}
+
+async function sendReply(id, force) {
+  const subject = document.getElementById('subj-' + id).value;
+  const body = document.getElementById('body-' + id).value;
+  const box = document.getElementById('reply-' + id);
+  const res = await fetch(`/api/leads/${id}/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, body, force: !!force })
+  });
+  const r = await res.json();
+  if (res.status === 409) {
+    // Triage thinks this is cold outreach. Say so plainly and let the owner override.
+    if (confirm(`This looks like junk, not a client:\n\n${(r.triage.reasons || []).join('\n')}\n\nSend anyway?`)) {
+      return sendReply(id, true);
+    }
+    return;
+  }
+  if (r.sent) {
+    box.innerHTML = `<div style="color:#35c66b;font-size:12px;">Sent.</div>`;
+    showToast('Reply sent.');
+  } else {
+    box.innerHTML = `<div style="color:#ffb648;font-size:12px;">Not sent: ${r.reason || r.error}</div>`;
   }
 }
 
