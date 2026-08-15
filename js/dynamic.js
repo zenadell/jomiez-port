@@ -2785,6 +2785,7 @@ PERSONALITY & VOICE:
 - Use the visitor's name if they share it. Remember everything they tell you within this session
 
 ${this.siteKnowledge}
+${this.buildSessionRecap()}
 
 CORE CAPABILITIES:
 1. SITE NAVIGATION: Use navigate_to to move between pages. Use scroll_to to jump to sections — supports 'top', 'bottom', 'hero', 'about', 'stats', 'services', 'works', 'testimonials', 'faq', 'contact', 'footer'.
@@ -2931,6 +2932,35 @@ Current Time: ${new Date().toLocaleTimeString()}`
         }
 
         // Issue #3: Immediately greet the user based on time of day (or welcome back)
+        // Replays the recent conversation into the new session.
+        //
+        // The 24h store already existed, but nothing was ever handed to the model:
+        // reconnecting started a blank session whose only trace of the past was a
+        // 200-character blurb inside the greeting prompt. So if a call dropped —
+        // or the visitor hung up and came straight back — Chaka reintroduced
+        // herself and asked what they needed, having just been told.
+        buildSessionRecap() {
+            const history = Array.isArray(this.conversationHistory) ? this.conversationHistory : [];
+            if (!history.length) return '';
+
+            // Last 12 turns is enough to carry the thread without bloating every
+            // session's system prompt with an entire afternoon of chat.
+            const recent = history.slice(-12).map(m => {
+                const who = m.role === 'user' ? 'Visitor' : 'You';
+                return `${who}: ${String(m.content || '').replace(/\s+/g, ' ').slice(0, 300)}`;
+            }).join('\n');
+
+            return `
+CONVERSATION ALREADY IN PROGRESS — this visitor is not new to you.
+You have been talking within the last 24 hours. The transcript below is what was
+already said. Continue from it. Do NOT reintroduce yourself, do NOT ask what they
+are looking for if they have already told you, and do NOT repeat a recommendation
+you have already made.
+
+${recent}
+END OF EARLIER TRANSCRIPT.`;
+        }
+
         sendGreeting() {
             if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
             const hour = new Date().getHours();
@@ -2943,9 +2973,16 @@ Current Time: ${new Date().toLocaleTimeString()}`
             const isReturning = (this.conversationHistory && this.conversationHistory.length > 0) || !!localStorage.getItem('chakaMemory');
             const lastTopic = isReturning ? this.conversationHistory.slice(-3).map(m => m.content).join(' ').substring(0, 200) : '';
 
+            // How long ago they were last here changes what the right greeting is:
+            // a dropped call needs "sorry, lost you there", not "welcome back".
+            const lastSeen = parseInt(localStorage.getItem('chakaLastActivity') || '0', 10);
+            const minutesAway = lastSeen ? Math.round((Date.now() - lastSeen) / 60000) : null;
+
             let greetingPrompt;
-            if (isReturning) {
-                greetingPrompt = `[SYSTEM: The user just reconnected or returned to the live voice session (you have conversed within the last 24 hours). DO NOT introduce yourself from scratch (DO NOT say "I am Chaka" or "Welcome to the portfolio"). Welcome them back warmly and briefly (e.g. "Welcome back! Ready to continue?" or "Hey again! What can we tackle next?"). Recent conversation context: "${lastTopic}". Keep it very short, natural, and human-like.]`;
+            if (isReturning && minutesAway !== null && minutesAway < 5) {
+                greetingPrompt = `[SYSTEM: The connection dropped or was ended moments ago (${minutesAway} minute(s)) and the visitor is back. The earlier transcript is in your instructions. Do NOT greet, do NOT introduce yourself, do NOT ask what they need. Acknowledge the blip in at most one short clause — "sorry, lost you there" — and carry straight on with exactly what you were discussing.]`;
+            } else if (isReturning) {
+                greetingPrompt = `[SYSTEM: The visitor is returning; you last spoke ${minutesAway !== null ? minutesAway + ' minutes' : 'recently'} ago and the earlier transcript is in your instructions. DO NOT introduce yourself and DO NOT ask what they are looking for if the transcript already says. Welcome them back in one short sentence that references what you were actually discussing, then continue.]`;
             } else {
                 greetingPrompt = `[SYSTEM: The user just connected to the live stream for the first time. It is currently ${timeContext} (${new Date().toLocaleTimeString()}). Greet them warmly and naturally based on the time of day, introduce yourself briefly as Chaka, and ask how you can help them today. Be conversational, warm, and human-like. Keep it short and inviting.]`;
             }

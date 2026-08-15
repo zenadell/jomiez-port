@@ -128,7 +128,7 @@ VOICE MODE & TOURS:
 """,
     capabilities=types.CapabilitiesConfig(enable_subagents=False),
     tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, endSession, highlightElement, guidedTour, toggleTheme],
-    model="gemini-3.1-flash-lite"
+    model="gemini-3.5-flash-lite"
 )
 
 captain_config = LocalAgentConfig(
@@ -141,7 +141,7 @@ You are equipped with powerful Tools.
     capabilities=types.CapabilitiesConfig(enable_subagents=True),
     tools=[navigate_to, scroll_to, showContactMethod, startLiveStream, endSession, highlightElement, guidedTour, toggleTheme, execute_sql],
     mcp_servers=mcp_servers,
-    model="gemini-3.1-flash-lite"
+    model="gemini-3.5-flash-lite"
 )
 
 class ChatRequest(BaseModel):
@@ -233,9 +233,9 @@ async def execute_agent(request: AgentRequest):
         })
     if gem_row:
         providers.append({
-            "name": "Gemini 3.1 Flash Lite",
+            "name": "Gemini 3.5 Flash Lite",
             "client": OpenAI(api_key=gem_row[0], base_url="https://generativelanguage.googleapis.com/v1beta/openai/", timeout=120.0),
-            "model": "gemini-3.1-flash-lite"
+            "model": "gemini-3.5-flash-lite"
         })
     
     if not providers:
