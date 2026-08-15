@@ -18,6 +18,7 @@ const db = require('./lib/supabaseAdapter');
 const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
+const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
@@ -1524,6 +1525,65 @@ app.post('/api/leads/:id/draft', async (req, res) => {
     console.error('[leads/draft]', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// Sends a reply to a lead. Body may carry an edited subject/body — whatever the
+// owner approved in the panel wins over whatever was drafted.
+//
+// Two rules that hold regardless of mode:
+//   - never send to a lead triage does not rate genuine (a scraped address that
+//     gets a reply is a confirmed-live address, and the spam multiplies)
+//   - never send twice for the same draft
+app.post('/api/leads/:id/send', async (req, res) => {
+  try {
+    const lead = await new Promise((resolve) =>
+      db.get('SELECT * FROM client_leads WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+
+    const triage = scoreLead(lead);
+    const { subject, body, force, dryRun } = req.body || {};
+    if (!subject || !body) return res.status(400).json({ error: 'Subject and body are required.' });
+
+    if (!triage.safeToAutoReply && !force) {
+      return res.status(409).json({
+        error: 'Blocked by triage',
+        triage,
+        hint: 'This looks like cold outreach rather than a client. Send anyway with force: true if you disagree.'
+      });
+    }
+
+    const result = await sendLeadReply({
+      to: lead.email,
+      subject,
+      body,
+      replyTo: process.env.LEAD_REPLY_TO,
+      dryRun: !!dryRun
+    });
+
+    if (result.sent) {
+      const mode = (await getCmsData()).settings?.lead_reply_mode || 'semi';
+      const now = new Date().toISOString();
+      await new Promise((resolve) => db.run(
+        `INSERT INTO lead_replies (lead_id, subject, body, status, mode, created_at, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [lead.id, subject, body, 'sent', mode, now, now], () => resolve()));
+    }
+    res.json({ ...result, triage });
+  } catch (e) {
+    console.error('[leads/send]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Lets the panel show whether sending is even possible before offering the button.
+app.get('/api/leads/mail-status', async (req, res) => {
+  const cms = await getCmsData();
+  res.json({
+    configured: mailerConfigured(),
+    missing: missingMailConfig(),
+    mode: cms.settings?.lead_reply_mode || 'semi',
+    from: process.env.LEAD_FROM_EMAIL || null,
+    notifyTo: process.env.ADMIN_NOTIFY_EMAIL || null
+  });
 });
 
 app.get('/api/leads/:id/replies', (req, res) => {
