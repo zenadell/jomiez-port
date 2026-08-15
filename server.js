@@ -2108,10 +2108,60 @@ app.post('/api/chaka/chat_text', async (req, res) => {
     res.json({ text: responseText, toolCalls });
 
   } catch (e) {
-    console.error('[Chaka Swarm] Error communicating with Python Agent Swarm:', e);
-    res.status(500).json({ error: e.message });
+    // The swarm is a separate Python process. If it is down, mid-restart, or
+    // throwing, chat used to return a 500 and the widget simply stopped replying —
+    // one fragile dependency taking the whole conversation with it. Answer directly
+    // from Node instead. Tool-calling is lost in this path, but a visitor getting a
+    // useful answer beats a visitor getting silence.
+    console.warn('[Chaka Swarm] Unavailable, answering directly:', e.message);
+    try {
+      const answer = await answerWithoutSwarm(text.trim(), currentUrl, history);
+      return res.json({ text: answer, toolCalls: null, degraded: true });
+    } catch (fallbackErr) {
+      console.error('[Chaka] Direct fallback also failed:', fallbackErr.message);
+      return res.status(500).json({ error: 'Chat is temporarily unavailable.' });
+    }
   }
 });
+
+// Straight Gemini call with the same site knowledge the swarm would have used.
+async function answerWithoutSwarm(text, currentUrl, history) {
+  const keys = await new Promise((resolve) => {
+    db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active IS NULL OR is_active IN ('1','true','t','yes')) ORDER BY id ASC",
+      [], (e, r) => resolve(e || !r ? [] : r.map(x => x.api_key)));
+  });
+  if (!keys.length) throw new Error('No Gemini key configured.');
+
+  const knowledge = await getSiteKnowledge();
+  let priorTurns = '';
+  try {
+    const parsed = typeof history === 'string' ? JSON.parse(history || '[]') : (history || []);
+    priorTurns = parsed.slice(-8)
+      .map(m => `${m.role === 'user' ? 'Visitor' : 'You'}: ${String(m.content || '').slice(0, 300)}`)
+      .join('\n');
+  } catch (e) { /* history is optional */ }
+
+  const prompt = `You are Chaka, the AI assistant for Jomiez Innovation. Answer the visitor using only the facts below — never invent a project, a price, or a timeline.
+
+${knowledge}
+
+Current page: ${currentUrl || '/'}
+${priorTurns ? `\nConversation so far:\n${priorTurns}\n` : ''}
+Visitor: ${text}
+
+Reply in two or three sentences, warm and direct. Plain text, no markdown. If they want to talk to a human, point them at WhatsApp or email.`;
+
+  const { GoogleGenerativeAI } = require('@google/generative-ai');
+  const client = new GoogleGenerativeAI(keys[0]);
+  for (const name of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
+    try {
+      return (await client.getGenerativeModel({ model: name }).generateContent(prompt)).response.text().trim();
+    } catch (err) {
+      console.warn(`[Chaka fallback] ${name}: ${err.message.slice(0, 80)}`);
+    }
+  }
+  throw new Error('All fallback models failed.');
+}
 
 // CHAKA GROQ AUDIO STREAM ENGINE — with rate limiting
 const groqRateLimiter = new Map(); // IP -> { count, resetTime }
