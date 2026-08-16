@@ -1638,14 +1638,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.fallbackSilence = null;
 
             // Stateful Memory (Survives Hard Reloads & Tabs, Expires after 24 hours)
-            let rawMemory = localStorage.getItem('chakaMemory') || sessionStorage.getItem('chakaMemory');
-            let lastActive = localStorage.getItem('chakaLastActivity') || sessionStorage.getItem('chakaLastActivity');
+            //
+            // Scoped by context. One shared key meant an admin session about leads and
+            // the CMS was replayed to a visitor asking about projects — the model would
+            // "remember" a conversation the visitor never had.
+            this.memoryScope = window.location.pathname.startsWith('/admin') ? 'admin' : 'public';
+            this.memoryKey = `chakaMemory:${this.memoryScope}`;
+            this.activityKey = `chakaLastActivity:${this.memoryScope}`;
+
+            let rawMemory = localStorage.getItem(this.memoryKey) || sessionStorage.getItem(this.memoryKey);
+            let lastActive = localStorage.getItem(this.activityKey) || sessionStorage.getItem(this.activityKey);
             if (lastActive && (Date.now() - parseInt(lastActive)) > 24 * 60 * 60 * 1000) {
                 rawMemory = null;
-                sessionStorage.removeItem('chakaMemory');
-                sessionStorage.removeItem('chakaLastActivity');
-                localStorage.removeItem('chakaMemory');
-                localStorage.removeItem('chakaLastActivity');
+                sessionStorage.removeItem(this.memoryKey);
+                sessionStorage.removeItem(this.activityKey);
+                localStorage.removeItem(this.memoryKey);
+                localStorage.removeItem(this.activityKey);
             }
             this.conversationHistory = this.sanitizeConversationHistory(rawMemory ? JSON.parse(rawMemory) : []);
 
@@ -1668,10 +1676,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const memStr = JSON.stringify(this.conversationHistory);
                 const nowStr = Date.now().toString();
-                sessionStorage.setItem('chakaMemory', memStr);
-                sessionStorage.setItem('chakaLastActivity', nowStr);
-                localStorage.setItem('chakaMemory', memStr);
-                localStorage.setItem('chakaLastActivity', nowStr);
+                sessionStorage.setItem(this.memoryKey, memStr);
+                sessionStorage.setItem(this.activityKey, nowStr);
+                localStorage.setItem(this.memoryKey, memStr);
+                localStorage.setItem(this.activityKey, nowStr);
+                // Retire the old unscoped key so a pre-existing mixed history cannot
+                // resurface once and confuse the next conversation.
+                localStorage.removeItem('chakaMemory');
+                localStorage.removeItem('chakaLastActivity');
             } catch (e) {}
         }
 
@@ -2227,6 +2239,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Bind UI Events
             document.getElementById('chaka-orb').addEventListener('click', () => {
                 const modal = document.getElementById('chaka-chat-modal');
+                // While voice has the panel hidden, the sphere is the way back to it.
+                if (this._panelHiddenForVoice) {
+                    this._panelHiddenForVoice = false;
+                    this.toggleChatWindow(true);
+                    return;
+                }
                 if (modal.style.opacity === '1') {
                     // Chat is open, orb click toggle voice session
                     this.toggleSession();
@@ -2397,6 +2415,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         appendChatMessage(role, text, isRawHtml = false) {
             const historyArea = document.getElementById('chaka-chat-history');
+            // If voice hid the panel, bring it back for anything actionable — a
+            // WhatsApp handoff or a contact card is useless behind a closed panel.
+            if (this._panelHiddenForVoice && role !== 'user') {
+                const actionable = isRawHtml || /wa\.me|mailto:|tel:/.test(String(text));
+                if (actionable) {
+                    this._panelHiddenForVoice = false;
+                    this.toggleChatWindow(true);
+                }
+            }
             // First message swaps the panel out of its idle state: the greeting and the
             // ambient glow recede so the transcript reads against calm black.
             const modal = document.getElementById('chaka-chat-modal');
@@ -2562,7 +2589,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (orb) orb.classList.toggle('chaka-orb-active', live);
             if (mic) mic.classList.toggle('is-live', live);
             if (!live && orb) { orb.style.removeProperty('--ck-amp'); orb.style.removeProperty('--ck-glow'); }
-            if (live) this.showBubble('Chaka is listening…', 3000);
+
+            // Voice takes the screen: the panel withdraws and leaves just the sphere,
+            // which is the thing that is actually speaking. Tapping the sphere brings
+            // the panel back. Anything Chaka puts IN the panel while it is hidden —
+            // a WhatsApp link, a contact card — reopens it automatically, otherwise
+            // she would announce a link the visitor cannot see.
+            if (live) {
+                this._panelHiddenForVoice = true;
+                this.toggleChatWindow(false);
+                this.showBubble('Chaka is listening…', 3000);
+            } else if (this._panelHiddenForVoice) {
+                this._panelHiddenForVoice = false;
+            }
         }
 
         // ========================
@@ -2801,7 +2840,10 @@ CORE CAPABILITIES:
 9. TURNING INTEREST INTO WORK — this is the job that matters:
    - The moment a visitor mentions what they are building, what industry they are in, or a problem they have, call matchProjects with their own words. Then name the one or two closest projects and say in a clause why each is relevant. Showing them something real that was already built is the entire argument for hiring Jomiez; a generic list of services is not.
    - Ask ONE useful question at a time, the way a person would: what they are building, who it is for, roughly when they need it. Never fire off a form's worth of questions, and never ask for a budget before you have shown them anything.
-   - When you have a name and any way to reach them, call captureLead quietly in the background. Never invent a detail to fill a field — capture only what they actually said.
+   - ALWAYS get their name and email before the conversation ends. The whole point of the conversation is that the team can follow up; a project discussed with someone you cannot contact is a wasted lead. Ask naturally once they have shown real interest — "What's the best email to reach you on?" — not as the first thing you say.
+   - If they are about to leave, wrap up, or say "let's leave it there" and you still do not have their email, ask for it once, warmly, before saying goodbye.
+   - Only then call captureLead. Never call it with a blank or invented email; never write "no email" into a field. If they genuinely refuse, say the team can be reached at the contact details on the site and do not save a lead that cannot be actioned.
+   - Offering a WhatsApp handoff does NOT replace this. They may never press send, and then nothing about them was recorded.
    - When they ask about hiring, pricing or timelines, or say they want to speak to someone, call handoffToWhatsApp and write their brief for them in their own voice, first person. They should arrive in WhatsApp with the message already written and only need to press send.
    - Be honest about cost and time: you do not know their price. Say the team will confirm scope and cost, and get them to a human. Inventing a number to seem helpful loses the job later.
 
@@ -2906,8 +2948,8 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             },
                             {
                                 name: "captureLead",
-                                description: "Save a prospective client into the CRM. Call this once you have a name and any way to reach them (email or phone) plus a sense of what they want. Do not interrogate — capture what you already have from the conversation. Never invent details.",
-                                parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, email: { type: "STRING" }, project_scope: { type: "STRING", description: "What they want built, in one or two sentences." }, budget: { type: "STRING", description: "Only if they mentioned one." } }, required: ["name", "project_scope"] }
+                                description: "Save a prospective client into the CRM. Requires their name AND email — ask for both before calling this. A lead the team cannot contact is worthless, so never call this with a placeholder or a guessed address. Call it once you know what they want and how to reach them.",
+                                parameters: { type: "OBJECT", properties: { name: { type: "STRING" }, email: { type: "STRING", description: "Their email address. Ask for it before calling this — a lead with no contact detail is unusable." }, project_scope: { type: "STRING", description: "What they want built, in one or two sentences." }, budget: { type: "STRING", description: "Only if they mentioned one." } }, required: ["name", "email", "project_scope"] }
                             },
                             {
                                 name: "handoffToWhatsApp",
@@ -2970,12 +3012,12 @@ END OF EARLIER TRANSCRIPT.`;
             else timeContext = 'evening';
 
             // Check if this is a returning user (has recent conversation history or localStorage memory within 24h)
-            const isReturning = (this.conversationHistory && this.conversationHistory.length > 0) || !!localStorage.getItem('chakaMemory');
+            const isReturning = (this.conversationHistory && this.conversationHistory.length > 0) || !!localStorage.getItem(this.memoryKey);
             const lastTopic = isReturning ? this.conversationHistory.slice(-3).map(m => m.content).join(' ').substring(0, 200) : '';
 
             // How long ago they were last here changes what the right greeting is:
             // a dropped call needs "sorry, lost you there", not "welcome back".
-            const lastSeen = parseInt(localStorage.getItem('chakaLastActivity') || '0', 10);
+            const lastSeen = parseInt(localStorage.getItem(this.activityKey) || '0', 10);
             const minutesAway = lastSeen ? Math.round((Date.now() - lastSeen) / 60000) : null;
 
             let greetingPrompt;
