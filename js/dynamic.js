@@ -2392,6 +2392,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             return null;
         }
 
+        // Renders a WhatsApp handoff card at most once per exchange.
+        //
+        // Two tools can both produce one — handoffToWhatsApp and
+        // showContactMethod('whatsapp') — so asking to "open WhatsApp" could stack
+        // three identical cards: one from each tool, then another when confirming.
+        // A second card adds nothing; the visitor only needs the one link. If nothing
+        // has been said since the last card, reuse it instead of drawing another.
+        renderWhatsAppOnce(cardHtml) {
+            const userTurns = (this.conversationHistory || []).filter(m => m.role === 'user').length;
+            const existing = document.querySelector('#chaka-chat-history a[href*="wa.me"]');
+
+            if (existing && this._waCardAtUserTurn === userTurns) {
+                // Same exchange, card already on screen — draw attention to it rather
+                // than repeat it.
+                existing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                existing.animate(
+                    [{ transform: 'scale(1)' }, { transform: 'scale(1.03)' }, { transform: 'scale(1)' }],
+                    { duration: 420, easing: 'ease-out' }
+                );
+                return false;
+            }
+
+            this._waCardAtUserTurn = userTurns;
+            this.appendChatMessage('assistant', cardHtml, true);
+            return true;
+        }
+
         renderContactCard(contact) {
             const safeUrl = this.sanitizeActionUrl(contact.url);
             if (!safeUrl) return '';
@@ -2844,7 +2871,8 @@ CORE CAPABILITIES:
    - If they are about to leave, wrap up, or say "let's leave it there" and you still do not have their email, ask for it once, warmly, before saying goodbye.
    - Only then call captureLead. Never call it with a blank or invented email; never write "no email" into a field. If they genuinely refuse, say the team can be reached at the contact details on the site and do not save a lead that cannot be actioned.
    - Offering a WhatsApp handoff does NOT replace this. They may never press send, and then nothing about them was recorded.
-   - When they ask about hiring, pricing or timelines, or say they want to speak to someone, call handoffToWhatsApp and write their brief for them in their own voice, first person. They should arrive in WhatsApp with the message already written and only need to press send.
+   - When they ask about hiring, pricing or timelines, or say they want to speak to someone, call handoffToWhatsApp ONCE and write their brief in their own voice, first person. They arrive in WhatsApp with the message already written and only press send.
+   - One link is enough. Do not call handoffToWhatsApp and showContactMethod for the same request, and do not create a fresh link when they simply confirm ("yes", "go ahead") — the link already on screen is the one they need. Only make another if they have described something new since.
    - Be honest about cost and time: you do not know their price. Say the team will confirm scope and cost, and get them to a human. Inventing a number to seem helpful loses the job later.
 
 INTELLIGENCE PROTOCOLS:
@@ -2954,12 +2982,12 @@ Current Time: ${new Date().toLocaleTimeString()}`
                             {
                                 name: "handoffToWhatsApp",
                                 description: "Open WhatsApp with the visitor's brief already written out, so they do not have to retype it. Use when they want to talk to a human, ask about hiring, pricing or timelines, or when the conversation is ready to become a real enquiry. Write the summary in the VISITOR's voice, first person, as if they typed it.",
-                                parameters: { type: "OBJECT", properties: { summary: { type: "STRING", description: "The message, written as the visitor. e.g. 'Hi, I need a booking site for my clinic. I saw Job Foundry Hub on your site.'" } }, required: ["summary"] }
+                                parameters: { type: "OBJECT", properties: { summary: { type: "STRING", description: "The message, written in the VISITOR's own voice and first person, summarising what THEY told you they want and any project of ours they reacted to. Use only details from this conversation — never a worked example, never a placeholder." } }, required: ["summary"] }
                             },
                             {
                                 name: "endTour",
                                 description: "Immediately cancel the guided tour. Call this the MOMENT the visitor signals they want out of it — 'stop', 'skip', 'I've seen this', 'just show me X', or any request that isn't the current stop. Call it BEFORE doing what they asked, otherwise the tour resumes over the top of their request. Also call it if they say they already know the site.",
-                                parameters: { type: "OBJECT", properties: { reason: { type: "STRING", description: "Brief reason, e.g. 'visitor asked to skip to projects'." } } }
+                                parameters: { type: "OBJECT", properties: { reason: { type: "STRING", description: "Brief reason, drawn from what the visitor actually said." } } }
                             },
                             {
                                 name: "toggleTheme",
@@ -3810,16 +3838,19 @@ END OF EARLIER TRANSCRIPT.`;
                         result = { executed: false, reason: 'No WhatsApp number configured.', instruction: 'Offer the email address instead.' };
                     } else {
                         const url = `https://wa.me/${digits}?text=${encodeURIComponent(summary)}`;
-                        this.appendChatMessage('assistant', this.renderContactCard({
+                        const rendered = this.renderWhatsAppOnce(this.renderContactCard({
                             url,
                             label: 'Continue on WhatsApp',
                             subtitle: 'Your message is already written',
                             color: '#1da851',
                             iconSvg: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.8 14.2c-.2.7-1.2 1.3-2 1.4-.5.1-1.2.1-3.4-.8-2.9-1.2-4.7-4.1-4.9-4.3-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.5c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.2.1.4.1.5-.1l.7-.9c.2-.2.3-.2.6-.1l2 .9c.3.1.4.2.5.3.1.2.1.6-.1 1.2Z"/></svg>'
-                        }), true);
+                        }));
                         result = {
                             executed: true,
-                            instruction: 'Tell them in one sentence that you have written the message out for them and they just need to hit send. Do not read the message aloud.'
+                            reusedExistingCard: !rendered,
+                            instruction: rendered
+                                ? 'Tell them in one sentence that you have written the message out for them and they just need to hit send. Do not read the message aloud.'
+                                : 'A WhatsApp link is already on screen from a moment ago — point at that one. Do NOT create another and do not repeat yourself.'
                         };
                     }
                 } else if (name === 'endTour') {
@@ -3911,7 +3942,10 @@ END OF EARLIER TRANSCRIPT.`;
                         }
 
                         const cardHtml = this.renderContactCard(contact);
-                        this.appendChatMessage('assistant', cardHtml, true);
+                        // WhatsApp goes through the dedupe path; the other methods are
+                        // rarely repeated and don't need it.
+                        if (method === 'whatsapp') this.renderWhatsAppOnce(cardHtml);
+                        else this.appendChatMessage('assistant', cardHtml, true);
                         
                         // Only auto-open if AI explicitly passed auto_open=true (user asked to be taken there)
                         const shouldOpen = args.auto_open === true || args.auto_open === "true";

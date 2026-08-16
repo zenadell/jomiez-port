@@ -2153,7 +2153,10 @@ app.post('/api/chaka/chat_text', async (req, res) => {
     // Inject site knowledge context for non-admin interactions
     let fullContextText = text.trim();
     if (!isAdmin) {
-      const knowledge = await getSiteKnowledge();
+      // Pass the message so the vector search runs. getSiteKnowledge has always
+      // supported RAG, but every chat path called it with no query — so it only
+      // ever returned the static base context and the retrieval step was dead code.
+      const knowledge = await getSiteKnowledge(text.trim());
       fullContextText = `Current URL: ${currentUrl || '/'}\nSite Knowledge Base:\n${knowledge}\n\nUser Message: ${text.trim()}`;
     }
 
@@ -2206,7 +2209,7 @@ async function answerWithoutSwarm(text, currentUrl, history) {
   });
   if (!keys.length) throw new Error('No Gemini key configured.');
 
-  const knowledge = await getSiteKnowledge();
+  const knowledge = await getSiteKnowledge(text);
   let priorTurns = '';
   try {
     const parsed = typeof history === 'string' ? JSON.parse(history || '[]') : (history || []);
