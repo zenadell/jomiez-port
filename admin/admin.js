@@ -1025,14 +1025,23 @@ async function refreshInboxBadge() {
 }
 
 async function openInboxMessage(id) {
-  inboxOpenId = inboxOpenId === id ? null : id;
-  if (inboxOpenId) {
-    const m = inboxCache.find(x => x.id === id);
-    if (m && m.is_read === '0') {
-      m.is_read = '1';
-      fetch(`/api/inbox/${id}/read`, { method: 'POST' }).then(refreshInboxBadge);
-    }
+  const m = inboxCache.find(x => x.id === id);
+  if (!m) return;
+  if (m.is_read === '0') {
+    m.is_read = '1';
+    fetch(`/api/inbox/${id}/read`, { method: 'POST' }).then(refreshInboxBadge);
   }
+  // Same full reader the leads use, so "open a message" means one thing here.
+  openLead({
+    id: 'inbox-' + m.id,
+    name: m.from_name || m.from_email,
+    email: m.from_email,
+    budget: null,
+    country: null,
+    created_at: m.received_at,
+    project_scope: `Subject: ${m.subject || '(no subject)'}\n\n${m.body || ''}`,
+    triage: { verdict: m.triage_verdict, reasons: [] }
+  }, true);
   renderLeads();
 }
 
@@ -1153,10 +1162,10 @@ function renderLeads() {
         </div>
         <div style="font-size:12px; color:#aaa; margin-top:4px;">${l.email || 'no email'} | Budget: ${l.budget || 'not given'}</div>
 
-        <p id="scope-${l.id}" style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${
+        <p style="margin-top:8px; font-size:13px; white-space:pre-wrap;">${
           isLong ? scope.slice(0, 220) + '…' : scope
         }</p>
-        ${isLong ? `<button class="btn btn-sm btn-outline" onclick="toggleLeadFull(${l.id})" id="toggle-${l.id}">View full message</button>` : ''}
+        <button class="btn btn-sm btn-outline" onclick="openLead(${l.id})">Open message</button>
 
         <div style="font-size:11px; color:#555; margin-top:6px;">Captured: ${dated} | IP: ${l.ip_address || 'Hidden'}</div>
 
@@ -1175,18 +1184,71 @@ function renderLeads() {
 
 function setLeadFolder(showJunk) { leadsShowJunk = showJunk; renderLeads(); }
 
-// The preview truncates so the list stays scannable; this reveals the rest in
-// place. Previously a long enquiry could only be read by querying the database.
-function toggleLeadFull(id) {
-  const lead = leadsCache.find(l => l.id === id);
-  const el = document.getElementById('scope-' + id);
-  const btn = document.getElementById('toggle-' + id);
-  if (!lead || !el) return;
-  const full = String(lead.project_scope || '');
-  const expanded = el.dataset.expanded === '1';
-  el.textContent = expanded ? full.slice(0, 220) + '…' : full;
-  el.dataset.expanded = expanded ? '0' : '1';
-  if (btn) btn.textContent = expanded ? 'View full message' : 'Show less';
+// Opens a lead in a full-screen reader.
+//
+// This replaced an inline "view full message" toggle that only appeared on
+// messages over 220 characters — so on a short enquiry there was no way to open
+// anything at all, and the panel still looked read-only. Every lead is now
+// openable, and the whole message is shown without truncation.
+function openLead(id, isObject) {
+  const l = isObject ? id : leadsCache.find(x => x.id === id);
+  if (!l) return;
+  closeLead();
+
+  const esc = (v) => String(v == null ? '' : v).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  const dated = l.created_at && l.created_at !== 'unknown'
+    ? new Date(l.created_at).toLocaleString() : 'date not recorded';
+  const t = l.triage || {};
+
+  const overlay = document.createElement('div');
+  overlay.id = 'lead-modal';
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;
+    display:flex;align-items:center;justify-content:center;padding:24px;`;
+  overlay.onclick = (e) => { if (e.target === overlay) closeLead(); };
+
+  overlay.innerHTML = `
+    <div style="background:#0f0f12;border:1px solid #333;border-radius:14px;width:min(760px,100%);
+         max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:18px 20px;border-bottom:1px solid #262626;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div style="min-width:0;">
+          <div style="color:#00e0ff;font-size:18px;font-weight:700;">${esc(l.name) || 'Anonymous'}</div>
+          <div style="color:#999;font-size:13px;margin-top:3px;">${esc(l.email) || 'no email'}</div>
+          <div style="color:#666;font-size:12px;margin-top:6px;">
+            Budget: ${esc(l.budget) || 'not given'} &nbsp;·&nbsp; ${esc(l.country) || 'Global'} &nbsp;·&nbsp; ${dated}
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="closeLead()">Close</button>
+      </div>
+
+      ${t.verdict ? `<div style="padding:10px 20px;background:${t.verdict === 'junk' ? 'rgba(255,107,107,.08)' : 'rgba(53,198,107,.06)'};
+        border-bottom:1px solid #262626;font-size:12px;color:${t.verdict === 'junk' ? '#ff6b6b' : '#35c66b'};">
+        ${t.verdict === 'junk' ? 'Looks like cold outreach' : 'Looks genuine'} — ${esc((t.reasons || []).join('; ')) || 'no strong signals'}
+      </div>` : ''}
+
+      <div style="padding:20px;overflow-y:auto;flex:1;">
+        <pre style="white-space:pre-wrap;word-break:break-word;font-family:inherit;
+             font-size:14px;line-height:1.65;color:#ddd;margin:0;">${esc(l.project_scope) || '(empty message)'}</pre>
+      </div>
+
+      <div style="padding:14px 20px;border-top:1px solid #262626;">
+        <div id="reply-modal-${l.id}"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          ${String(l.id).startsWith('inbox-') ? '' : `<button class="btn btn-sm" onclick="draftReply(${l.id}, true)">Draft reply</button>`}
+          <button class="btn btn-sm btn-outline" onclick="closeLead()">Done</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', escCloseLead);
+}
+
+function escCloseLead(e) { if (e.key === 'Escape') closeLead(); }
+
+function closeLead() {
+  const m = document.getElementById('lead-modal');
+  if (m) m.remove();
+  document.removeEventListener('keydown', escCloseLead);
 }
 
 async function refreshMailStatus() {
@@ -1201,8 +1263,8 @@ async function refreshMailStatus() {
   } catch (e) { el.textContent = ''; }
 }
 
-async function draftReply(id) {
-  const box = document.getElementById('reply-' + id);
+async function draftReply(id, inModal) {
+  const box = document.getElementById((inModal ? 'reply-modal-' : 'reply-') + id);
   if (!box) return;
   box.innerHTML = `<div style="color:#888;font-size:12px;">Drafting…</div>`;
   try {
@@ -1218,8 +1280,8 @@ async function draftReply(id) {
         <textarea id="body-${id}" rows="9"
           style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;">${r.body}</textarea>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-          <button class="btn btn-sm" onclick="sendReply(${id})">Approve &amp; send</button>
-          <button class="btn btn-sm btn-outline" onclick="draftReply(${id})">Redraft</button>
+          <button class="btn btn-sm" onclick="sendReply(${id}, false, ${!!inModal})">Approve &amp; send</button>
+          <button class="btn btn-sm btn-outline" onclick="draftReply(${id}, ${!!inModal})">Redraft</button>
           <span style="font-size:11px;color:#777;">Edit anything before sending — your version is what goes out.</span>
         </div>
       </div>`;
@@ -1228,10 +1290,10 @@ async function draftReply(id) {
   }
 }
 
-async function sendReply(id, force) {
+async function sendReply(id, force, inModal) {
   const subject = document.getElementById('subj-' + id).value;
   const body = document.getElementById('body-' + id).value;
-  const box = document.getElementById('reply-' + id);
+  const box = document.getElementById((inModal ? 'reply-modal-' : 'reply-') + id);
   const res = await fetch(`/api/leads/${id}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1241,7 +1303,7 @@ async function sendReply(id, force) {
   if (res.status === 409) {
     // Triage thinks this is cold outreach. Say so plainly and let the owner override.
     if (confirm(`This looks like junk, not a client:\n\n${(r.triage.reasons || []).join('\n')}\n\nSend anyway?`)) {
-      return sendReply(id, true);
+      return sendReply(id, true, inModal);
     }
     return;
   }
