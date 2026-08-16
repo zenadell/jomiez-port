@@ -1024,6 +1024,38 @@ async function refreshInboxBadge() {
   } catch (e) { /* badge is cosmetic; never block on it */ }
 }
 
+async function saveInboxSettings() {
+  const status = document.getElementById('imap-status');
+  const vals = {
+    imap_host: document.getElementById('imap_host').value.trim(),
+    imap_user: document.getElementById('imap_user').value.trim(),
+    imap_password: document.getElementById('imap_password').value
+  };
+  if (!vals.imap_host || !vals.imap_user || !vals.imap_password) {
+    status.textContent = 'All three fields are required.';
+    status.style.color = '#ffb648';
+    return;
+  }
+  status.textContent = 'Connecting…';
+  status.style.color = '#888';
+  for (const [key, value] of Object.entries(vals)) {
+    await fetch('/api/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value })
+    });
+  }
+  // Sync immediately so a wrong password surfaces now, not silently later.
+  const r = await (await fetch('/api/inbox?sync=1')).json();
+  if (r.configured) {
+    status.textContent = 'Connected.';
+    status.style.color = '#35c66b';
+    loadInbox(true);
+  } else {
+    status.textContent = 'Saved, but the connection failed. Check the mailbox password.';
+    status.style.color = '#ff6b6b';
+  }
+}
+
 async function openInboxMessage(id) {
   const m = inboxCache.find(x => x.id === id);
   if (!m) return;
@@ -1047,10 +1079,24 @@ async function openInboxMessage(id) {
 
 function renderInbox(container) {
   if (!window.__inboxConfigured) {
-    container.innerHTML = `<div style="padding:20px;color:#ffb648;">
-      Inbox not connected — missing ${(window.__inboxMissing || []).join(', ')}.
-      Add these in Render and mail sent to hello@jomiez.com will appear here.
-    </div>`;
+    // Configurable here rather than only in Render, matching how the AI API keys
+    // already work. The password is filtered out of the public settings response.
+    container.innerHTML = `
+      <div style="padding:18px;border:1px solid #333;border-radius:10px;max-width:520px;">
+        <div style="color:#ffb648;margin-bottom:6px;font-weight:700;">Inbox not connected</div>
+        <p style="color:#888;font-size:13px;margin:0 0 16px;">
+          Connect the hello@jomiez.com mailbox and mail sent to it appears here.
+          Use the <strong>mailbox</strong> password from hPanel &rarr; Emails, not your Hostinger account password.
+        </p>
+        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">IMAP host</label>
+        <input id="imap_host" value="imap.hostinger.com" style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:6px;margin-bottom:10px;">
+        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Email address</label>
+        <input id="imap_user" placeholder="hello@jomiez.com" style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:6px;margin-bottom:10px;">
+        <label style="display:block;font-size:12px;color:#aaa;margin-bottom:4px;">Mailbox password</label>
+        <input id="imap_password" type="password" style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:6px;margin-bottom:14px;">
+        <button class="btn btn-sm" onclick="saveInboxSettings()">Connect inbox</button>
+        <span id="imap-status" style="margin-left:10px;font-size:12px;color:#888;"></span>
+      </div>`;
     return;
   }
   const unread = inboxCache.filter(m => m.is_read === '0').length;

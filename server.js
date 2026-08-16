@@ -19,7 +19,7 @@ const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
-const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig } = require('./lib/inbox');
+const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig, configure: configureInbox } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
 // Prevent server crash on database connection issues
@@ -189,7 +189,10 @@ app.use('/api', (req, res, next) => {
 // Settings drive public page copy, so the site needs to read them — but the table
 // also holds API keys, verification tokens and other operational values. Strip
 // anything sensitive for callers without a session.
-const SENSITIVE_SETTING = /(key|token|secret|password|credential|api)/i;
+// imap_* covers the whole mail-server config, not just the password. The public
+// site has no use for the host or the mailbox username, and publishing them only
+// helps someone trying the door.
+const SENSITIVE_SETTING = /(key|token|secret|password|credential|api|^imap_|^smtp_)/i;
 function publicSettings(rows) {
     return rows.filter(r => !SENSITIVE_SETTING.test(r.key));
 }
@@ -1431,7 +1434,20 @@ app.post('/api/upload', (req, res, next) => {
 // Mail sent to hello@jomiez.com, readable inside the admin panel so there is no
 // second webmail to keep open. Pulled over IMAP from the existing Hostinger
 // mailbox rather than redirected, so no DNS changes and no risk to delivery.
+// Pulls the IMAP credentials the panel saved into the inbox module.
+async function loadInboxSettings() {
+  const cms = await getCmsData();
+  const s = cms.settings || {};
+  configureInbox({
+    imap_host: s.imap_host,
+    imap_port: s.imap_port,
+    imap_user: s.imap_user,
+    imap_password: s.imap_password
+  });
+}
+
 async function syncInbox() {
+  await loadInboxSettings();
   const r = await fetchInbox(60);
   if (!r.ok) return r;
 
@@ -1458,6 +1474,7 @@ async function syncInbox() {
 
 app.get('/api/inbox', async (req, res) => {
   try {
+    await loadInboxSettings();
     if (req.query.sync === '1') await syncInbox();
     db.all('SELECT * FROM inbox_messages ORDER BY received_at DESC LIMIT 100', [], (e, rows) => {
       if (e) return res.status(500).json({ error: e.message });
