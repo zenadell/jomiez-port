@@ -1058,10 +1058,70 @@ async function sendProspect(id) {
   else box.innerHTML = `<span style="color:#ffb648;font-size:12px;">Not sent: ${r.reason || r.error}</span>`;
 }
 
+
+async function discoverProspects() {
+  const place = document.getElementById('disc-place').value.trim();
+  const category = document.getElementById('disc-cat').value;
+  const out = document.getElementById('disc-results');
+  if (!place) { out.innerHTML = '<span style="color:#ffb648;font-size:12px;">Enter a city.</span>'; return; }
+  out.innerHTML = '<span style="color:#888;font-size:12px;">Searching OpenStreetMap… this can take 30s.</span>';
+  try {
+    const r = await (await fetch(`/api/prospects/discover?category=${encodeURIComponent(category)}&place=${encodeURIComponent(place)}`)).json();
+    if (r.error) { out.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
+    const row = (b, hasSite) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #222;">
+        <div style="min-width:0;">
+          <div style="color:#ddd;font-size:13px;">${b.name}</div>
+          <div style="font-size:11px;color:#666;">${b.website || b.phone || b.address || 'no contact details'}</div>
+        </div>
+        ${hasSite
+          ? `<button class="btn btn-sm btn-outline" onclick="analyseFromDiscovery('${b.website}')">Audit</button>`
+          : `<span style="font-size:11px;color:#fe812e;white-space:nowrap;">no website</span>`}
+      </div>`;
+    out.innerHTML = `
+      <div style="font-size:12px;color:#888;margin:10px 0;">
+        ${r.total} found · ${r.withWebsite.length} to audit · ${r.withoutWebsite.length} with no website · ${r.alreadySeen} already seen
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+        <div>
+          <strong style="color:#00e0ff;font-size:12px;">Has a website — audit and pitch improvements</strong>
+          ${r.withWebsite.map(b => row(b, true)).join('') || '<p style="color:#666;font-size:12px;">None new.</p>'}
+        </div>
+        <div>
+          <strong style="color:#fe812e;font-size:12px;">No website — different pitch entirely</strong>
+          ${r.withoutWebsite.map(b => row(b, false)).join('') || '<p style="color:#666;font-size:12px;">None new.</p>'}
+        </div>
+      </div>`;
+  } catch (e) { out.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${e.message}</span>`; }
+}
+
+async function analyseFromDiscovery(url) {
+  document.getElementById('prospect-url').value = url;
+  await analyseProspect();
+}
+
 function renderProspects(container) {
+  const cats = ['contractors','dentists','clinics','lawyers','realestate','salons','fitness','autoshops','accountants','vets'];
   container.innerHTML = `
+    <div style="border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:18px;">
+      <strong style="color:#00e0ff;font-size:13px;">Find businesses</strong>
+      <p style="color:#777;font-size:12px;margin:4px 0 10px;">
+        Open data from OpenStreetMap — free and legal. Coverage is thinner than Google's,
+        so run a few cities. Anything already researched is filtered out automatically.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <select id="disc-cat" style="background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+          ${cats.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <input id="disc-place" placeholder="City, e.g. Los Angeles"
+          style="flex:1;background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+        <button class="btn btn-sm" onclick="discoverProspects()">Search</button>
+      </div>
+      <div id="disc-results"></div>
+    </div>
+
     <div style="display:flex;gap:8px;margin-bottom:6px;">
-      <input id="prospect-url" placeholder="Paste a prospect's website, e.g. theirbusiness.com"
+      <input id="prospect-url" placeholder="Or paste a website directly, e.g. theirbusiness.com"
         style="flex:1;background:#141416;border:1px solid #333;color:#fff;padding:10px;border-radius:8px;">
       <button class="btn btn-sm" onclick="analyseProspect()">Analyse site</button>
     </div>

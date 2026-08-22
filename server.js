@@ -20,6 +20,7 @@ const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
 const { analyse: analyseProspect } = require('./lib/prospector');
+const { findBusinesses, CATEGORIES: discoverCategories } = require('./lib/discover');
 const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig, configure: configureInbox } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
@@ -1468,6 +1469,47 @@ app.post('/api/prospects/analyze', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// Finds businesses to approach. Results are cross-checked against everything
+// already in prospects, so the same company is never researched twice — the
+// single most wasteful thing about doing this by hand.
+app.get('/api/prospects/discover', async (req, res) => {
+  try {
+    const category = String(req.query.category || 'contractors');
+    const place = String(req.query.place || '').trim();
+    if (!place) return res.status(400).json({ error: 'A city or area name is required.' });
+
+    const found = await findBusinesses(category, place, 80);
+    if (!found.ok) return res.status(502).json({ error: found.reason });
+
+    const seen = await new Promise((resolve) =>
+      db.all('SELECT website, business_name FROM prospects', [], (e, r) => resolve(e || !r ? [] : r)));
+    const seenHosts = new Set(seen.map(p => {
+      try { return new URL(p.website).hostname.replace(/^www\./, ''); } catch (e) { return null; }
+    }).filter(Boolean));
+    const seenNames = new Set(seen.map(p => String(p.business_name || '').toLowerCase().trim()).filter(Boolean));
+
+    const isNew = (b) => {
+      if (seenNames.has(b.name.toLowerCase().trim())) return false;
+      if (!b.website) return true;
+      try { return !seenHosts.has(new URL(b.website).hostname.replace(/^www\./, '')); } catch (e) { return true; }
+    };
+
+    res.json({
+      place, category,
+      total: found.total,
+      // Two cohorts, two completely different conversations.
+      withWebsite: found.withWebsite.filter(isNew),
+      withoutWebsite: found.withoutWebsite.filter(isNew),
+      alreadySeen: found.total - found.withWebsite.filter(isNew).length - found.withoutWebsite.filter(isNew).length
+    });
+  } catch (e) {
+    console.error('[prospects/discover]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/prospects/categories', (req, res) => res.json({ categories: discoverCategories }));
 
 app.get('/api/prospects', (req, res) => {
   db.all('SELECT * FROM prospects ORDER BY id DESC LIMIT 100', [], (e, rows) => {
