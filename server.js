@@ -19,6 +19,7 @@ const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
+const { analyse: analyseProspect } = require('./lib/prospector');
 const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig, configure: configureInbox } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
@@ -1430,6 +1431,146 @@ app.post('/api/upload', (req, res, next) => {
 });
 
 // CLIENT LEADS & AI MEMORY API
+// ── Prospecting ───────────────────────────────────────────────────────────────
+// Paste a website, get a measured audit and a drafted outreach email. Everything
+// the email claims has to come from something actually observed on their site —
+// a generic "we can improve your SEO" is exactly the mail that lands in this
+// site's own junk folder, so specificity is the whole product.
+async function geminiKey() {
+  const rows = await new Promise((resolve) =>
+    db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active IS NULL OR is_active IN ('1','true','t','yes')) ORDER BY id ASC",
+      [], (e, r) => resolve(e || !r ? [] : r)));
+  if (!rows.length) throw new Error('No active Gemini key configured.');
+  return rows[0].api_key;
+}
+
+app.post('/api/prospects/analyze', async (req, res) => {
+  try {
+    const url = String(req.body.url || '').trim();
+    if (!url) return res.status(400).json({ error: 'A website URL is required.' });
+
+    const cms = await getCmsData();
+    const result = await analyseProspect(url, await geminiKey(), cms.works || []);
+    if (!result.ok) return res.status(422).json({ error: result.reason || 'Could not read that site.' });
+
+    const row = await new Promise((resolve, reject) => db.run(
+      `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [result.signals.url, result.business_name || '', (result.signals.emails || [])[0] || '',
+       result.industry || '', JSON.stringify(result.findings || []),
+       JSON.stringify(result.opportunities || []), result.ai_angle || '', 'analysed',
+       new Date().toISOString()],
+      function (e) { e ? reject(e) : resolve(this.lastID); }));
+
+    res.json({ id: row, ...result });
+  } catch (e) {
+    console.error('[prospects/analyze]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/prospects', (req, res) => {
+  db.all('SELECT * FROM prospects ORDER BY id DESC LIMIT 100', [], (e, rows) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json((rows || []).map(r => ({
+      ...r,
+      findings: safeParse(r.findings),
+      opportunities: safeParse(r.opportunities)
+    })));
+  });
+});
+
+function safeParse(v) { try { return JSON.parse(v || '[]'); } catch (e) { return []; } }
+
+app.post('/api/prospects/:id/draft', async (req, res) => {
+  try {
+    const p = await new Promise((resolve) =>
+      db.get('SELECT * FROM prospects WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!p) return res.status(404).json({ error: 'Prospect not found' });
+
+    const cms = await getCmsData();
+    const s = cms.settings || {};
+    const opportunities = safeParse(p.opportunities);
+    const findings = safeParse(p.findings);
+
+    const prompt = `Write a cold outreach email from ${s.founder_name || 'Emmanuel Ezinna Nweke'} of Jomiez Innovation to the owner of ${p.business_name || p.website}.
+
+What was actually observed on their site:
+${findings.map(f => '- ' + f).join('\n') || '- nothing broken'}
+
+Specific opportunities identified:
+${opportunities.map(o => '- ' + o).join('\n')}
+
+AI angle for this business:
+${p.ai_angle || ''}
+
+Rules, in order:
+1. Open by naming ONE concrete thing you observed on THEIR site. Not a compliment, an observation. This is the only line that decides whether the rest is read.
+2. Name at most two improvements. Specific, in plain language, no jargon.
+3. One sentence on the AI angle, framed as what it would do for their business, not as technology.
+4. NEVER quote a price, a timeline, or a percentage improvement.
+5. Never claim to have worked with anyone you have not, and never invent a credential.
+6. Close with a low-friction ask — a reply, or a short call. Not a hard sell.
+7. Under 120 words. Plain text. No markdown, no bullet points, no "I hope this finds you well".
+8. Sound like one person who looked at their site, because that is what happened.
+
+Return strict JSON: {"subject": "...", "body": "..."}`;
+
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const client = new GoogleGenerativeAI(await geminiKey());
+    let raw = null;
+    for (const m of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
+      try { raw = (await client.getGenerativeModel({ model: m }).generateContent(prompt)).response.text(); break; }
+      catch (e) { /* try the next model */ }
+    }
+    if (!raw) return res.status(502).json({ error: 'All models unavailable.' });
+
+    let d = {};
+    try { d = JSON.parse(raw.replace(/^```(?:json)?|```$/gm, '').trim()); } catch (e) { d = { subject: `About ${p.website}`, body: raw.trim() }; }
+
+    await new Promise((resolve) => db.run(
+      'UPDATE prospects SET draft_subject = ?, draft_body = ?, status = ? WHERE id = ?',
+      [d.subject || '', d.body || '', 'drafted', p.id], () => resolve()));
+
+    res.json({ ...d, id: p.id, contact_email: p.contact_email });
+  } catch (e) {
+    console.error('[prospects/draft]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/prospects/:id/send', async (req, res) => {
+  try {
+    const p = await new Promise((resolve) =>
+      db.get('SELECT * FROM prospects WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!p) return res.status(404).json({ error: 'Prospect not found' });
+
+    const { subject, body, to } = req.body || {};
+    const recipient = (to || p.contact_email || '').trim();
+    if (!recipient) return res.status(400).json({ error: 'No recipient address. Add one before sending.' });
+    if (!subject || !body) return res.status(400).json({ error: 'Subject and body are required.' });
+
+    // Cold outreach must carry an unsubscribe line. Beyond being the law in most
+    // of the world, a missing one is a spam-report magnet and reports are what
+    // destroy a sending domain.
+    const footer = `\n\n—\n${(await getCmsData()).settings?.company_name || 'Jomiez Innovation'}\nIf you would rather not hear from me again, reply "no thanks" and I will not contact you.`;
+
+    const result = await sendLeadReply({
+      to: recipient, subject, body: body + footer,
+      replyTo: process.env.LEAD_REPLY_TO, dryRun: !!req.body.dryRun
+    });
+
+    if (result.sent) {
+      await new Promise((resolve) => db.run(
+        "UPDATE prospects SET status = 'sent', sent_at = ?, contact_email = ? WHERE id = ?",
+        [new Date().toISOString(), recipient, p.id], () => resolve()));
+    }
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Inbox ─────────────────────────────────────────────────────────────────────
 // Mail sent to hello@jomiez.com, readable inside the admin panel so there is no
 // second webmail to keep open. Pulled over IMAP from the existing Hostinger

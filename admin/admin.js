@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLeads();
   loadMemory();
   loadInbox();
+  loadProspects();
   // Keeps the red dot honest while the panel sits open on another tab.
   setInterval(refreshInboxBadge, 60000);
 });
@@ -995,6 +996,97 @@ function renderAnalytics() {
 }
 
 
+
+// ── Prospecting ───────────────────────────────────────────────────────────────
+let prospectsCache = [];
+
+async function loadProspects() {
+  try { prospectsCache = await (await fetch('/api/prospects')).json(); } catch (e) { prospectsCache = []; }
+  if (currentLeadTab === 'prospects') renderLeads();
+}
+
+async function analyseProspect() {
+  const url = document.getElementById('prospect-url').value.trim();
+  const status = document.getElementById('prospect-status');
+  if (!url) { status.textContent = 'Paste a website address first.'; return; }
+  status.textContent = 'Reading their site…';
+  status.style.color = '#888';
+  try {
+    const r = await (await fetch('/api/prospects/analyze', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })).json();
+    if (r.error) { status.textContent = r.error; status.style.color = '#ff6b6b'; return; }
+    status.textContent = `Analysed ${r.business_name || url}.`;
+    status.style.color = '#35c66b';
+    document.getElementById('prospect-url').value = '';
+    loadProspects();
+  } catch (e) { status.textContent = e.message; status.style.color = '#ff6b6b'; }
+}
+
+async function draftProspect(id) {
+  const box = document.getElementById('pdraft-' + id);
+  box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
+  const r = await (await fetch(`/api/prospects/${id}/draft`, { method: 'POST' })).json();
+  if (r.error) { box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
+  box.innerHTML = `
+    <div style="border:1px solid #333;border-radius:8px;padding:12px;background:#0d0d0f;margin-top:10px;">
+      <input id="pto-${id}" placeholder="their@email.com" value="${r.contact_email || ''}"
+        style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
+      <input id="psubj-${id}" value="${String(r.subject || '').replace(/"/g, '&quot;')}"
+        style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
+      <textarea id="pbody-${id}" rows="9"
+        style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;">${r.body || ''}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <button class="btn btn-sm" onclick="sendProspect(${id})">Approve &amp; send</button>
+        <button class="btn btn-sm btn-outline" onclick="draftProspect(${id})">Rewrite</button>
+        <span style="font-size:11px;color:#777;">An unsubscribe line is added automatically.</span>
+      </div>
+    </div>`;
+}
+
+async function sendProspect(id) {
+  const to = document.getElementById('pto-' + id).value.trim();
+  const subject = document.getElementById('psubj-' + id).value;
+  const body = document.getElementById('pbody-' + id).value;
+  const box = document.getElementById('pdraft-' + id);
+  const r = await (await fetch(`/api/prospects/${id}/send`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to, subject, body })
+  })).json();
+  if (r.sent) { box.innerHTML = '<span style="color:#35c66b;font-size:12px;">Sent.</span>'; showToast('Outreach sent.'); loadProspects(); }
+  else box.innerHTML = `<span style="color:#ffb648;font-size:12px;">Not sent: ${r.reason || r.error}</span>`;
+}
+
+function renderProspects(container) {
+  container.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <input id="prospect-url" placeholder="Paste a prospect's website, e.g. theirbusiness.com"
+        style="flex:1;background:#141416;border:1px solid #333;color:#fff;padding:10px;border-radius:8px;">
+      <button class="btn btn-sm" onclick="analyseProspect()">Analyse site</button>
+    </div>
+    <div id="prospect-status" style="font-size:12px;color:#888;margin-bottom:16px;min-height:16px;"></div>
+  ` + (prospectsCache.length ? prospectsCache.map(p => `
+      <div class="work-item" style="display:block;padding:14px;border:1px solid #333;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="color:#00e0ff;font-weight:700;">${p.business_name || p.website}</div>
+            <div style="font-size:12px;color:#888;">${p.website} ${p.industry ? '· ' + p.industry : ''} ${p.contact_email ? '· ' + p.contact_email : '· no email found'}</div>
+          </div>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;height:fit-content;
+            background:${p.status === 'sent' ? 'rgba(53,198,107,.12)' : 'rgba(255,255,255,.06)'};
+            color:${p.status === 'sent' ? '#35c66b' : '#aaa'};">${p.status}</span>
+        </div>
+        ${(p.findings || []).length ? `<ul style="margin:10px 0 0;padding-left:18px;color:#bbb;font-size:12.5px;">
+          ${(p.findings || []).slice(0, 4).map(f => `<li style="margin-bottom:3px;">${f}</li>`).join('')}
+        </ul>` : ''}
+        ${p.ai_angle ? `<p style="margin:10px 0 0;font-size:12.5px;color:#fe812e;">AI angle: <span style="color:#ccc;">${p.ai_angle}</span></p>` : ''}
+        <div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">Draft outreach</button></div>
+        <div id="pdraft-${p.id}"></div>
+      </div>`).join('')
+    : '<p style="color:var(--text-muted);padding:16px;text-align:center">No prospects yet. Paste a website above.</p>');
+}
+
 // ── Inbox ─────────────────────────────────────────────────────────────────────
 let inboxCache = [];
 let inboxOpenId = null;
@@ -1157,6 +1249,7 @@ function renderLeads() {
   const container = document.getElementById('leads-container');
   if (!container) return;
 
+  if (currentLeadTab === 'prospects') { renderProspects(container); return; }
   if (currentLeadTab === 'inbox') { renderInbox(container); return; }
 
   if (currentLeadTab === 'memory') {
