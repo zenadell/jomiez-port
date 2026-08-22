@@ -1735,7 +1735,7 @@ Return strictly this JSON and nothing else:
   // a future retirement can't silently break lead replies the way that one did.
   // Flash models also return 503 under load, which is transient — fall through the
   // list and across keys rather than dropping a real enquiry on the floor.
-  const MODELS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+  const MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
   const client = new GoogleGenerativeAI(keys[0]);
   let out = null, lastErr = null;
   for (const name of MODELS) {
