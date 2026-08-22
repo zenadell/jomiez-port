@@ -1059,6 +1059,18 @@ async function sendProspect(id) {
 }
 
 
+
+// Jumps straight to the outreach workflow from the sidebar. It lives inside the
+// leads panel, but it is a daily task in its own right and was undiscoverable as
+// the fifth button in a tab row.
+function openProspecting() {
+  showSection('leads');
+  switchLeadTab('prospects');
+  document.getElementById('topbar-title').textContent = 'Find Clients';
+  document.getElementById('topbar-sub').textContent = 'Search for businesses, audit their site, and send outreach';
+  loadProspects();
+}
+
 async function discoverProspects() {
   const place = document.getElementById('disc-place').value.trim();
   const category = document.getElementById('disc-cat').value;
