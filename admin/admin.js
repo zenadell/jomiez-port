@@ -1352,6 +1352,8 @@ function renderLeads() {
       <button class="btn btn-sm ${leadsShowJunk ? '' : 'btn-outline'}" onclick="setLeadFolder(true)">Junk (${junk.length})</button>
       <span style="flex:1"></span>
       <span id="mail-status" style="font-size:11px;color:#777;"></span>
+      <button class="btn btn-sm btn-outline" style="font-size:11px;padding:4px 10px;"
+        onclick="sendMailTest()">Send test email</button>
     </div>`;
 
   const list = showing.length ? showing.map(l => {
@@ -1467,11 +1469,36 @@ async function refreshMailStatus() {
   if (!el) return;
   try {
     const s = await (await fetch('/api/leads/mail-status')).json();
+    window.__mailStatus = s;
     el.textContent = s.configured
       ? `Sending as ${s.from} · mode: ${s.mode}`
       : `Email not configured — missing ${(s.missing || []).join(', ')}`;
     el.style.color = s.configured ? '#35c66b' : '#ffb648';
   } catch (e) { el.textContent = ''; }
+}
+
+// The first real send should never be the first test. This exercises the same
+// path a lead reply takes — key, from-address, domain verification — but aimed at
+// the owner.
+async function sendMailTest() {
+  const el = document.getElementById('mail-status');
+  const suggested = (window.__mailStatus && window.__mailStatus.notifyTo) || '';
+  const to = prompt('Send a test email to which address?', suggested);
+  if (!to) return;
+  if (el) { el.textContent = 'Sending test…'; el.style.color = '#888'; }
+  try {
+    const r = await (await fetch('/api/leads/mail-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to })
+    })).json();
+    if (el) {
+      el.textContent = r.sent ? `Test sent to ${to} — check that inbox` : `Test failed: ${r.reason}`;
+      el.style.color = r.sent ? '#35c66b' : '#ff6b6b';
+    }
+  } catch (e) {
+    if (el) { el.textContent = `Test failed: ${e.message}`; el.style.color = '#ff6b6b'; }
+  }
 }
 
 async function draftReply(id, inModal) {

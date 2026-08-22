@@ -1843,6 +1843,31 @@ app.get('/api/leads/mail-status', async (req, res) => {
   });
 });
 
+/**
+ * Proves the whole outbound chain — key, from-address, domain verification — with
+ * a message to the owner rather than to a stranger. Worth having: the first real
+ * send should never be the first test.
+ */
+app.post('/api/leads/mail-test', async (req, res) => {
+  const to = String(req.body?.to || process.env.ADMIN_NOTIFY_EMAIL || '').trim();
+  if (!to) {
+    return res.json({ sent: false, reason: 'Type an address to send the test to.' });
+  }
+  const result = await sendLeadReply({
+    to,
+    subject: 'Jomiez admin — outbound mail test',
+    body: [
+      'This is a test from the Jomiez admin panel.',
+      '',
+      `Sending as: ${process.env.LEAD_FROM_EMAIL || '(not set)'}`,
+      `Sent at: ${new Date().toISOString()}`,
+      '',
+      'If this arrived, replies to leads will send correctly.'
+    ].join('\n')
+  });
+  res.json(result);
+});
+
 app.get('/api/leads/:id/replies', (req, res) => {
   db.all('SELECT * FROM lead_replies WHERE lead_id = ? ORDER BY id DESC', [req.params.id], (e, r) => {
     if (e) return res.status(500).json({ error: e.message });
