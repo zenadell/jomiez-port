@@ -1027,6 +1027,39 @@ async function analyseProspect() {
   } catch (e) { status.textContent = e.message; status.style.color = '#ff6b6b'; }
 }
 
+function toggleBulk() {
+  const b = document.getElementById('bulk-box');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+}
+
+// Audits a whole shortlist in one pass. Sequential on purpose: each audit makes
+// several outbound requests, and firing twenty at once is how you get rate
+// limited by the sites being audited.
+async function analyseBulk() {
+  const box = document.getElementById('prospect-bulk');
+  const status = document.getElementById('prospect-status');
+  const urls = box.value.split(/[\n,\s]+/).map(u => u.trim()).filter(Boolean);
+  if (!urls.length) { status.textContent = 'Paste at least one website.'; return; }
+
+  let done = 0, failed = [];
+  for (const url of urls) {
+    status.innerHTML = `Auditing ${done + 1} of ${urls.length} — <b>${url}</b>…`;
+    status.style.color = '#888';
+    try {
+      const r = await (await fetch('/api/prospects/analyze', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      })).json();
+      if (r.error) failed.push(`${url}: ${r.error}`); else done++;
+    } catch (e) { failed.push(`${url}: ${e.message}`); }
+    await loadProspects();
+  }
+  status.innerHTML = `Audited ${done} of ${urls.length}.`
+    + (failed.length ? `<div style="color:#ffb648;margin-top:6px;">${failed.map(f => f.slice(0, 140)).join('<br>')}</div>` : '');
+  status.style.color = failed.length ? '#ffb648' : '#35c66b';
+  if (done) box.value = '';
+}
+
 async function draftProspect(id) {
   const box = document.getElementById('pdraft-' + id);
   box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
@@ -1139,6 +1172,12 @@ function renderProspects(container) {
       <input id="prospect-url" placeholder="Or paste a website directly, e.g. theirbusiness.com"
         style="flex:1;background:#141416;border:1px solid #333;color:#fff;padding:10px;border-radius:8px;">
       <button class="btn btn-sm" onclick="analyseProspect()">Analyse site</button>
+      <button class="btn btn-sm btn-outline" onclick="toggleBulk()">Bulk</button>
+    </div>
+    <div id="bulk-box" style="display:none;margin-bottom:6px;">
+      <textarea id="prospect-bulk" rows="6" placeholder="One website per line — paste a whole shortlist and audit it in one go."
+        style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:10px;border-radius:8px;font-family:inherit;"></textarea>
+      <button class="btn btn-sm" style="margin-top:6px;" onclick="analyseBulk()">Analyse all</button>
     </div>
     <div id="prospect-status" style="font-size:12px;color:#888;margin-bottom:16px;min-height:16px;"></div>
   ` + (prospectsCache.length ? prospectsCache.map(p => `
