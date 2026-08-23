@@ -1017,7 +1017,10 @@ async function analyseProspect() {
       body: JSON.stringify({ url })
     })).json();
     if (r.error) { status.textContent = r.error; status.style.color = '#ff6b6b'; return; }
-    status.textContent = `Analysed ${r.business_name || url}.`;
+    // Show the score straight away, and say plainly when the AI commentary was
+    // skipped — the measurements are still worth having on their own.
+    status.innerHTML = `Analysed <b>${r.business_name || url}</b> — scored ${r.score}/100, ${r.verdict}.`
+      + (r.aiNote ? `<div style="color:#ffb648;margin-top:4px;">${r.aiNote}</div>` : '');
     status.style.color = '#35c66b';
     document.getElementById('prospect-url').value = '';
     loadProspects();
