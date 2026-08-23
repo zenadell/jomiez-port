@@ -1441,7 +1441,14 @@ async function geminiKey() {
   const rows = await new Promise((resolve) =>
     db.all("SELECT api_key FROM api_keys WHERE provider = 'gemini' AND (is_active IS NULL OR is_active IN ('1','true','t','yes')) ORDER BY id ASC",
       [], (e, r) => resolve(e || !r ? [] : r)));
-  if (!rows.length) throw new Error('No active Gemini key configured.');
+  // Env fallback. The panel is the normal place to manage this, but when every
+  // stored key has been revoked the panel itself needs a working key to be
+  // useful — this keeps a locked-out admin recoverable from Render.
+  if (!rows.length) {
+    const fromEnv = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (fromEnv) return fromEnv;
+    throw new Error('No active Gemini key configured.');
+  }
   return rows[0].api_key;
 }
 
