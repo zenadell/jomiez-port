@@ -1837,11 +1837,15 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
 THE OFFER: Jomiez rebuilds their website completely. A modern site, designed and
 built from scratch, fast on a phone, built to bring them customers. Not repairs.
 
-${visual && visual.metrics ? `GOOGLE'S OWN MEASUREMENT of their mobile homepage (Lighthouse, via PageSpeed
-Insights — cite the score if it is below 50, it is third-party and undeniable):
+${visual && visual.metrics ? `GOOGLE'S OWN MEASUREMENT of their mobile homepage (Lighthouse, via PageSpeed Insights):
 - Performance score: ${visual.metrics.score}/100
-- Largest content appears after: ${visual.metrics.lcp || 'n/a'}
-- Layout shifting: ${visual.metrics.cls || 'n/a'}
+- Main content appears after: ${visual.metrics.lcp || 'n/a'}
+- Layout shifting while loading: ${visual.metrics.cls || 'n/a'}
+${(visual.metrics.score < 45 || /^(?:[5-9]|[1-9]\d)[.,]/.test(String(visual.metrics.lcp || '')))
+  ? `REQUIRED: these numbers are bad enough to quote, and they carry weight precisely
+because they are Google's and not ours. Include ONE sentence naming ${visual.metrics.score < 45 ? `the score of ${visual.metrics.score} out of 100` : `the ${visual.metrics.lcp} wait`}, attributed to Google, as the second beat of the first
+paragraph. State it plainly — no explaining what the metric means.`
+  : 'These numbers are not bad enough to be worth quoting. Leave them out.'}
 ` : ''}
 ${visual ? `WHAT THEIR HOMEPAGE ACTUALLY LOOKS LIKE — a designer examined a screenshot:
 - Design era: ${visual.design_era || 'unclear'}
