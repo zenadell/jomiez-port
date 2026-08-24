@@ -1100,7 +1100,9 @@ async function saveTemplate(id) {
     body: JSON.stringify({ template_url: url })
   })).json();
   if (r.error) { showToast(r.error); return; }
-  showToast(url ? 'Link saved — now click Draft to write it in.' : 'Link cleared.');
+  showToast(r.count
+    ? `${r.count} link${r.count > 1 ? 's' : ''} saved — now click Rewrite draft to write ${r.count > 1 ? 'them' : 'it'} in.`
+    : 'Links cleared.');
   loadProspects();
 }
 
@@ -1237,9 +1239,10 @@ function renderProspects(container) {
         </ul>` : ''}
         ${p.ai_angle ? `<p style="margin:10px 0 0;font-size:12.5px;color:#fe812e;">AI angle: <span style="color:#ccc;">${p.ai_angle}</span></p>` : ''}
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input id="ptpl-${p.id}" value="${escAttr(p.template_url)}" placeholder="Framer template link to show them (optional)"
-            style="flex:1;min-width:240px;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:12px;">
-          <button class="btn btn-sm btn-outline" onclick="saveTemplate(${p.id})">Save link</button>
+          <textarea id="ptpl-${p.id}" rows="${Math.min(3, Math.max(1, String(p.template_url || '').split('\n').filter(Boolean).length || 1))}"
+            placeholder="Framer template links — one per line. Two gives them a choice, which is an easier reply than yes or no."
+            style="flex:1;min-width:240px;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;">${escArea(p.template_url)}</textarea>
+          <button class="btn btn-sm btn-outline" onclick="saveTemplate(${p.id})">Save links</button>
           <button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">${p.draft_body ? 'Rewrite draft' : 'Draft outreach'}</button>
         </div>
         <div id="pdraft-${p.id}">${p.draft_body ? draftBoxHtml(p.id, p.draft_subject, p.draft_body, p.contact_email, p.status === 'sent') : ''}</div>

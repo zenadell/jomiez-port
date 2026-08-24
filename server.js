@@ -1660,15 +1660,37 @@ app.get('/api/prospects/discover', async (req, res) => {
 
 app.get('/api/prospects/categories', (req, res) => res.json({ categories: discoverCategories }));
 
-/** The reference design to show this prospect. Set before drafting. */
+/**
+ * Splits the stored reference designs. One per line, and a single link is still
+ * a single line, so older rows keep working untouched.
+ *
+ * Capped at three deliberately. Two directions is a question an owner can answer
+ * in one word; six is a decision they postpone.
+ */
+const MAX_TEMPLATES = 3;
+function templateList(v) {
+  return String(v || '')
+    .split(/[\n,\s]+/)
+    .map(x => x.trim())
+    .filter(x => /^https?:\/\//i.test(x))
+    .slice(0, MAX_TEMPLATES);
+}
+
+/** The reference designs to show this prospect. Set before drafting. */
 app.patch('/api/prospects/:id', (req, res) => {
-  const url = String(req.body?.template_url || '').trim();
-  if (url && !/^https?:\/\/[^\s]+$/i.test(url)) {
-    return res.status(400).json({ error: 'That does not look like a link.' });
+  const raw = String(req.body?.template_url || '');
+  const links = templateList(raw);
+
+  // Something was typed but none of it parsed as a link — say so rather than
+  // silently saving nothing and leaving the draft without the strongest part.
+  if (raw.trim() && !links.length) {
+    return res.status(400).json({ error: 'No usable links found. Each one needs to start with http:// or https://, one per line.' });
   }
-  db.run('UPDATE prospects SET template_url = ? WHERE id = ?', [url, req.params.id], (e) => {
+
+  const stored = links.join('\n');
+  db.run('UPDATE prospects SET template_url = ? WHERE id = ?', [stored, req.params.id], (e) => {
     if (e) return res.status(500).json({ error: e.message });
-    res.json({ saved: true, template_url: url });
+    res.json({ saved: true, template_url: stored, count: links.length });
   });
 });
 
@@ -1786,7 +1808,7 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
 
     const signature = s.outreach_signature || 'Emmanuel';
     const siteUrl = s.site_url || 'https://www.jomiez.com';
-    const template = (p.template_url || '').trim();
+    const templates = templateList(p.template_url);
 
     // The findings are evidence, not the offer. Listing them as defects prices
     // this as a repair job — "your button is misaligned" reads as a $50 fix and
@@ -1805,11 +1827,18 @@ ${findings.slice(0, 6).map(f => '- ' + f).join('\n') || '- the site is thin and 
 
 Where AI could help this specific business:
 ${p.ai_angle || ''}
-${template ? `
+${templates.length === 1 ? `
 REFERENCE DESIGN — include this link once, naturally, as an example of the standard
 you would build to. Introduce it as something you picked because it suits their
 line of work. Do not describe it in detail; let them click.
-${template}` : ''}
+${templates[0]}` : templates.length > 1 ? `
+REFERENCE DESIGNS — you put together ${templates.length === 2 ? 'two' : 'three'} directions for them, because you were not
+sure which suits them better. List them on separate lines, plainly, with no
+description beyond at most three words each if it helps them tell the difference.
+Then make the ask "which of these feels closer to what you had in mind?" — that
+is the whole close. Do not also ask for a call in the same breath; picking one is
+the easier reply and the call follows from it.
+${templates.join('\n')}` : ''}
 
 HOW TO WRITE IT:
 
@@ -1832,8 +1861,10 @@ Structure, roughly four short paragraphs, under 150 words total:
 2. What you would do: build them a new site from scratch. Modern, quick on a
    phone, built so that someone searching for their trade finds them and can book
    or call in one tap. Speak about outcomes, never about tags, markup or metadata.
-3. ${template ? 'Show the reference design link as the kind of thing you have in mind for them.' : 'One line on the AI angle, in terms of the money or time it saves them.'}
-4. A short, easy ask. A reply, or a ten-minute call. No pressure, no deadline.
+3. ${templates.length ? 'Show the reference design link(s) as the kind of thing you have in mind for them.' : 'One line on the AI angle, in terms of the money or time it saves them.'}
+4. ${templates.length > 1
+      ? 'Close by asking which of the designs feels closer to what they had in mind. That is the only ask — do not stack a call request on top of it.'
+      : 'A short, easy ask. A reply, or a ten-minute call. No pressure, no deadline.'}
 
 HARD RULES:
 - Never quote a price, a timeline, or a percentage.
