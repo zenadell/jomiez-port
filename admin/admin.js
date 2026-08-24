@@ -1060,25 +1060,44 @@ async function analyseBulk() {
   if (done) box.value = '';
 }
 
-async function draftProspect(id) {
-  const box = document.getElementById('pdraft-' + id);
-  box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
-  const r = await (await fetch(`/api/prospects/${id}/draft`, { method: 'POST' })).json();
-  if (r.error) { box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
-  box.innerHTML = `
+function escAttr(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+// A body containing "</textarea>" would otherwise break out of the field.
+function escArea(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * The editable draft. Rendered both after generating one and on page load for a
+ * draft already saved — the drafts were being written to the database and then
+ * never shown, so the only way to see one was to pay for a rewrite.
+ */
+function draftBoxHtml(id, subject, body, email, sent) {
+  return `
     <div style="border:1px solid #333;border-radius:8px;padding:12px;background:#0d0d0f;margin-top:10px;">
-      <input id="pto-${id}" placeholder="their@email.com" value="${r.contact_email || ''}"
+      ${sent ? '<div style="color:#35c66b;font-size:11.5px;margin-bottom:8px;">Already sent. Editing and sending again will be a follow-up.</div>' : ''}
+      <input id="pto-${id}" placeholder="their@email.com" value="${escAttr(email)}"
         style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
-      <input id="psubj-${id}" value="${String(r.subject || '').replace(/"/g, '&quot;')}"
+      <input id="psubj-${id}" value="${escAttr(subject)}"
         style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
-      <textarea id="pbody-${id}" rows="9"
-        style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;">${r.body || ''}</textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+      <textarea id="pbody-${id}" rows="12"
+        style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;line-height:1.5;">${escArea(body)}</textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-sm" onclick="sendProspect(${id})">Approve &amp; send</button>
         <button class="btn btn-sm btn-outline" onclick="draftProspect(${id})">Rewrite</button>
         <span style="font-size:11px;color:#777;">An unsubscribe line is added automatically.</span>
       </div>
     </div>`;
+}
+
+async function draftProspect(id) {
+  const box = document.getElementById('pdraft-' + id);
+  box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
+  const r = await (await fetch(`/api/prospects/${id}/draft`, { method: 'POST' })).json();
+  if (r.error) { box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
+  box.innerHTML = draftBoxHtml(id, r.subject, r.body, r.contact_email, false);
+  loadProspects();
 }
 
 async function sendProspect(id, force) {
@@ -1204,8 +1223,8 @@ function renderProspects(container) {
           ${(p.findings || []).slice(0, 4).map(f => `<li style="margin-bottom:3px;">${f}</li>`).join('')}
         </ul>` : ''}
         ${p.ai_angle ? `<p style="margin:10px 0 0;font-size:12.5px;color:#fe812e;">AI angle: <span style="color:#ccc;">${p.ai_angle}</span></p>` : ''}
-        <div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">Draft outreach</button></div>
-        <div id="pdraft-${p.id}"></div>
+        ${p.draft_body ? '' : `<div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">Draft outreach</button></div>`}
+        <div id="pdraft-${p.id}">${p.draft_body ? draftBoxHtml(p.id, p.draft_subject, p.draft_body, p.contact_email, p.status === 'sent') : ''}</div>
       </div>`).join('')
     : '<p style="color:var(--text-muted);padding:16px;text-align:center">No prospects yet. Paste a website above.</p>');
 }
