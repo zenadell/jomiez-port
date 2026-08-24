@@ -181,11 +181,57 @@ const PUBLIC_API = [
     { m: 'POST', p: /^\/api\/(login|logout)$/ }
 ];
 
+/**
+ * A scoped, revocable key for automated prospecting.
+ *
+ * Set AUTOMATION_TOKEN in the environment and a caller may present it as
+ * `Authorization: Bearer <token>` to run the research half of the outreach
+ * workflow: search for businesses, audit their sites, and prepare drafts.
+ *
+ * What it deliberately cannot do is as important as what it can:
+ *   - it cannot send email to anyone, ever — no lead reply, no prospect
+ *     outreach, no test message. Sending stays a human click in the panel.
+ *   - it cannot read or write settings, API keys or mailbox credentials
+ *   - it cannot log in, change the password, or open a session
+ *   - it cannot delete anything
+ *
+ * That is the whole point of it being a separate token rather than the admin
+ * password: the limits are enforced here, not promised. Clearing the variable
+ * in Render revokes it on the next deploy.
+ */
+const AUTOMATION_ALLOWED = [
+    { m: 'GET',  p: /^\/api\/prospects(\/(categories|discover))?$/ },
+    { m: 'POST', p: /^\/api\/prospects\/analyze$/ },
+    { m: 'POST', p: /^\/api\/prospects\/\d+\/draft$/ },
+    { m: 'GET',  p: /^\/api\/leads$/ },
+    { m: 'GET',  p: /^\/api\/leads\/\d+\/replies$/ }
+];
+
+function automationTokenOk(req) {
+    const expected = process.env.AUTOMATION_TOKEN;
+    if (!expected || expected.length < 24) return false;   // refuse a weak token
+    const header = String(req.get('authorization') || '');
+    const m = header.match(/^Bearer\s+(.+)$/i);
+    if (!m) return false;
+    const a = Buffer.from(m[1], 'utf8');
+    const b = Buffer.from(expected, 'utf8');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 app.use('/api', (req, res, next) => {
     if (req.session.user) return next();
     const path = req.baseUrl + req.path;      // req.path is relative to the mount
     const ok = PUBLIC_API.some(r => r.m === req.method && r.p.test(path));
     if (ok) return next();
+
+    if (automationTokenOk(req)) {
+        const permitted = AUTOMATION_ALLOWED.some(r => r.m === req.method && r.p.test(path));
+        if (permitted) { req.viaAutomation = true; return next(); }
+        return res.status(403).json({
+            error: 'The automation token does not grant access to this endpoint.',
+            hint: 'It covers prospect research and drafting only. Sending requires a signed-in human.'
+        });
+    }
     return res.status(401).json({ error: 'Unauthorized' });
 });
 
