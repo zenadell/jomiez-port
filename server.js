@@ -204,7 +204,8 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/analyze$/ },
     { m: 'POST', p: /^\/api\/prospects\/\d+\/draft$/ },
     { m: 'GET',  p: /^\/api\/leads$/ },
-    { m: 'GET',  p: /^\/api\/leads\/\d+\/replies$/ }
+    { m: 'GET',  p: /^\/api\/leads\/\d+\/replies$/ },
+    { m: 'POST', p: /^\/api\/prospects\/dedupe$/ }
 ];
 
 function automationTokenOk(req) {
@@ -1560,9 +1561,12 @@ app.post('/api/prospects/analyze', async (req, res) => {
     // Duplicates are how a business gets approached twice: the panel showed the
     // same company on two rows, one already contacted and one looking fresh.
     const host = hostOf(result.signals.url);
-    const existing = (await new Promise((resolve) =>
-      db.all('SELECT id, website, status, sent_at FROM prospects', [], (e, r) => resolve(e || !r ? [] : r))))
-      .find(p => hostOf(p.website) === host);
+    const matches = (await new Promise((resolve) =>
+      db.all('SELECT id, website, status, sent_at FROM prospects ORDER BY id ASC', [], (e, r) => resolve(e || !r ? [] : r))))
+      .filter(p => hostOf(p.website) === host);
+    // If duplicates already exist, merge onto the contacted one — that row holds
+    // the fact that must not be lost.
+    const existing = matches.find(p => ['sent', 'replied', 'declined'].includes(p.status)) || matches[0];
 
     const email = (result.signals.emails || [])[0] || '';
     const now = new Date().toISOString();
@@ -1644,6 +1648,47 @@ app.get('/api/prospects/discover', async (req, res) => {
 });
 
 app.get('/api/prospects/categories', (req, res) => res.json({ categories: discoverCategories }));
+
+app.delete('/api/prospects/:id', (req, res) => {
+  db.run('DELETE FROM prospects WHERE id = ?', [req.params.id], (e) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json({ deleted: true });
+  });
+});
+
+/**
+ * Collapses prospects that are the same business on more than one row.
+ *
+ * Keeps whichever row records contact having been made, because that is the row
+ * that stops a second cold email; otherwise keeps the lowest id.
+ */
+app.post('/api/prospects/dedupe', async (req, res) => {
+  try {
+    const rows = await new Promise((resolve) =>
+      db.all('SELECT id, website, status FROM prospects ORDER BY id ASC', [], (e, r) => resolve(e || !r ? [] : r)));
+
+    const groups = new Map();
+    for (const r of rows) {
+      const h = hostOf(r.website);
+      if (!groups.has(h)) groups.set(h, []);
+      groups.get(h).push(r);
+    }
+
+    const removed = [];
+    for (const [host, group] of groups) {
+      if (group.length < 2) continue;
+      const keep = group.find(p => ['sent', 'replied', 'declined'].includes(p.status)) || group[0];
+      for (const p of group) {
+        if (p.id === keep.id) continue;
+        await new Promise((resolve) => db.run('DELETE FROM prospects WHERE id = ?', [p.id], () => resolve()));
+        removed.push({ id: p.id, host });
+      }
+    }
+    res.json({ removed: removed.length, details: removed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get('/api/prospects', (req, res) => {
   db.all('SELECT * FROM prospects ORDER BY id DESC LIMIT 100', [], (e, rows) => {
