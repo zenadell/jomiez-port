@@ -1000,6 +1000,7 @@ db.serialize(() => {
     // existed, so it has to be a separate, idempotent step.
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_url TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_note TEXT`);
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS visual TEXT`);
 
     // Default User.
     //
@@ -1047,6 +1048,7 @@ db.serialize(() => {
         // How outreach signs off. The full legal name belongs in structured data
         // for search engines; it reads stiff at the bottom of a short email.
         ['outreach_signature', 'Emmanuel'],
+        ['outreach_title', 'Founder'],
         ['founder_alias', 'Templeton'],
         ['about_hero_heading', 'Building the Future of Software — One Innovation at a Time'],
         ['about_hero_subheading', 'We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences.'],
@@ -1589,21 +1591,23 @@ app.post('/api/prospects/analyze', async (req, res) => {
       const keepStatus = ['sent', 'replied', 'declined'].includes(existing.status);
       await new Promise((resolve) => db.run(
         `UPDATE prospects SET business_name = ?, contact_email = ?, industry = ?, findings = ?,
-           opportunities = ?, ai_angle = ?, status = ? WHERE id = ?`,
+           opportunities = ?, ai_angle = ?, visual = ?, status = ? WHERE id = ?`,
         [result.business_name || '', email || '', result.industry || '',
          JSON.stringify(result.findings || []), JSON.stringify(result.opportunities || []),
-         result.ai_angle || '', keepStatus ? existing.status : 'analysed', existing.id],
+         result.ai_angle || '', JSON.stringify(result.visual || null),
+         keepStatus ? existing.status : 'analysed', existing.id],
         () => resolve()));
       id = existing.id;
       return res.json({ id, merged: true, alreadyContacted: keepStatus, previousStatus: existing.status, ...result });
     }
 
     await new Promise((resolve, reject) => db.run(
-      `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, visual, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [result.signals.url, result.business_name || '', email,
        result.industry || '', JSON.stringify(result.findings || []),
-       JSON.stringify(result.opportunities || []), result.ai_angle || '', 'analysed', now],
+       JSON.stringify(result.opportunities || []), result.ai_angle || '',
+       JSON.stringify(result.visual || null), 'analysed', now],
       function (e) { e ? reject(e) : resolve(); }));
 
     // The Postgres adapter does not populate lastID, so read the row back rather
@@ -1768,12 +1772,22 @@ const ROBOT_VOICE = /\b(I ran a (?:quick )?(?:check|scan)|an? (?:automated|techn
 // Words that make a redesign pitch read as a repair invoice.
 const REPAIR_TALK = /\b(meta ?description|structured data|viewport|alt text|schema markup|H1 tag|title tag)\b/i;
 
+// Jomiez is a studio. "I design websites" undersells it to a business owner
+// deciding whether to trust a supplier with their whole web presence.
+const SOLO_VOICE = /\bI (?:design|build|would build|make|create|develop|run)\b/i;
+
+// A trivial defect as the opening argument is what made the earlier drafts
+// unsellable: nobody commissions a rebuild over a tel: link.
+const WEAK_LEAD = /^[^.!?]{0,220}\b(phone number is (?:written as )?plain text|cannot (?:simply )?tap (?:it|your (?:phone )?number)|not clickable|no meta ?description|alt text|viewport)\b/i;
+
 function draftProblems(d) {
   const text = `${d.subject || ''}\n${d.body || ''}`;
   const bad = [];
   if (INVENTED_CIRCUMSTANCE.test(text)) bad.push('claims a moment that did not happen');
   if (ROBOT_VOICE.test(text)) bad.push('sounds like a tool, not a person');
   if (REPAIR_TALK.test(text)) bad.push('uses repair-shop jargon instead of selling a redesign');
+  if (SOLO_VOICE.test(text)) bad.push('writes as one freelancer rather than as the company');
+  if (WEAK_LEAD.test(String(d.body || ''))) bad.push('opens on a trivial defect nobody would pay to rebuild a site over');
   return bad;
 }
 
@@ -1807,78 +1821,87 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
     const findings = safeParse(p.findings);
 
     const signature = s.outreach_signature || 'Emmanuel';
+    const jobTitle = s.outreach_title || 'Founder';
     const siteUrl = s.site_url || 'https://www.jomiez.com';
     const templates = templateList(p.template_url);
+    let visual = null;
+    try { visual = p.visual ? JSON.parse(p.visual) : null; } catch (e) { visual = null; }
 
-    // The findings are evidence, not the offer. Listing them as defects prices
-    // this as a repair job — "your button is misaligned" reads as a $50 fix and
-    // gets deleted. The offer is a new site; the findings are only there to show
-    // the current one is past patching.
-    const prompt = `You are ${signature}, a web designer at Jomiez Innovation. Write a short cold email to the owner of ${p.business_name || p.website}${p.industry ? `, a ${p.industry}` : ''}.
+    // The offer is a rebuild, so the reason has to be worth a rebuild. Technical
+    // defects are not: nobody commissions a new site because a phone number is
+    // not a tel: link. What a customer SEES — a design a decade out of date, a
+    // dead Google+ icon, stock photography where proof should be — is an
+    // argument an owner already half agrees with.
+    const prompt = `You are ${signature}, ${jobTitle} of Jomiez Innovation, a web design and software studio. Write a cold email to the owner of ${p.business_name || p.website}${p.industry ? `, a ${p.industry}` : ''}.
 
-WHAT YOU ARE SELLING: a complete redesign and rebuild of their website. A modern
-2026 site — fast, mobile-first, built to bring them customers. You are NOT
-offering to fix small defects. Never frame this as patching, tweaking, tidying
-or correcting individual items.
+THE OFFER: Jomiez rebuilds their website completely. A modern site, designed and
+built from scratch, fast on a phone, built to bring them customers. Not repairs.
 
-WHAT THE SITE CURRENTLY SHOWS (evidence only — use at most TWO, and only to make
-the point that the site is dated and losing them business):
-${findings.slice(0, 6).map(f => '- ' + f).join('\n') || '- the site is thin and dated'}
+${visual ? `WHAT THEIR HOMEPAGE ACTUALLY LOOKS LIKE — a designer examined a screenshot:
+- Design era: ${visual.design_era || 'unclear'}
+- A visitor's first impression: ${visual.first_impression || ''}
+- What makes it look dated or neglected: ${(visual.dated_signals || []).join(' | ')}
+- Missing trust: ${visual.trust_gap || ''}
+- Clarity: ${visual.clarity_problem || ''}
+- The strongest thing that can honestly be said to this owner:
+  ${visual.strongest_argument || ''}
 
-Where AI could help this specific business:
+LEAD WITH THE VISUAL EVIDENCE. It is the only thing here worth a rebuild. Use the
+strongest visible detail, named exactly, in the first two sentences.` : `WHAT WAS FOUND ON THEIR SITE (use the two strongest, framed as what it costs them):
+${findings.slice(0, 6).map(f => '- ' + f).join('\n') || '- the site is thin and dated'}`}
+
+${visual ? `Supporting detail, only if it strengthens the point, never as a list:
+${findings.slice(0, 3).map(f => '- ' + f).join('\n')}` : ''}
+
+Where AI could earn this specific business money:
 ${p.ai_angle || ''}
 ${templates.length === 1 ? `
-REFERENCE DESIGN — include this link once, naturally, as an example of the standard
-you would build to. Introduce it as something you picked because it suits their
-line of work. Do not describe it in detail; let them click.
+REFERENCE DESIGN — one link, introduced as something chosen because it suits their
+line of work. No description; let them click.
 ${templates[0]}` : templates.length > 1 ? `
-REFERENCE DESIGNS — you put together ${templates.length === 2 ? 'two' : 'three'} directions for them, because you were not
-sure which suits them better. List them on separate lines, plainly, with no
-description beyond at most three words each if it helps them tell the difference.
-Then make the ask "which of these feels closer to what you had in mind?" — that
-is the whole close. Do not also ask for a call in the same breath; picking one is
-the easier reply and the call follows from it.
+REFERENCE DESIGNS — ${templates.length === 2 ? 'two' : 'three'} directions, listed on separate lines, no description
+beyond three words each. Then the close below.
 ${templates.join('\n')}` : ''}
 
 HOW TO WRITE IT:
 
-Voice — you are a person who designs websites, writing to another person who runs
-a business. Warm, direct, confident. Short sentences. Contractions. The way you
-would speak if you rang them up. Never sound like a report, a scanner or a
-service notification.
+VOICE — Jomiez is a studio, not a freelancer. Write as "we", "our team", "we would".
+Never "I design", never "I would build". The only first-person singular allowed is
+in the sign-off. Warm, confident, direct, the way a good agency writes to a
+business owner it respects. Contractions. Short sentences.
 
-BANNED openings and phrasings, and anything close to them:
-"I ran a quick check", "an automated check", "a scan of your homepage",
-"a technical check", "our system detected", "I noticed that your site has",
-"I hope this email finds you well", "I wanted to reach out", "I came across your
-business while", any sentence whose subject is a tool rather than a person.
+BANNED — these get the draft rejected:
+"I ran a check", "automated", "a scan of your", "our system detected", "I hope this
+email finds you well", "I wanted to reach out", any sentence whose subject is a
+tool. Also banned as the MAIN reason: a phone number not being clickable, a missing
+meta description, alt text, viewport tags. Those may appear only as a supporting
+half-sentence, never as the argument.
 
-Structure, roughly four short paragraphs, under 150 words total:
-1. Greet them by business name. Say plainly why you are writing: you design
-   websites for ${p.industry || 'businesses like theirs'}, you looked at theirs, and you think it is
-   costing them work. Lead with the strongest single piece of evidence, stated as
-   a consequence for their customers — not as a technical defect.
-2. What you would do: build them a new site from scratch. Modern, quick on a
-   phone, built so that someone searching for their trade finds them and can book
-   or call in one tap. Speak about outcomes, never about tags, markup or metadata.
-3. ${templates.length ? 'Show the reference design link(s) as the kind of thing you have in mind for them.' : 'One line on the AI angle, in terms of the money or time it saves them.'}
-4. ${templates.length > 1
-      ? 'Close by asking which of the designs feels closer to what they had in mind. That is the only ask — do not stack a call request on top of it.'
-      : 'A short, easy ask. A reply, or a ten-minute call. No pressure, no deadline.'}
+STRUCTURE — four short paragraphs, 150 to 180 words. Every sentence earns its place.
+1. Greet them by business name. Say what Jomiez does, then the strongest VISIBLE
+   problem, named concretely, framed as what a prospective customer concludes when
+   they land on it. Make them picture their own customer leaving.
+2. What the rebuild is, concretely enough to feel real: designed from scratch for
+   their trade, loads fast on a phone, someone searching can see who they are and
+   book or call in one tap, built so it still looks current in five years. Name
+   what they GET, not what is wrong.
+3. ${templates.length ? 'Present the reference design(s) as the standard the rebuild would be built to.' : 'The AI angle, in terms of money or time it saves them.'}
+4. THE CLOSE — ${templates.length > 1
+      ? 'Ask which direction feels closer. Then say plainly what happens next: once they pick one, we build it around whatever features matter most to them — they tell us what they need — and if they want it, we can add the assistant described above. Make the next step feel small, concrete and already underway.'
+      : 'Ask for a short reply. Then say what happens next: we shape it around the features that matter most to them, and add the assistant if they want it. Make the next step feel small and concrete.'}
 
 HARD RULES:
 - Never quote a price, a timeline, or a percentage.
-- Never invent a client, a credential, or a result.
-- Never claim a specific browsing moment that did not happen: no "on my phone",
-  no "last night", no "a customer told me", no invented device or time. Saying
-  you looked at their site is fine and true. Inventing the circumstances is not.
+- Never invent a client, a credential, a result, or a detail not given above.
+- Never claim a moment that did not happen: no "on my phone", no "last night",
+  no "a customer told me". "Our team looked at your site" is true and allowed.
 - Plain text. No markdown, no bullets, no headings.
-- Do not use the words: audit, scan, check, report, findings, issues, errors,
-  optimise, SEO, metadata, structured data, viewport, alt text.
+- Do not use the words: audit, scan, report, findings, issues, errors, SEO,
+  metadata, structured data, viewport, alt text.
 
 SIGN-OFF — exactly this, on its own lines, nothing after it:
 ${signature}
-Jomiez Innovation
+${jobTitle}, Jomiez Innovation
 ${siteUrl}
 
 Return strict JSON: {"subject": "...", "body": "..."}`;
