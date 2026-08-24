@@ -206,7 +206,9 @@ const AUTOMATION_ALLOWED = [
     { m: 'GET',  p: /^\/api\/leads$/ },
     { m: 'GET',  p: /^\/api\/leads\/\d+\/replies$/ },
     { m: 'POST', p: /^\/api\/prospects\/dedupe$/ },
-    { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ }
+    { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ },
+    { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
+    { m: 'POST', p: /^\/api\/prospects\/add$/ }
 ];
 
 function automationTokenOk(req) {
@@ -1001,6 +1003,11 @@ db.serialize(() => {
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_url TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_note TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS visual TEXT`);
+    // Every stage gets its own timestamp. One "status" column cannot answer
+    // "when was this looked at" and "when did we write to them" at once.
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS analysed_at TEXT`);
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS drafted_at TEXT`);
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS found_at TEXT`);
 
     // Default User.
     //
@@ -1591,10 +1598,10 @@ app.post('/api/prospects/analyze', async (req, res) => {
       const keepStatus = ['sent', 'replied', 'declined'].includes(existing.status);
       await new Promise((resolve) => db.run(
         `UPDATE prospects SET business_name = ?, contact_email = ?, industry = ?, findings = ?,
-           opportunities = ?, ai_angle = ?, visual = ?, status = ? WHERE id = ?`,
+           opportunities = ?, ai_angle = ?, visual = ?, analysed_at = ?, status = ? WHERE id = ?`,
         [result.business_name || '', email || '', result.industry || '',
          JSON.stringify(result.findings || []), JSON.stringify(result.opportunities || []),
-         result.ai_angle || '', JSON.stringify(result.visual || null),
+         result.ai_angle || '', JSON.stringify(result.visual || null), now,
          keepStatus ? existing.status : 'analysed', existing.id],
         () => resolve()));
       id = existing.id;
@@ -1602,12 +1609,12 @@ app.post('/api/prospects/analyze', async (req, res) => {
     }
 
     await new Promise((resolve, reject) => db.run(
-      `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, visual, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, visual, analysed_at, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [result.signals.url, result.business_name || '', email,
        result.industry || '', JSON.stringify(result.findings || []),
        JSON.stringify(result.opportunities || []), result.ai_angle || '',
-       JSON.stringify(result.visual || null), 'analysed', now],
+       JSON.stringify(result.visual || null), now, 'analysed', now],
       function (e) { e ? reject(e) : resolve(); }));
 
     // The Postgres adapter does not populate lastID, so read the row back rather
@@ -1695,6 +1702,59 @@ app.patch('/api/prospects/:id', (req, res) => {
   db.run('UPDATE prospects SET template_url = ? WHERE id = ?', [stored, req.params.id], (e) => {
     if (e) return res.status(500).json({ error: e.message });
     res.json({ saved: true, template_url: stored, count: links.length });
+  });
+});
+
+/**
+ * Saves businesses straight from a search, unexamined.
+ *
+ * Finding a business and auditing it are separate jobs — auditing takes half a
+ * minute each and burns quota, so a search of sixty should be able to park them
+ * as leads to look at later rather than forcing an immediate decision.
+ */
+app.post('/api/prospects/add', async (req, res) => {
+  const items = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (!items.length) return res.status(400).json({ error: 'Nothing to add.' });
+
+  const rows = await new Promise((resolve) =>
+    db.all('SELECT website FROM prospects', [], (e, r) => resolve(e || !r ? [] : r)));
+  const seen = new Set(rows.map(r => hostOf(r.website)));
+
+  const now = new Date().toISOString();
+  let added = 0, skipped = 0;
+  for (const it of items.slice(0, 100)) {
+    const site = String(it.website || '').trim();
+    if (!site || seen.has(hostOf(site))) { skipped++; continue; }
+    seen.add(hostOf(site));
+    await new Promise((resolve) => db.run(
+      `INSERT INTO prospects (website, business_name, contact_email, industry, status, created_at, found_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [site, String(it.name || '').slice(0, 200), String(it.email || ''),
+       String(it.category || ''), 'new', now, now], () => resolve()));
+    added++;
+  }
+  res.json({ added, skipped });
+});
+
+/**
+ * Finds prospects examined before the visual pass existed and redoes them.
+ *
+ * A text-only audit could only ever offer weak reasons — a missing tag, an
+ * unlinked phone number — and those rows are still carrying them. Anything
+ * without a stored visual is stale by definition.
+ */
+app.get('/api/prospects/stale', (req, res) => {
+  db.all(`SELECT id, website, business_name, status, analysed_at, visual FROM prospects
+          WHERE status <> 'new' ORDER BY id ASC`, [], (e, rows) => {
+    if (e) return res.status(500).json({ error: e.message });
+    const stale = (rows || []).filter(r => {
+      if (!r.visual) return true;
+      try { const v = JSON.parse(r.visual); return !v || !v.strongest_argument; }
+      catch (err) { return true; }
+    });
+    res.json({ total: (rows || []).length, stale: stale.length, items: stale.map(r => ({
+      id: r.id, website: r.website, business_name: r.business_name, status: r.status
+    })) });
   });
 });
 
@@ -1949,8 +2009,9 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
     if (problems.length) { d.body = humanise(d.body); d.subject = humanise(d.subject); }
 
     await new Promise((resolve) => db.run(
-      'UPDATE prospects SET draft_subject = ?, draft_body = ?, status = ? WHERE id = ?',
-      [d.subject || '', d.body || '', 'drafted', p.id], () => resolve()));
+      'UPDATE prospects SET draft_subject = ?, draft_body = ?, drafted_at = ?, status = ? WHERE id = ?',
+      [d.subject || '', d.body || '', new Date().toISOString(),
+       p.status === 'sent' ? 'sent' : 'drafted', p.id], () => resolve()));
 
     res.json({ ...d, id: p.id, contact_email: p.contact_email });
   } catch (e) {

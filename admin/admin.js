@@ -1093,6 +1093,119 @@ function draftBoxHtml(id, subject, body, email, sent) {
 
 // The reference design is the strongest part of the pitch: an owner who can see
 // what their site could look like is deciding about a picture, not a paragraph.
+
+// ── Prospect pipeline ─────────────────────────────────────────────────────────
+//
+// One flat list mixed businesses never looked at, ones audited and waiting, and
+// ones already emailed — so the row that needed attention sat next to the row
+// that must not be touched again. Each stage is now its own folder, and every
+// card carries the date it reached that stage.
+const PROSPECT_FOLDERS = {
+  new:      { label: 'New',      test: p => p.status === 'new' },
+  analysed: { label: 'Audited',  test: p => p.status === 'analysed' && !p.draft_body },
+  drafted:  { label: 'Drafted',  test: p => !!p.draft_body && p.status !== 'sent' },
+  sent:     { label: 'Sent',     test: p => p.status === 'sent' }
+};
+let prospectFolder = 'analysed';
+
+function visibleProspects() {
+  const f = PROSPECT_FOLDERS[prospectFolder];
+  const rows = prospectsCache.filter(f.test);
+  // Sent is a record, so newest first; the working folders read best oldest
+  // first, so the thing waiting longest is at the top.
+  return prospectFolder === 'sent'
+    ? rows.sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')))
+    : rows;
+}
+
+function setProspectFolder(k) { prospectFolder = k; renderLeads(); }
+
+function prospectFolderBar() {
+  const counts = Object.fromEntries(
+    Object.entries(PROSPECT_FOLDERS).map(([k, f]) => [k, prospectsCache.filter(f.test).length]));
+  const staleN = prospectsCache.filter(needsReaudit).length;
+  return `
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+      ${Object.entries(PROSPECT_FOLDERS).map(([k, f]) => `
+        <button class="btn btn-sm ${prospectFolder === k ? '' : 'btn-outline'}"
+          onclick="setProspectFolder('${k}')">${f.label} (${counts[k]})</button>`).join('')}
+      <span style="flex:1"></span>
+      ${staleN ? `<button class="btn btn-sm btn-outline" style="border-color:#fe812e;color:#fe812e;"
+        onclick="reauditStale()">Re-audit ${staleN} old-method</button>` : ''}
+    </div>
+    <div id="reaudit-status" style="font-size:12px;color:#888;margin-bottom:10px;min-height:14px;"></div>`;
+}
+
+/** Audited before the visual pass existed, so it only has weak text findings. */
+function needsReaudit(p) {
+  if (p.status === 'new') return false;
+  const v = p.visual;
+  if (!v) return true;
+  try { const o = typeof v === 'string' ? JSON.parse(v) : v; return !o || !o.strongest_argument; }
+  catch (e) { return true; }
+}
+
+function when(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  return d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function chip(text, colour, title) {
+  return `<span title="${escAttr(title || '')}" style="background:${colour}22;color:${colour};
+    padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-right:6px;
+    display:inline-block;margin-bottom:4px;">${text}</span>`;
+}
+
+function stageBadges(p) {
+  let out = '';
+  if (p.status === 'new') out += chip('Not audited yet', '#8a8a8a', 'Found by a search, never examined');
+  if (p.found_at)    out += chip(`Found ${when(p.found_at)}`, '#6c7a89');
+  if (p.analysed_at) out += chip(`Audited ${when(p.analysed_at)}`, '#00e0ff');
+  if (p.drafted_at)  out += chip(`Drafted ${when(p.drafted_at)}`, '#c084fc');
+  if (p.sent_at)     out += chip(`Sent ${when(p.sent_at)}`, '#35c66b');
+  if (needsReaudit(p)) out += chip('Old method — re-audit', '#fe812e', 'Audited before the design review existed, so it only has weak text findings');
+  return out || chip(p.status, '#8a8a8a');
+}
+
+/** Google's own score, when we have it. The single most persuasive number here. */
+function googleScoreChip(p) {
+  let v = null;
+  try { v = typeof p.visual === 'string' ? JSON.parse(p.visual) : p.visual; } catch (e) { return ''; }
+  const m = v && v.metrics;
+  if (!m || typeof m.score !== 'number') return '';
+  const c = m.score < 50 ? '#ff6b6b' : m.score < 80 ? '#fe812e' : '#35c66b';
+  return `<div style="text-align:right;white-space:nowrap;">
+    <div style="font-size:22px;font-weight:800;color:${c};line-height:1;">${m.score}</div>
+    <div style="font-size:10px;color:#777;">Google mobile</div>
+    ${m.lcp ? `<div style="font-size:10px;color:#777;">${m.lcp} to load</div>` : ''}
+  </div>`;
+}
+
+/** Redoes everything audited before the design review existed. */
+async function reauditStale() {
+  const box = document.getElementById('reaudit-status');
+  const stale = prospectsCache.filter(needsReaudit);
+  if (!stale.length) { box.textContent = 'Nothing to re-audit.'; return; }
+  if (!confirm(`Re-audit ${stale.length} prospect${stale.length > 1 ? 's' : ''} with the design review? Takes about 40 seconds each.`)) return;
+
+  let done = 0, failed = 0;
+  for (const p of stale) {
+    box.innerHTML = `Re-auditing ${done + 1} of ${stale.length} — <b>${escAttr(p.business_name || p.website)}</b>…`;
+    try {
+      const r = await (await fetch('/api/prospects/analyze', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: p.website })
+      })).json();
+      r.error ? failed++ : done++;
+    } catch (e) { failed++; }
+    await loadProspects();
+  }
+  box.innerHTML = `Re-audited ${done}${failed ? `, ${failed} failed` : ''}.`;
+  box.style.color = failed ? '#ffb648' : '#35c66b';
+}
+
 async function saveTemplate(id) {
   const url = document.getElementById('ptpl-' + id).value.trim();
   const r = await (await fetch(`/api/prospects/${id}`, {
@@ -1168,9 +1281,15 @@ async function discoverProspects() {
           ? `<button class="btn btn-sm btn-outline" onclick="analyseFromDiscovery('${b.website}')">Audit</button>`
           : `<span style="font-size:11px;color:#fe812e;white-space:nowrap;">no website</span>`}
       </div>`;
+    // Keep the results so they can be saved without re-running the search.
+    window.__discovered = r;
     out.innerHTML = `
-      <div style="font-size:12px;color:#888;margin:10px 0;">
-        ${r.total} found · ${r.withWebsite.length} to audit · ${r.withoutWebsite.length} with no website · ${r.alreadySeen} already seen
+      <div style="display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#888;">
+          ${r.total} found · ${r.withWebsite.length} with a site · ${r.withoutWebsite.length} without · ${r.alreadySeen} already known
+        </span>
+        <span style="flex:1"></span>
+        ${r.withWebsite.length ? `<button class="btn btn-sm" onclick="addDiscovered()">Save all ${r.withWebsite.length} to my list</button>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
         <div>
@@ -1183,6 +1302,31 @@ async function discoverProspects() {
         </div>
       </div>`;
   } catch (e) { out.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${e.message}</span>`; }
+}
+
+/**
+ * Parks a whole search as unexamined prospects.
+ *
+ * Auditing takes most of a minute each, so being forced to decide business by
+ * business at the moment of searching is the wrong shape. Save them all, audit
+ * them when there is time.
+ */
+async function addDiscovered() {
+  const r = window.__discovered;
+  if (!r || !r.withWebsite || !r.withWebsite.length) return;
+  const out = document.getElementById('disc-results');
+  const items = r.withWebsite.map(b => ({ website: b.website, name: b.name, email: b.email, category: b.category }));
+  try {
+    const res = await (await fetch('/api/prospects/add', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    })).json();
+    if (res.error) { showToast(res.error); return; }
+    showToast(`${res.added} saved as New${res.skipped ? `, ${res.skipped} already known` : ''}.`);
+    prospectFolder = 'new';
+    await loadProspects();
+    if (out) out.innerHTML = '';
+  } catch (e) { showToast(e.message); }
 }
 
 async function analyseFromDiscovery(url) {
@@ -1222,17 +1366,15 @@ function renderProspects(container) {
       <button class="btn btn-sm" style="margin-top:6px;" onclick="analyseBulk()">Analyse all</button>
     </div>
     <div id="prospect-status" style="font-size:12px;color:#888;margin-bottom:16px;min-height:16px;"></div>
-  ` + (prospectsCache.length ? prospectsCache.map(p => `
+  ` + prospectFolderBar() + (visibleProspects().length ? visibleProspects().map(p => `
       <div class="work-item" style="display:block;padding:14px;border:1px solid #333;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;gap:10px;">
           <div>
-            <div style="color:#00e0ff;font-weight:700;">${p.business_name || p.website}
-              ${p.status === 'sent' ? `<span title="${p.sent_at || ''}" style="background:rgba(53,198,107,.15);color:#35c66b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-left:6px;">Contacted</span>` : ''}</div>
+            <div style="color:#00e0ff;font-weight:700;">${p.business_name || p.website}</div>
             <div style="font-size:12px;color:#888;">${p.website} ${p.industry ? '· ' + p.industry : ''} ${p.contact_email ? '· ' + p.contact_email : '· no email found'}</div>
+            <div style="margin-top:6px;">${stageBadges(p)}</div>
           </div>
-          <span style="font-size:11px;padding:2px 8px;border-radius:4px;height:fit-content;
-            background:${p.status === 'sent' ? 'rgba(53,198,107,.12)' : 'rgba(255,255,255,.06)'};
-            color:${p.status === 'sent' ? '#35c66b' : '#aaa'};">${p.status}</span>
+          ${googleScoreChip(p)}
         </div>
         ${(p.findings || []).length ? `<ul style="margin:10px 0 0;padding-left:18px;color:#bbb;font-size:12.5px;">
           ${(p.findings || []).slice(0, 4).map(f => `<li style="margin-bottom:3px;">${f}</li>`).join('')}
@@ -1247,7 +1389,7 @@ function renderProspects(container) {
         </div>
         <div id="pdraft-${p.id}">${p.draft_body ? draftBoxHtml(p.id, p.draft_subject, p.draft_body, p.contact_email, p.status === 'sent') : ''}</div>
       </div>`).join('')
-    : '<p style="color:var(--text-muted);padding:16px;text-align:center">No prospects yet. Paste a website above.</p>');
+    : `<p style="color:var(--text-muted);padding:16px;text-align:center">Nothing in ${PROSPECT_FOLDERS[prospectFolder].label}.</p>`);
 }
 
 // ── Inbox ─────────────────────────────────────────────────────────────────────
