@@ -1980,10 +1980,21 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const client = new GoogleGenerativeAI(await geminiKey());
+    // A stalled model used to block the whole chain: one draft took 58 seconds
+    // while another took 4, and from the panel that is indistinguishable from a
+    // dead button. Cap each attempt so a slow model is abandoned, not waited on.
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('model timed out')), ms))
+    ]);
+
     const generate = async (extra) => {
       for (const m of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
-        try { return (await client.getGenerativeModel({ model: m }).generateContent(prompt + (extra || ''))).response.text(); }
-        catch (e) { /* try the next model */ }
+        try {
+          const out = await withTimeout(
+            client.getGenerativeModel({ model: m }).generateContent(prompt + (extra || '')), 20000);
+          return out.response.text();
+        } catch (e) { /* try the next model */ }
       }
       return null;
     };

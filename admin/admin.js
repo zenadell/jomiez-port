@@ -1221,11 +1221,50 @@ async function saveTemplate(id) {
 
 async function draftProspect(id) {
   const box = document.getElementById('pdraft-' + id);
-  box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
-  const r = await (await fetch(`/api/prospects/${id}/draft`, { method: 'POST' })).json();
-  if (r.error) { box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
-  box.innerHTML = draftBoxHtml(id, r.subject, r.body, r.contact_email, false);
-  loadProspects();
+  const btn = document.getElementById('pdraftbtn-' + id);
+  if (btn && btn.disabled) return;              // a second click would stack another run
+  if (btn) { btn.disabled = true; btn.textContent = 'Writing…'; }
+
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - started) / 1000);
+    box.innerHTML = `<span style="color:#888;font-size:12px;">Writing the email… ${s}s`
+      + (s > 20 ? ' — a slow model, still going' : '') + '</span>';
+  }, 1000);
+  box.innerHTML = '<span style="color:#888;font-size:12px;">Writing the email… 0s</span>';
+
+  try {
+    const r = await (await fetch(`/api/prospects/${id}/draft`, { method: 'POST' })).json();
+    if (r.error) { box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${r.error}</span>`; return; }
+    box.innerHTML = draftBoxHtml(id, r.subject, r.body, r.contact_email, false);
+    // The card moves to Drafted, so say where it went rather than letting it
+    // silently vanish from the folder being looked at.
+    if (prospectFolder !== 'drafted') showToast('Draft written — moved to the Drafted folder.');
+    loadProspects();
+  } catch (e) {
+    box.innerHTML = `<span style="color:#ff6b6b;font-size:12px;">${e.message}</span>`;
+  } finally {
+    clearInterval(tick);
+    if (btn) { btn.disabled = false; btn.textContent = 'Rewrite draft'; }
+  }
+}
+
+/** Re-examines one site with the current method. */
+async function reauditOne(id) {
+  const p = prospectsCache.find(x => x.id === id);
+  if (!p) return;
+  const btn = document.getElementById('preaudit-' + id);
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Looking…'; }
+  try {
+    const r = await (await fetch('/api/prospects/analyze', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: p.website })
+    })).json();
+    showToast(r.error ? r.error : `Re-audited — Google scores it ${(r.visual && r.visual.metrics && r.visual.metrics.score) ?? '?'}/100.`);
+    await loadProspects();
+  } catch (e) { showToast(e.message); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Re-audit'; } }
 }
 
 async function sendProspect(id, force) {
@@ -1385,7 +1424,9 @@ function renderProspects(container) {
             placeholder="Framer template links — one per line. Two gives them a choice, which is an easier reply than yes or no."
             style="flex:1;min-width:240px;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;">${escArea(p.template_url)}</textarea>
           <button class="btn btn-sm btn-outline" onclick="saveTemplate(${p.id})">Save links</button>
-          <button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">${p.draft_body ? 'Rewrite draft' : 'Draft outreach'}</button>
+          <button class="btn btn-sm btn-outline" id="pdraftbtn-${p.id}" onclick="draftProspect(${p.id})">${p.draft_body ? 'Rewrite draft' : 'Draft outreach'}</button>
+          <button class="btn btn-sm btn-outline" id="preaudit-${p.id}" onclick="reauditOne(${p.id})"
+            title="Look at the site again with the design review">Re-audit</button>
         </div>
         <div id="pdraft-${p.id}">${p.draft_body ? draftBoxHtml(p.id, p.draft_subject, p.draft_body, p.contact_email, p.status === 'sent') : ''}</div>
       </div>`).join('')
