@@ -1869,8 +1869,10 @@ ${templates.length === 1 ? `
 REFERENCE DESIGN — one link, introduced as something chosen because it suits their
 line of work. No description; let them click.
 ${templates[0]}` : templates.length > 1 ? `
-REFERENCE DESIGNS — ${templates.length === 2 ? 'two' : 'three'} directions, listed on separate lines, no description
-beyond three words each. Then the close below.
+REFERENCE DESIGNS — ${templates.length === 2 ? 'two' : 'three'} directions. Introduce them with one short line so they do not
+appear as a bare dump of URLs, for example "Here are two directions we would
+build to:". Then list them on separate lines, no description beyond three words
+each. Then the close below.
 ${templates.join('\n')}` : ''}
 
 HOW TO WRITE IT:
@@ -1896,9 +1898,9 @@ STRUCTURE — four short paragraphs, 150 to 180 words. Every sentence earns its 
    book or call in one tap, built so it still looks current in five years. Name
    what they GET, not what is wrong.
 3. ${templates.length ? 'Present the reference design(s) as the standard the rebuild would be built to.' : 'The AI angle, in terms of money or time it saves them.'}
-4. THE CLOSE — ${templates.length > 1
-      ? 'Ask which direction feels closer. Then say plainly what happens next: once they pick one, we build it around whatever features matter most to them — they tell us what they need — and if they want it, we can add the assistant described above. Make the next step feel small, concrete and already underway.'
-      : 'Ask for a short reply. Then say what happens next: we shape it around the features that matter most to them, and add the assistant if they want it. Make the next step feel small and concrete.'}
+4. THE CLOSE — write it addressed to the reader as "you", never "them". ${templates.length > 1
+      ? 'Ask which direction feels closer. Then say what happens next, in the second person: they pick one, you build it around the features that matter most to their business, they tell you what they need, and the assistant can be added if they want it. Make the next step feel small and already underway.'
+      : 'Ask for a short reply. Then say what happens next, in the second person: you shape it around the features that matter most to their business, and add the assistant if they want it.'}
 
 HARD RULES:
 - Never quote a price, a timeline, or a percentage.
