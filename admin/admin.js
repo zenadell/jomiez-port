@@ -1104,7 +1104,8 @@ const PROSPECT_FOLDERS = {
   new:      { label: 'New',      test: p => p.status === 'new' },
   analysed: { label: 'Audited',  test: p => p.status === 'analysed' && !p.draft_body },
   drafted:  { label: 'Drafted',  test: p => !!p.draft_body && p.status !== 'sent' },
-  sent:     { label: 'Sent',     test: p => p.status === 'sent' }
+  sent:     { label: 'Sent',     test: p => p.status === 'sent' },
+  replied:  { label: 'Replied',  test: p => p.status === 'replied' }
 };
 let prospectFolder = 'analysed';
 
@@ -1115,6 +1116,8 @@ function visibleProspects() {
   // first, so the thing waiting longest is at the top.
   return prospectFolder === 'sent'
     ? rows.sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')))
+    : prospectFolder === 'replied'
+    ? rows.sort((a, b) => String(b.replied_at || '').localeCompare(String(a.replied_at || '')))
     : rows;
 }
 
@@ -1128,6 +1131,7 @@ function prospectFolderBar() {
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
       ${Object.entries(PROSPECT_FOLDERS).map(([k, f]) => `
         <button class="btn btn-sm ${prospectFolder === k ? '' : 'btn-outline'}"
+          style="${k === 'replied' && counts[k] ? 'border-color:#ffd166;color:#ffd166;font-weight:800;' : ''}"
           onclick="setProspectFolder('${k}')">${f.label} (${counts[k]})</button>`).join('')}
       <span style="flex:1"></span>
       ${staleN ? `<button class="btn btn-sm btn-outline" style="border-color:#fe812e;color:#fe812e;"
@@ -1165,6 +1169,7 @@ function stageBadges(p) {
   if (p.analysed_at) out += chip(`Audited ${when(p.analysed_at)}`, '#00e0ff');
   if (p.drafted_at)  out += chip(`Drafted ${when(p.drafted_at)}`, '#c084fc');
   if (p.sent_at)     out += chip(`Sent ${when(p.sent_at)}`, '#35c66b');
+  if (p.replied_at)  out += chip(`REPLIED ${when(p.replied_at)}`, '#ffd166', 'They answered — open the Inbox tab to read it');
   if (needsReaudit(p)) out += chip('Old method — re-audit', '#fe812e', 'Audited before the design review existed, so it only has weak text findings');
   return out || chip(p.status, '#8a8a8a');
 }

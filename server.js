@@ -1008,6 +1008,7 @@ db.serialize(() => {
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS analysed_at TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS drafted_at TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS found_at TEXT`);
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS replied_at TEXT`);
 
     // Default User.
     //
@@ -2096,6 +2097,7 @@ async function syncInbox() {
   if (!r.ok) return r;
 
   let added = 0;
+  const fresh = [];
   for (const m of r.messages) {
     const exists = await new Promise((resolve) =>
       db.get('SELECT id FROM inbox_messages WHERE uid = ?', [m.uid], (e, row) => resolve(!!row)));
@@ -2111,9 +2113,79 @@ async function syncInbox() {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [m.uid, m.subject, m.from_name, m.from_email, m.body, m.received_at,
        m.seen ? '1' : '0', verdict, new Date().toISOString()], () => resolve()));
+    fresh.push(m);
     added++;
   }
-  return { ok: true, added, total: r.messages.length };
+  return { ok: true, added, total: r.messages.length, newMessages: fresh };
+}
+
+/**
+ * Connects an incoming message to the prospect or lead it answers.
+ *
+ * Without this a reply is just another message in a list, and the prospect it
+ * came from still shows as "Sent" — so a business that actually replied looks
+ * identical to one that ignored you, which is the single worst thing this panel
+ * could get wrong.
+ */
+async function linkReplies(messages) {
+  const linked = [];
+  for (const m of messages) {
+    const addr = String(m.from_email || '').toLowerCase().trim();
+    if (!addr) continue;
+
+    const prospect = await new Promise((resolve) => db.get(
+      "SELECT id, business_name, status FROM prospects WHERE LOWER(contact_email) = ? AND status IN ('sent','replied')",
+      [addr], (e, r) => resolve(r || null)));
+
+    if (prospect) {
+      if (prospect.status !== 'replied') {
+        await new Promise((resolve) => db.run(
+          "UPDATE prospects SET status = 'replied', replied_at = ? WHERE id = ?",
+          [new Date().toISOString(), prospect.id], () => resolve()));
+      }
+      linked.push({ kind: 'prospect', name: prospect.business_name || addr, from: addr, subject: m.subject });
+      continue;
+    }
+
+    const lead = await new Promise((resolve) => db.get(
+      'SELECT id, name FROM client_leads WHERE LOWER(email) = ?', [addr], (e, r) => resolve(r || null)));
+    if (lead) linked.push({ kind: 'lead', name: lead.name || addr, from: addr, subject: m.subject });
+  }
+  return linked;
+}
+
+/**
+ * Checks the mailbox on a timer.
+ *
+ * The unread badge counted rows already in the database, and nothing put rows
+ * there except opening the Inbox tab or pressing "Check for new mail" — so the
+ * badge could sit at zero with a reply waiting on the mail server. A background
+ * pass is what makes it mean anything.
+ */
+async function backgroundInboxSweep() {
+  try {
+    await loadInboxSettings();
+    if (!inboxConfigured()) return;
+
+    const r = await syncInbox();
+    if (!r.ok || !r.added) return;
+
+    const linked = await linkReplies(r.newMessages || []);
+    console.log(`[inbox] ${r.added} new message(s), ${linked.length} matched to someone we wrote to.`);
+
+    // Tell the owner somewhere they can actually read it. The mailbox itself is
+    // on a host they may not be able to sign into.
+    if (linked.length && process.env.ADMIN_NOTIFY_EMAIL) {
+      await notifyOwner({
+        subject: `${linked.length} repl${linked.length > 1 ? 'ies' : 'y'} to your outreach`,
+        body: linked.map(l =>
+          `${l.name} (${l.from}) replied${l.subject ? `:\n  "${l.subject}"` : '.'}`
+        ).join('\n\n') + '\n\nRead and reply in the admin panel: https://www.jomiez.com/admin'
+      });
+    }
+  } catch (e) {
+    console.warn('[inbox] background sweep failed:', e.message);
+  }
 }
 
 app.get('/api/inbox', async (req, res) => {
@@ -3241,6 +3313,11 @@ setInterval(async () => {
         console.warn(`[KEEP-ALIVE] Self-ping failed (${RENDER_URL}):`, err.message);
     }
 }, 10 * 60 * 1000); // Every 10 minutes
+
+// Check the mailbox every five minutes so the unread badge reflects the mail
+// server rather than whatever was last fetched by hand.
+setInterval(backgroundInboxSweep, 5 * 60 * 1000);
+setTimeout(backgroundInboxSweep, 30 * 1000);   // once shortly after boot
 
 // Final Start
 const server = app.listen(PORT, () => {
