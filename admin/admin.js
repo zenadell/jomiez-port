@@ -1091,6 +1091,19 @@ function draftBoxHtml(id, subject, body, email, sent) {
     </div>`;
 }
 
+// The reference design is the strongest part of the pitch: an owner who can see
+// what their site could look like is deciding about a picture, not a paragraph.
+async function saveTemplate(id) {
+  const url = document.getElementById('ptpl-' + id).value.trim();
+  const r = await (await fetch(`/api/prospects/${id}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template_url: url })
+  })).json();
+  if (r.error) { showToast(r.error); return; }
+  showToast(url ? 'Link saved — now click Draft to write it in.' : 'Link cleared.');
+  loadProspects();
+}
+
 async function draftProspect(id) {
   const box = document.getElementById('pdraft-' + id);
   box.innerHTML = '<span style="color:#888;font-size:12px;">Writing…</span>';
@@ -1223,7 +1236,12 @@ function renderProspects(container) {
           ${(p.findings || []).slice(0, 4).map(f => `<li style="margin-bottom:3px;">${f}</li>`).join('')}
         </ul>` : ''}
         ${p.ai_angle ? `<p style="margin:10px 0 0;font-size:12.5px;color:#fe812e;">AI angle: <span style="color:#ccc;">${p.ai_angle}</span></p>` : ''}
-        ${p.draft_body ? '' : `<div style="margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">Draft outreach</button></div>`}
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input id="ptpl-${p.id}" value="${escAttr(p.template_url)}" placeholder="Framer template link to show them (optional)"
+            style="flex:1;min-width:240px;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;font-size:12px;">
+          <button class="btn btn-sm btn-outline" onclick="saveTemplate(${p.id})">Save link</button>
+          <button class="btn btn-sm btn-outline" onclick="draftProspect(${p.id})">${p.draft_body ? 'Rewrite draft' : 'Draft outreach'}</button>
+        </div>
         <div id="pdraft-${p.id}">${p.draft_body ? draftBoxHtml(p.id, p.draft_subject, p.draft_body, p.contact_email, p.status === 'sent') : ''}</div>
       </div>`).join('')
     : '<p style="color:var(--text-muted);padding:16px;text-align:center">No prospects yet. Paste a website above.</p>');

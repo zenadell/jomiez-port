@@ -205,7 +205,8 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/\d+\/draft$/ },
     { m: 'GET',  p: /^\/api\/leads$/ },
     { m: 'GET',  p: /^\/api\/leads\/\d+\/replies$/ },
-    { m: 'POST', p: /^\/api\/prospects\/dedupe$/ }
+    { m: 'POST', p: /^\/api\/prospects\/dedupe$/ },
+    { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ }
 ];
 
 function automationTokenOk(req) {
@@ -992,6 +993,13 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS api_keys (id SERIAL PRIMARY KEY, provider TEXT NOT NULL, api_key TEXT UNIQUE NOT NULL, is_active TEXT DEFAULT '1', fail_count INTEGER DEFAULT 0)`);
     db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, label TEXT, value TEXT, suffix TEXT, sort_order INTEGER DEFAULT 0)`);
+    db.run(`CREATE TABLE IF NOT EXISTS prospects (id SERIAL PRIMARY KEY, website TEXT, business_name TEXT,
+      contact_email TEXT, industry TEXT, findings TEXT, opportunities TEXT, ai_angle TEXT,
+      draft_subject TEXT, draft_body TEXT, status TEXT DEFAULT 'analysed', created_at TEXT, sent_at TEXT)`);
+    // The reference design shown in the outreach email. Added after the table
+    // existed, so it has to be a separate, idempotent step.
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_url TEXT`);
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS template_note TEXT`);
 
     // Default User.
     //
@@ -1652,6 +1660,18 @@ app.get('/api/prospects/discover', async (req, res) => {
 
 app.get('/api/prospects/categories', (req, res) => res.json({ categories: discoverCategories }));
 
+/** The reference design to show this prospect. Set before drafting. */
+app.patch('/api/prospects/:id', (req, res) => {
+  const url = String(req.body?.template_url || '').trim();
+  if (url && !/^https?:\/\/[^\s]+$/i.test(url)) {
+    return res.status(400).json({ error: 'That does not look like a link.' });
+  }
+  db.run('UPDATE prospects SET template_url = ? WHERE id = ?', [url, req.params.id], (e) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json({ saved: true, template_url: url });
+  });
+});
+
 app.delete('/api/prospects/:id', (req, res) => {
   db.run('DELETE FROM prospects WHERE id = ?', [req.params.id], (e) => {
     if (e) return res.status(500).json({ error: e.message });
@@ -1707,33 +1727,40 @@ app.get('/api/prospects', (req, res) => {
 function safeParse(v) { try { return JSON.parse(v || '[]'); } catch (e) { return []; } }
 
 /**
- * Catches claims of human inspection that never happened.
+ * Two different failures, and they pull in opposite directions.
  *
- * The findings are all genuinely measured, but the audit is automated — nobody
- * opened the site on a phone. A prompt rule alone did not hold: the model kept
- * reaching for "I pulled up your site on my phone" because it reads warmer. This
- * rewrites those openings into the same claim stated honestly, and the caller
- * regenerates once before falling back to it.
+ * Inventing a moment that never happened is dishonest: nobody opened the site on
+ * a phone last night. But over-correcting produced "I ran a quick check on your
+ * site", which announces a tool and reads like a service notification — nobody
+ * replies to that.
+ *
+ * The honest and human version is simply to state what is true of their site, or
+ * to say you looked at it, which is true by the time it is sent. So: block the
+ * invented circumstances, block the robot voice, allow the plain human sentence
+ * in between.
  */
-const FALSE_CLAIM_PATTERNS = [
-  [/\bWhen I (?:visited|checked|opened|pulled up|looked at|browsed)[^,.]*[,.]?\s*/gi, ''],
-  [/\bI (?:recently )?(?:visited|browsed|was on|was looking (?:at|through))\b[^,.]*[,.]?\s*/gi, ''],
-  [/\bI pulled up your (?:site|website)[^,.]*[,.]?\s*/gi, ''],
-  [/\b(?:on|from) my (?:phone|mobile|laptop|computer)\b/gi, ''],
-  [/\bI noticed (?:that )?/gi, 'A quick check of your site shows '],
-  [/\bI saw (?:that )?/gi, 'The check also found '],
-  [/\ba customer (?:told|mentioned to) me\b[^,.]*[,.]?\s*/gi, '']
-];
+const INVENTED_CIRCUMSTANCE = /\b(on my (?:phone|mobile|laptop|tablet)|from my (?:phone|mobile)|last (?:night|week)|this (?:morning|afternoon)|a (?:customer|friend|colleague) (?:told|mentioned|said)|while I was (?:driving|waiting|searching)|at \d{1,2}\s?(?:am|pm))\b/i;
 
-function hasFalseClaim(text) {
-  return /\b(when I (?:visited|checked|opened|pulled up|looked at)|I (?:visited|browsed|was on|was looking)|pulled up your|on my (?:phone|mobile))\b/i.test(String(text || ''));
+const ROBOT_VOICE = /\b(I ran a (?:quick )?(?:check|scan)|an? (?:automated|technical|quick) (?:check|scan|review)|a scan of your|our (?:system|tool|software) (?:detected|found|shows)|the (?:check|scan|audit|report) (?:found|shows|flagged)|automated (?:analysis|tool)|this is an automated)\b/i;
+
+// Words that make a redesign pitch read as a repair invoice.
+const REPAIR_TALK = /\b(meta ?description|structured data|viewport|alt text|schema markup|H1 tag|title tag)\b/i;
+
+function draftProblems(d) {
+  const text = `${d.subject || ''}\n${d.body || ''}`;
+  const bad = [];
+  if (INVENTED_CIRCUMSTANCE.test(text)) bad.push('claims a moment that did not happen');
+  if (ROBOT_VOICE.test(text)) bad.push('sounds like a tool, not a person');
+  if (REPAIR_TALK.test(text)) bad.push('uses repair-shop jargon instead of selling a redesign');
+  return bad;
 }
 
-function stripFalseClaims(text) {
-  let out = String(text || '');
-  for (const [re, rep] of FALSE_CLAIM_PATTERNS) out = out.replace(re, rep);
-  // Tidy what the removals leave behind.
-  return out
+/** Last resort if two generations both drift. Keeps it true and human. */
+function humanise(text) {
+  return String(text || '')
+    .replace(/\b(?:I ran a (?:quick )?(?:check|scan)|An? (?:automated|technical|quick) (?:check|scan|review)|A scan) (?:on|of) your (?:site|homepage|website)[^,.]*[,.]?\s*/gi, 'Looking at your site, ')
+    .replace(/\bThe (?:check|scan|audit) (?:found|shows|flagged) (?:that )?/gi, 'What stood out is that ')
+    .replace(INVENTED_CIRCUMSTANCE, '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/(^|\n)\s*([a-z])/g, (m, br, c) => br + c.toUpperCase())
@@ -1759,44 +1786,69 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
 
     const signature = s.outreach_signature || 'Emmanuel';
     const siteUrl = s.site_url || 'https://www.jomiez.com';
+    const template = (p.template_url || '').trim();
 
-    const prompt = `Write a cold outreach email from ${signature} of Jomiez Innovation to the owner of ${p.business_name || p.website}.
+    // The findings are evidence, not the offer. Listing them as defects prices
+    // this as a repair job — "your button is misaligned" reads as a $50 fix and
+    // gets deleted. The offer is a new site; the findings are only there to show
+    // the current one is past patching.
+    const prompt = `You are ${signature}, a web designer at Jomiez Innovation. Write a short cold email to the owner of ${p.business_name || p.website}${p.industry ? `, a ${p.industry}` : ''}.
 
-What an automated check measured on their site:
-${findings.map(f => '- ' + f).join('\n') || '- nothing broken'}
+WHAT YOU ARE SELLING: a complete redesign and rebuild of their website. A modern
+2026 site — fast, mobile-first, built to bring them customers. You are NOT
+offering to fix small defects. Never frame this as patching, tweaking, tidying
+or correcting individual items.
 
-Specific opportunities identified:
-${opportunities.map(o => '- ' + o).join('\n')}
+WHAT THE SITE CURRENTLY SHOWS (evidence only — use at most TWO, and only to make
+the point that the site is dated and losing them business):
+${findings.slice(0, 6).map(f => '- ' + f).join('\n') || '- the site is thin and dated'}
 
-AI angle for this business:
+Where AI could help this specific business:
 ${p.ai_angle || ''}
+${template ? `
+REFERENCE DESIGN — include this link once, naturally, as an example of the standard
+you would build to. Introduce it as something you picked because it suits their
+line of work. Do not describe it in detail; let them click.
+${template}` : ''}
 
-Rules, in order:
-1. Open by naming ONE concrete thing the check found on THEIR site. Not a compliment, an observation. This is the only line that decides whether the rest is read.
-2. Name at most two improvements. Specific, in plain language, no jargon.
-3. One sentence on the AI angle, framed as what it would do for their business, not as technology.
-4. NEVER quote a price, a timeline, or a percentage improvement.
-5. Never claim to have worked with anyone you have not, and never invent a credential.
-6. Close with a low-friction ask — a reply, or a short call. Not a hard sell.
-7. Under 120 words. Plain text. No markdown, no bullet points, no "I hope this finds you well".
+HOW TO WRITE IT:
 
-TRUTHFULNESS — these findings came from an automated check, not from a person
-browsing. Do not write anything that claims a human action that did not happen.
-BANNED, and every close variant: "I visited your site", "I was on your website",
-"I pulled up your site on my phone", "when I checked on mobile", "I was looking
-through your pages", "a customer told me", "I noticed while browsing".
-Write instead in the neutral voice of a check that was run, for example:
-"I ran a quick check on your site and it flagged X", "A scan of your homepage
-shows X", or simply state the fact: "Your homepage has no clickable phone number."
-Stating the finding directly is always safe.
+Voice — you are a person who designs websites, writing to another person who runs
+a business. Warm, direct, confident. Short sentences. Contractions. The way you
+would speak if you rang them up. Never sound like a report, a scanner or a
+service notification.
 
-SIGN-OFF — exactly this, on its own lines at the end, and nothing else:
+BANNED openings and phrasings, and anything close to them:
+"I ran a quick check", "an automated check", "a scan of your homepage",
+"a technical check", "our system detected", "I noticed that your site has",
+"I hope this email finds you well", "I wanted to reach out", "I came across your
+business while", any sentence whose subject is a tool rather than a person.
+
+Structure, roughly four short paragraphs, under 150 words total:
+1. Greet them by business name. Say plainly why you are writing: you design
+   websites for ${p.industry || 'businesses like theirs'}, you looked at theirs, and you think it is
+   costing them work. Lead with the strongest single piece of evidence, stated as
+   a consequence for their customers — not as a technical defect.
+2. What you would do: build them a new site from scratch. Modern, quick on a
+   phone, built so that someone searching for their trade finds them and can book
+   or call in one tap. Speak about outcomes, never about tags, markup or metadata.
+3. ${template ? 'Show the reference design link as the kind of thing you have in mind for them.' : 'One line on the AI angle, in terms of the money or time it saves them.'}
+4. A short, easy ask. A reply, or a ten-minute call. No pressure, no deadline.
+
+HARD RULES:
+- Never quote a price, a timeline, or a percentage.
+- Never invent a client, a credential, or a result.
+- Never claim a specific browsing moment that did not happen: no "on my phone",
+  no "last night", no "a customer told me", no invented device or time. Saying
+  you looked at their site is fine and true. Inventing the circumstances is not.
+- Plain text. No markdown, no bullets, no headings.
+- Do not use the words: audit, scan, check, report, findings, issues, errors,
+  optimise, SEO, metadata, structured data, viewport, alt text.
+
+SIGN-OFF — exactly this, on its own lines, nothing after it:
 ${signature}
 Jomiez Innovation
 ${siteUrl}
-
-Do not add a job title, a phone number, or any other contact line. Use the
-signature name exactly as given — do not expand it to a fuller name.
 
 Return strict JSON: {"subject": "...", "body": "..."}`;
 
@@ -1819,16 +1871,16 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
     };
 
     let d = parse(raw);
-    // One regeneration is cheaper than shipping a sentence that is not true.
-    if (hasFalseClaim(d.body)) {
-      const retry = await generate('\n\nYour previous attempt claimed a person visited the site. That did not happen. Rewrite it stating the findings directly, with no claim of anyone browsing, visiting or viewing anything.');
+    // One regeneration is cheaper than sending something that reads like spam.
+    let problems = draftProblems(d);
+    if (problems.length) {
+      const retry = await generate(`\n\nYour previous attempt was rejected because it ${problems.join(', and it ')}. Rewrite it. Write as one person who designs websites speaking directly to the owner, selling a full redesign, never a list of small fixes, and never naming a tool or a moment that did not happen.`);
       if (retry) {
         const d2 = parse(retry);
-        if (!hasFalseClaim(d2.body)) d = d2;
+        if (!draftProblems(d2).length) { d = d2; problems = []; }
       }
     }
-    if (hasFalseClaim(d.body)) d.body = stripFalseClaims(d.body);
-    if (hasFalseClaim(d.subject)) d.subject = stripFalseClaims(d.subject);
+    if (problems.length) { d.body = humanise(d.body); d.subject = humanise(d.subject); }
 
     await new Promise((resolve) => db.run(
       'UPDATE prospects SET draft_subject = ?, draft_body = ?, status = ? WHERE id = ?',
