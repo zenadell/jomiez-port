@@ -1036,6 +1036,9 @@ db.serialize(() => {
         ['seo_site_description', 'Jomiez Innovation is a world-class software development company. We build custom websites, mobile apps, AI-powered solutions, and enterprise software for businesses worldwide.'],
         ['seo_keywords', 'Jomiez, Jomiez Innovation, software development, web development, mobile app development, AI solutions, custom software, hire developer, build website, coding services, Templeton, Emmanuel Ezinna Nweke'],
         ['founder_name', 'Emmanuel Ezinna Nweke'],
+        // How outreach signs off. The full legal name belongs in structured data
+        // for search engines; it reads stiff at the bottom of a short email.
+        ['outreach_signature', 'Emmanuel'],
         ['founder_alias', 'Templeton'],
         ['about_hero_heading', 'Building the Future of Software — One Innovation at a Time'],
         ['about_hero_subheading', 'We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences.'],
@@ -1703,6 +1706,40 @@ app.get('/api/prospects', (req, res) => {
 
 function safeParse(v) { try { return JSON.parse(v || '[]'); } catch (e) { return []; } }
 
+/**
+ * Catches claims of human inspection that never happened.
+ *
+ * The findings are all genuinely measured, but the audit is automated — nobody
+ * opened the site on a phone. A prompt rule alone did not hold: the model kept
+ * reaching for "I pulled up your site on my phone" because it reads warmer. This
+ * rewrites those openings into the same claim stated honestly, and the caller
+ * regenerates once before falling back to it.
+ */
+const FALSE_CLAIM_PATTERNS = [
+  [/\bWhen I (?:visited|checked|opened|pulled up|looked at|browsed)[^,.]*[,.]?\s*/gi, ''],
+  [/\bI (?:recently )?(?:visited|browsed|was on|was looking (?:at|through))\b[^,.]*[,.]?\s*/gi, ''],
+  [/\bI pulled up your (?:site|website)[^,.]*[,.]?\s*/gi, ''],
+  [/\b(?:on|from) my (?:phone|mobile|laptop|computer)\b/gi, ''],
+  [/\bI noticed (?:that )?/gi, 'A quick check of your site shows '],
+  [/\bI saw (?:that )?/gi, 'The check also found '],
+  [/\ba customer (?:told|mentioned to) me\b[^,.]*[,.]?\s*/gi, '']
+];
+
+function hasFalseClaim(text) {
+  return /\b(when I (?:visited|checked|opened|pulled up|looked at)|I (?:visited|browsed|was on|was looking)|pulled up your|on my (?:phone|mobile))\b/i.test(String(text || ''));
+}
+
+function stripFalseClaims(text) {
+  let out = String(text || '');
+  for (const [re, rep] of FALSE_CLAIM_PATTERNS) out = out.replace(re, rep);
+  // Tidy what the removals leave behind.
+  return out
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(^|\n)\s*([a-z])/g, (m, br, c) => br + c.toUpperCase())
+    .trim();
+}
+
 /** Same business, however the address was typed. */
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./i, '').toLowerCase(); }
@@ -1720,9 +1757,12 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
     const opportunities = safeParse(p.opportunities);
     const findings = safeParse(p.findings);
 
-    const prompt = `Write a cold outreach email from ${s.founder_name || 'Emmanuel Ezinna Nweke'} of Jomiez Innovation to the owner of ${p.business_name || p.website}.
+    const signature = s.outreach_signature || 'Emmanuel';
+    const siteUrl = s.site_url || 'https://www.jomiez.com';
 
-What was actually observed on their site:
+    const prompt = `Write a cold outreach email from ${signature} of Jomiez Innovation to the owner of ${p.business_name || p.website}.
+
+What an automated check measured on their site:
 ${findings.map(f => '- ' + f).join('\n') || '- nothing broken'}
 
 Specific opportunities identified:
@@ -1732,28 +1772,63 @@ AI angle for this business:
 ${p.ai_angle || ''}
 
 Rules, in order:
-1. Open by naming ONE concrete thing you observed on THEIR site. Not a compliment, an observation. This is the only line that decides whether the rest is read.
+1. Open by naming ONE concrete thing the check found on THEIR site. Not a compliment, an observation. This is the only line that decides whether the rest is read.
 2. Name at most two improvements. Specific, in plain language, no jargon.
 3. One sentence on the AI angle, framed as what it would do for their business, not as technology.
 4. NEVER quote a price, a timeline, or a percentage improvement.
 5. Never claim to have worked with anyone you have not, and never invent a credential.
 6. Close with a low-friction ask — a reply, or a short call. Not a hard sell.
 7. Under 120 words. Plain text. No markdown, no bullet points, no "I hope this finds you well".
-8. Sound like one person who looked at their site, because that is what happened.
+
+TRUTHFULNESS — these findings came from an automated check, not from a person
+browsing. Do not write anything that claims a human action that did not happen.
+BANNED, and every close variant: "I visited your site", "I was on your website",
+"I pulled up your site on my phone", "when I checked on mobile", "I was looking
+through your pages", "a customer told me", "I noticed while browsing".
+Write instead in the neutral voice of a check that was run, for example:
+"I ran a quick check on your site and it flagged X", "A scan of your homepage
+shows X", or simply state the fact: "Your homepage has no clickable phone number."
+Stating the finding directly is always safe.
+
+SIGN-OFF — exactly this, on its own lines at the end, and nothing else:
+${signature}
+Jomiez Innovation
+${siteUrl}
+
+Do not add a job title, a phone number, or any other contact line. Use the
+signature name exactly as given — do not expand it to a fuller name.
 
 Return strict JSON: {"subject": "...", "body": "..."}`;
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const client = new GoogleGenerativeAI(await geminiKey());
-    let raw = null;
-    for (const m of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
-      try { raw = (await client.getGenerativeModel({ model: m }).generateContent(prompt)).response.text(); break; }
-      catch (e) { /* try the next model */ }
-    }
+    const generate = async (extra) => {
+      for (const m of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
+        try { return (await client.getGenerativeModel({ model: m }).generateContent(prompt + (extra || ''))).response.text(); }
+        catch (e) { /* try the next model */ }
+      }
+      return null;
+    };
+
+    let raw = await generate();
     if (!raw) return res.status(502).json({ error: 'All models unavailable.' });
 
-    let d = {};
-    try { d = JSON.parse(raw.replace(/^```(?:json)?|```$/gm, '').trim()); } catch (e) { d = { subject: `About ${p.website}`, body: raw.trim() }; }
+    const parse = (t) => {
+      try { return JSON.parse(t.replace(/^```(?:json)?|```$/gm, '').trim()); }
+      catch (e) { return { subject: `About ${p.website}`, body: t.trim() }; }
+    };
+
+    let d = parse(raw);
+    // One regeneration is cheaper than shipping a sentence that is not true.
+    if (hasFalseClaim(d.body)) {
+      const retry = await generate('\n\nYour previous attempt claimed a person visited the site. That did not happen. Rewrite it stating the findings directly, with no claim of anyone browsing, visiting or viewing anything.');
+      if (retry) {
+        const d2 = parse(retry);
+        if (!hasFalseClaim(d2.body)) d = d2;
+      }
+    }
+    if (hasFalseClaim(d.body)) d.body = stripFalseClaims(d.body);
+    if (hasFalseClaim(d.subject)) d.subject = stripFalseClaims(d.subject);
 
     await new Promise((resolve) => db.run(
       'UPDATE prospects SET draft_subject = ?, draft_body = ?, status = ? WHERE id = ?',
