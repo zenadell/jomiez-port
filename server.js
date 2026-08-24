@@ -1556,16 +1556,48 @@ app.post('/api/prospects/analyze', async (req, res) => {
     const result = await analyseProspect(url, await geminiKey(), cms.works || []);
     if (!result.ok) return res.status(422).json({ error: result.reason || 'Could not read that site.' });
 
-    const row = await new Promise((resolve, reject) => db.run(
+    // Re-auditing a site must update the existing record, not stack a second one.
+    // Duplicates are how a business gets approached twice: the panel showed the
+    // same company on two rows, one already contacted and one looking fresh.
+    const host = hostOf(result.signals.url);
+    const existing = (await new Promise((resolve) =>
+      db.all('SELECT id, website, status, sent_at FROM prospects', [], (e, r) => resolve(e || !r ? [] : r))))
+      .find(p => hostOf(p.website) === host);
+
+    const email = (result.signals.emails || [])[0] || '';
+    const now = new Date().toISOString();
+    let id;
+
+    if (existing) {
+      // Never downgrade a contacted prospect back to "analysed" — that status is
+      // the only thing standing between them and a second cold email.
+      const keepStatus = ['sent', 'replied', 'declined'].includes(existing.status);
+      await new Promise((resolve) => db.run(
+        `UPDATE prospects SET business_name = ?, contact_email = ?, industry = ?, findings = ?,
+           opportunities = ?, ai_angle = ?, status = ? WHERE id = ?`,
+        [result.business_name || '', email || '', result.industry || '',
+         JSON.stringify(result.findings || []), JSON.stringify(result.opportunities || []),
+         result.ai_angle || '', keepStatus ? existing.status : 'analysed', existing.id],
+        () => resolve()));
+      id = existing.id;
+      return res.json({ id, merged: true, alreadyContacted: keepStatus, previousStatus: existing.status, ...result });
+    }
+
+    await new Promise((resolve, reject) => db.run(
       `INSERT INTO prospects (website, business_name, contact_email, industry, findings, opportunities, ai_angle, status, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [result.signals.url, result.business_name || '', (result.signals.emails || [])[0] || '',
+      [result.signals.url, result.business_name || '', email,
        result.industry || '', JSON.stringify(result.findings || []),
-       JSON.stringify(result.opportunities || []), result.ai_angle || '', 'analysed',
-       new Date().toISOString()],
-      function (e) { e ? reject(e) : resolve(this.lastID); }));
+       JSON.stringify(result.opportunities || []), result.ai_angle || '', 'analysed', now],
+      function (e) { e ? reject(e) : resolve(); }));
 
-    res.json({ id: row, ...result });
+    // The Postgres adapter does not populate lastID, so read the row back rather
+    // than returning a null id the panel cannot act on.
+    id = await new Promise((resolve) => db.get(
+      'SELECT id FROM prospects WHERE website = ? ORDER BY id DESC', [result.signals.url],
+      (e, r) => resolve(r ? r.id : null)));
+
+    res.json({ id, ...result });
   } catch (e) {
     console.error('[prospects/analyze]', e.message);
     res.status(500).json({ error: e.message });
@@ -1625,6 +1657,12 @@ app.get('/api/prospects', (req, res) => {
 });
 
 function safeParse(v) { try { return JSON.parse(v || '[]'); } catch (e) { return []; } }
+
+/** Same business, however the address was typed. */
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./i, '').toLowerCase(); }
+  catch (e) { return String(url || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; }
+}
 
 app.post('/api/prospects/:id/draft', async (req, res) => {
   try {
@@ -1689,10 +1727,21 @@ app.post('/api/prospects/:id/send', async (req, res) => {
       db.get('SELECT * FROM prospects WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
     if (!p) return res.status(404).json({ error: 'Prospect not found' });
 
-    const { subject, body, to } = req.body || {};
+    const { subject, body, to, force } = req.body || {};
     const recipient = (to || p.contact_email || '').trim();
     if (!recipient) return res.status(400).json({ error: 'No recipient address. Add one before sending.' });
     if (!subject || !body) return res.status(400).json({ error: 'Subject and body are required.' });
+
+    // A second unsolicited email to someone who never asked for the first is the
+    // fastest way to get a domain marked as spam.
+    if (p.status === 'sent' && !force) {
+      return res.status(409).json({
+        error: 'Already contacted',
+        alreadyContacted: true,
+        sentAt: p.sent_at,
+        hint: 'This prospect was already emailed. Send again only if you mean it as a follow-up.'
+      });
+    }
 
     // Cold outreach must carry an unsubscribe line. Beyond being the law in most
     // of the world, a missing one is a spam-report magnet and reports are what

@@ -1081,15 +1081,23 @@ async function draftProspect(id) {
     </div>`;
 }
 
-async function sendProspect(id) {
+async function sendProspect(id, force) {
   const to = document.getElementById('pto-' + id).value.trim();
   const subject = document.getElementById('psubj-' + id).value;
   const body = document.getElementById('pbody-' + id).value;
   const box = document.getElementById('pdraft-' + id);
-  const r = await (await fetch(`/api/prospects/${id}/send`, {
+  const res = await fetch(`/api/prospects/${id}/send`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, subject, body })
-  })).json();
+    body: JSON.stringify({ to, subject, body, force: !!force })
+  });
+  const r = await res.json();
+  if (res.status === 409 && r.alreadyContacted) {
+    const when = r.sentAt ? new Date(r.sentAt).toLocaleString() : 'earlier';
+    if (confirm(`You already emailed this business on ${when}.\n\nA second cold email to someone who never replied is what gets a domain marked as spam.\n\nSend anyway?`)) {
+      return sendProspect(id, true);
+    }
+    return;
+  }
   if (r.sent) { box.innerHTML = '<span style="color:#35c66b;font-size:12px;">Sent.</span>'; showToast('Outreach sent.'); loadProspects(); }
   else box.innerHTML = `<span style="color:#ffb648;font-size:12px;">Not sent: ${r.reason || r.error}</span>`;
 }
@@ -1184,7 +1192,8 @@ function renderProspects(container) {
       <div class="work-item" style="display:block;padding:14px;border:1px solid #333;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;gap:10px;">
           <div>
-            <div style="color:#00e0ff;font-weight:700;">${p.business_name || p.website}</div>
+            <div style="color:#00e0ff;font-weight:700;">${p.business_name || p.website}
+              ${p.status === 'sent' ? `<span title="${p.sent_at || ''}" style="background:rgba(53,198,107,.15);color:#35c66b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-left:6px;">Contacted</span>` : ''}</div>
             <div style="font-size:12px;color:#888;">${p.website} ${p.industry ? '· ' + p.industry : ''} ${p.contact_email ? '· ' + p.contact_email : '· no email found'}</div>
           </div>
           <span style="font-size:11px;padding:2px 8px;border-radius:4px;height:fit-content;
