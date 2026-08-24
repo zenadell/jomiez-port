@@ -1837,6 +1837,12 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
 THE OFFER: Jomiez rebuilds their website completely. A modern site, designed and
 built from scratch, fast on a phone, built to bring them customers. Not repairs.
 
+${visual && visual.metrics ? `GOOGLE'S OWN MEASUREMENT of their mobile homepage (Lighthouse, via PageSpeed
+Insights — cite the score if it is below 50, it is third-party and undeniable):
+- Performance score: ${visual.metrics.score}/100
+- Largest content appears after: ${visual.metrics.lcp || 'n/a'}
+- Layout shifting: ${visual.metrics.cls || 'n/a'}
+` : ''}
 ${visual ? `WHAT THEIR HOMEPAGE ACTUALLY LOOKS LIKE — a designer examined a screenshot:
 - Design era: ${visual.design_era || 'unclear'}
 - A visitor's first impression: ${visual.first_impression || ''}
