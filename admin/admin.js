@@ -41,7 +41,7 @@ let analyticsCache = null;
 let currentLeadTab = 'leads';
 // Which lead folder is showing. Junk is a view, not a deletion — the scoring is
 // conservative on purpose, so anything it misjudges stays reachable.
-let leadsShowJunk = false;
+let leadsFolder = 'inbox'; // inbox | replied | junk
 
 // Setup navigation
 function showSection(id) {
@@ -1386,12 +1386,17 @@ function renderLeads() {
   // scoring is deliberately conservative, so anything it gets wrong stays reachable.
   const inbox = leadsCache.filter(l => (l.triage || {}).verdict !== 'junk');
   const junk  = leadsCache.filter(l => (l.triage || {}).verdict === 'junk');
-  const showing = leadsShowJunk ? junk : inbox;
+  // A lead that has been answered belongs in its own folder, not back in the
+  // inbox looking like it still needs a reply.
+  const replied = inbox.filter(l => Number(l.reply_count) > 0);
+  const waiting = inbox.filter(l => !Number(l.reply_count));
+  const showing = leadsFolder === 'junk' ? junk : leadsFolder === 'replied' ? replied : waiting;
 
   const tabs = `
     <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
-      <button class="btn btn-sm ${leadsShowJunk ? 'btn-outline' : ''}" onclick="setLeadFolder(false)">Inbox (${inbox.length})</button>
-      <button class="btn btn-sm ${leadsShowJunk ? '' : 'btn-outline'}" onclick="setLeadFolder(true)">Junk (${junk.length})</button>
+      <button class="btn btn-sm ${leadsFolder === 'inbox' ? '' : 'btn-outline'}" onclick="setLeadFolder('inbox')">Needs reply (${waiting.length})</button>
+      <button class="btn btn-sm ${leadsFolder === 'replied' ? '' : 'btn-outline'}" onclick="setLeadFolder('replied')">Replied (${replied.length})</button>
+      <button class="btn btn-sm ${leadsFolder === 'junk' ? '' : 'btn-outline'}" onclick="setLeadFolder('junk')">Junk (${junk.length})</button>
       <span style="flex:1"></span>
       <span id="mail-status" style="font-size:11px;color:#777;"></span>
       <button class="btn btn-sm btn-outline" style="font-size:11px;padding:4px 10px;"
@@ -1409,6 +1414,7 @@ function renderLeads() {
         <div style="display:flex; justify-content:space-between; align-items:start; gap:10px;">
           <div class="work-title" style="color:#00e0ff;">${l.name || 'Anonymous'}</div>
           <div style="display:flex;gap:6px;align-items:center;">
+            ${Number(l.reply_count) ? `<span title="${l.last_replied_at || ''}" style="background:rgba(53,198,107,.15);color:#35c66b;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">Replied${Number(l.reply_count) > 1 ? ' ×' + l.reply_count : ''}</span>` : ''}
             ${leadBadge(l.triage)}
             <span style="background:rgba(0,224,255,0.1); color:#00e0ff; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">
               ${l.country === 'Localhost' ? 'Localhost' : (l.country || 'Global')}
@@ -1431,13 +1437,13 @@ function renderLeads() {
           <button class="btn btn-danger btn-sm" onclick="deleteLead(${l.id})">Delete</button>
         </div>
       </div>`;
-  }).join('') : `<p style="color:var(--text-muted);padding:20px;text-align:center">Nothing in ${leadsShowJunk ? 'junk' : 'the inbox'}.</p>`;
+  }).join('') : `<p style="color:var(--text-muted);padding:20px;text-align:center">Nothing in ${leadsFolder === 'junk' ? 'junk' : leadsFolder === 'replied' ? 'replied' : 'the inbox'}.</p>`;
 
   container.innerHTML = tabs + list;
   refreshMailStatus();
 }
 
-function setLeadFolder(showJunk) { leadsShowJunk = showJunk; renderLeads(); }
+function setLeadFolder(folder) { leadsFolder = folder; renderLeads(); }
 
 // Opens a lead in a full-screen reader.
 //
@@ -1580,6 +1586,13 @@ async function sendReply(id, force, inModal) {
     body: JSON.stringify({ subject, body, force: !!force })
   });
   const r = await res.json();
+  if (res.status === 409 && r.alreadyReplied) {
+    const when = r.lastSentAt ? new Date(r.lastSentAt).toLocaleString() : 'earlier';
+    if (confirm(`You already replied to this lead on ${when}.\n\nSubject: ${r.lastSubject || '(none)'}\n\nSend another anyway?`)) {
+      return sendReply(id, true, inModal);
+    }
+    return;
+  }
   if (res.status === 409) {
     // Triage thinks this is cold outreach. Say so plainly and let the owner override.
     if (confirm(`This looks like junk, not a client:\n\n${(r.triage.reasons || []).join('\n')}\n\nSend anyway?`)) {
@@ -1590,6 +1603,9 @@ async function sendReply(id, force, inModal) {
   if (r.sent) {
     box.innerHTML = `<div style="color:#35c66b;font-size:12px;">Sent.</div>`;
     showToast('Reply sent.');
+    // Reload so the lead moves into Replied. Without this the card stays put
+    // and the Draft button invites an immediate second send.
+    await loadLeads();
   } else {
     box.innerHTML = `<div style="color:#ffb648;font-size:12px;">Not sent: ${r.reason || r.error}</div>`;
   }

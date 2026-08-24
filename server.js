@@ -9,6 +9,7 @@ const fs = require('fs');
 const https = require('https');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { initChakaStream } = require('./ai/ChakaStream');
 const ApiKeyManager = require('./ai/ApiKeyManager');
@@ -226,8 +227,45 @@ app.get('/admin/', isAuthenticated, (req, res) => res.sendFile(path.join(__dirna
 app.get('/admin/login', (req, res) => res.sendFile(path.join(__dirname, 'admin', 'login.html')));
 
 // --- AUTH API ---
+
+/**
+ * Lets the admin password live in the environment.
+ *
+ * When ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH) is set it is the ONLY accepted
+ * password — the stored one stops working entirely. That is the point: changing
+ * the Render variable and redeploying must actually revoke the old password,
+ * not merely add a second way in.
+ *
+ * It also closes a live hole. The seed below hardcoded admin/chaka2025, and this
+ * repository is public, so that pair was readable by anyone.
+ */
+function envPasswordCheck(password) {
+    const hash = process.env.ADMIN_PASSWORD_HASH;
+    if (hash) return { configured: true, ok: bcrypt.compareSync(String(password || ''), hash) };
+
+    const plain = process.env.ADMIN_PASSWORD;
+    if (!plain) return { configured: false, ok: false };
+
+    // Constant-time compare so the response time cannot be used to guess it.
+    const a = Buffer.from(String(password || ''), 'utf8');
+    const b = Buffer.from(plain, 'utf8');
+    const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+    return { configured: true, ok };
+}
+
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
+
+    const env = envPasswordCheck(password);
+    if (env.configured) {
+        const expectedUser = process.env.ADMIN_USERNAME || 'admin';
+        if (env.ok && String(username || '') === expectedUser) {
+            req.session.user = { id: 0, username: expectedUser };
+            return res.json({ success: true, user: { username: expectedUser } });
+        }
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
     db.get("SELECT * FROM portfolio_users WHERE username = ?", [username], (err, user) => {
         if (err || !user) return res.status(401).json({ error: 'Invalid credentials' });
         if (bcrypt.compareSync(password, user.password)) {
@@ -908,9 +946,20 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS portfolio_users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS counters (id SERIAL PRIMARY KEY, label TEXT, value TEXT, suffix TEXT, sort_order INTEGER DEFAULT 0)`);
 
-    // Default User
-    const hash = bcrypt.hashSync('chaka2025', 10);
-    db.run(`INSERT OR IGNORE INTO portfolio_users (username, password) VALUES (?, ?)`, ['admin', hash]);
+    // Default User.
+    //
+    // This used to seed a password written in plain sight in this file, which is
+    // in a public repository — anyone who read it could sign in. Now it seeds
+    // ADMIN_PASSWORD when provided, and otherwise a random one that is printed
+    // to the deploy log once, so an unconfigured deploy is locked rather than
+    // publicly known.
+    const seedPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(18).toString('base64url');
+    if (!process.env.ADMIN_PASSWORD) {
+        console.warn(`[auth] No ADMIN_PASSWORD set. Seeding a random admin password: ${seedPassword}`);
+        console.warn('[auth] Set ADMIN_PASSWORD in the environment to control this.');
+    }
+    db.run(`INSERT OR IGNORE INTO portfolio_users (username, password) VALUES (?, ?)`,
+        ['admin', bcrypt.hashSync(seedPassword, 10)]);
 
     // Default Settings — Jomiez Innovation Branding
     const defaults = [
@@ -1816,6 +1865,23 @@ app.post('/api/leads/:id/send', async (req, res) => {
       });
     }
 
+    // Refuse a second reply to the same lead unless it is explicitly intended.
+    // The panel can be a stale tab or a re-render; this is the check that
+    // actually prevents mailing a client twice.
+    const already = await new Promise((resolve) => db.all(
+      "SELECT subject, sent_at FROM lead_replies WHERE lead_id = ? AND status = 'sent' ORDER BY id DESC",
+      [lead.id], (e, r) => resolve(e || !r ? [] : r)));
+    if (already.length && !force) {
+      return res.status(409).json({
+        error: 'Already replied',
+        alreadyReplied: true,
+        sentCount: already.length,
+        lastSentAt: already[0].sent_at,
+        lastSubject: already[0].subject,
+        hint: 'This lead has already been answered. Send another only if you mean to follow up.'
+      });
+    }
+
     const result = await sendLeadReply({
       to: lead.email,
       subject,
@@ -1885,7 +1951,15 @@ app.get('/api/leads/:id/replies', (req, res) => {
 app.get('/api/leads', (req, res) => {
   // Order by id: created_at is TEXT and was null on older rows, so sorting by it
   // put undated leads in an arbitrary place.
-  db.all('SELECT * FROM client_leads ORDER BY id DESC', [], (err, rows) => {
+  //
+  // The reply counts are joined in because the panel had no way to tell an
+  // answered lead from an unanswered one: "Sent." was written straight into the
+  // DOM and vanished on the next render, so a lead already replied to came back
+  // looking untouched, with the Draft button ready to send a second time.
+  db.all(`SELECT l.*,
+      (SELECT COUNT(*) FROM lead_replies r WHERE r.lead_id = l.id AND r.status = 'sent') AS reply_count,
+      (SELECT MAX(r.sent_at) FROM lead_replies r WHERE r.lead_id = l.id AND r.status = 'sent') AS last_replied_at
+    FROM client_leads l ORDER BY l.id DESC`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     // Attach triage so the panel can separate real enquiries from cold pitches,
     // and so nothing automated ever answers a scraped address.
