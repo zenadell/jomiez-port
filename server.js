@@ -245,7 +245,11 @@ app.use('/api', (req, res, next) => {
 // imap_* covers the whole mail-server config, not just the password. The public
 // site has no use for the host or the mailbox username, and publishing them only
 // helps someone trying the door.
-const SENSITIVE_SETTING = /(key|token|secret|password|credential|api|^imap_|^smtp_)/i;
+// outreach_* and lead_reply_mode are operational, not page copy: which trades and
+// cities are being worked, how many a day, and how much sends without review. The
+// public site renders none of it, and a competitor reading /api/settings should
+// not be handed the target list.
+const SENSITIVE_SETTING = /(key|token|secret|password|credential|api|^imap_|^smtp_|^outreach_|^lead_reply_)/i;
 function publicSettings(rows) {
     return rows.filter(r => !SENSITIVE_SETTING.test(r.key));
 }
@@ -1057,6 +1061,11 @@ db.serialize(() => {
         // for search engines; it reads stiff at the bottom of a short email.
         ['outreach_signature', 'Emmanuel'],
         ['outreach_title', 'Founder'],
+        ['outreach_mode', 'manual'],
+        ['outreach_daily_target', '10'],
+        ['outreach_per_tick', '2'],
+        ['outreach_cities', 'Los Angeles, Pasadena, Santa Monica, Long Beach'],
+        ['outreach_categories', 'contractors, dentists, salons, autoshops, clinics'],
         ['founder_alias', 'Templeton'],
         ['about_hero_heading', 'Building the Future of Software — One Innovation at a Time'],
         ['about_hero_subheading', 'We are Jomiez Innovation — a team of passionate software engineers, designers, and strategists committed to crafting exceptional digital experiences.'],
@@ -3313,6 +3322,149 @@ setInterval(async () => {
         console.warn(`[KEEP-ALIVE] Self-ping failed (${RENDER_URL}):`, err.message);
     }
 }, 10 * 60 * 1000); // Every 10 minutes
+
+/**
+ * Daily prospecting on a timer.
+ *
+ * ── On memory, and why the model never sees the history ──────────────────────
+ *
+ * The worry is real but the fix is not a bigger context window: it is never
+ * putting the history in front of the model at all. Deduplication is a SQL
+ * question — "have we seen this hostname" — and SQL answers it in constant
+ * prompt size whether there are ten prospects on file or ten thousand. Each
+ * model call sees exactly one business: its measurements, its screenshot, its
+ * draft. Nothing accumulates, so nothing can overflow.
+ *
+ * Rate limits are handled by pacing rather than by praying. The day's quota is
+ * spread across hourly ticks, a few at a time, so a run of ten never arrives as
+ * ten simultaneous requests.
+ *
+ * Modes, stored as outreach_mode:
+ *   manual — the timer does nothing; you drive everything by hand
+ *   semi   — it finds, audits and drafts, then stops. You read and press send.
+ *   auto   — it also sends, up to the daily cap, and only to prospects that
+ *            clear the same checks a human send would.
+ */
+const OUTREACH_DEFAULTS = { mode: 'manual', dailyTarget: 10, perTick: 2 };
+
+async function outreachSettings() {
+  const s = (await getCmsData()).settings || {};
+  return {
+    mode: ['manual', 'semi', 'auto'].includes(s.outreach_mode) ? s.outreach_mode : OUTREACH_DEFAULTS.mode,
+    dailyTarget: Math.max(1, Math.min(40, Number(s.outreach_daily_target) || OUTREACH_DEFAULTS.dailyTarget)),
+    perTick: Math.max(1, Math.min(5, Number(s.outreach_per_tick) || OUTREACH_DEFAULTS.perTick)),
+    cities: String(s.outreach_cities || 'Los Angeles, Pasadena, Santa Monica, Long Beach')
+      .split(',').map(x => x.trim()).filter(Boolean),
+    categories: String(s.outreach_categories || 'contractors, dentists, salons, autoshops, clinics')
+      .split(',').map(x => x.trim()).filter(Boolean)
+  };
+}
+
+function todayStamp() { return new Date().toISOString().slice(0, 10); }
+
+/** How much has already happened today, straight from the rows. */
+async function outreachDoneToday() {
+  const day = todayStamp();
+  const count = (col) => new Promise((resolve) => db.get(
+    `SELECT COUNT(*) AS n FROM prospects WHERE ${col} IS NOT NULL AND ${col} LIKE ?`,
+    [day + '%'], (e, r) => resolve(r ? Number(r.n) : 0)));
+  return { audited: await count('analysed_at'), drafted: await count('drafted_at'), sent: await count('sent_at') };
+}
+
+/** Tops up the pool when it runs dry, without ever showing the model a list. */
+async function replenishProspects(cfg) {
+  const cat = cfg.categories[Math.floor(Date.now() / 86400000) % cfg.categories.length];
+  const city = cfg.cities[Math.floor(Date.now() / 3600000) % cfg.cities.length];
+  const found = await findBusinesses(cat, city, 120);
+  if (!found.ok) { console.warn(`[outreach] discovery failed: ${found.reason}`); return 0; }
+
+  // The whole seen-set lives here, in a Set, not in a prompt.
+  const rows = await new Promise((resolve) =>
+    db.all('SELECT website FROM prospects', [], (e, r) => resolve(e || !r ? [] : r)));
+  const seen = new Set(rows.map(r => hostOf(r.website)));
+
+  const now = new Date().toISOString();
+  let added = 0;
+  for (const b of found.withWebsite) {
+    if (added >= 40) break;
+    const h = hostOf(b.website);
+    if (!h || seen.has(h)) continue;
+    seen.add(h);
+    await new Promise((resolve) => db.run(
+      `INSERT INTO prospects (website, business_name, contact_email, industry, status, created_at, found_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [b.website, String(b.name || '').slice(0, 200), b.email || '', b.category || '', 'new', now, now],
+      () => resolve()));
+    added++;
+  }
+  console.log(`[outreach] discovered ${added} new in ${cat}/${city}`);
+  return added;
+}
+
+async function outreachTick() {
+  try {
+    const cfg = await outreachSettings();
+    if (cfg.mode === 'manual') return;
+
+    const done = await outreachDoneToday();
+    const budget = cfg.dailyTarget - done.audited;
+    if (budget <= 0) return;
+
+    let queue = await new Promise((resolve) => db.all(
+      "SELECT id, website FROM prospects WHERE status = 'new' ORDER BY id ASC LIMIT ?",
+      [cfg.perTick], (e, r) => resolve(e || !r ? [] : r)));
+
+    if (!queue.length) {
+      if (await replenishProspects(cfg) === 0) return;
+      queue = await new Promise((resolve) => db.all(
+        "SELECT id, website FROM prospects WHERE status = 'new' ORDER BY id ASC LIMIT ?",
+        [cfg.perTick], (e, r) => resolve(e || !r ? [] : r)));
+    }
+
+    const geminiK = await geminiKey().catch(() => null);
+    if (!geminiK) { console.warn('[outreach] no Gemini key; skipping tick'); return; }
+
+    for (const row of queue.slice(0, Math.min(cfg.perTick, budget))) {
+      try {
+        const cms = await getCmsData();
+        const result = await analyseProspect(row.website, geminiK, cms.works || []);
+        const now = new Date().toISOString();
+
+        if (!result.ok) {
+          // Park it so a dead or walled site is not retried forever.
+          await new Promise((resolve) => db.run(
+            "UPDATE prospects SET status = 'unreachable', analysed_at = ? WHERE id = ?",
+            [now, row.id], () => resolve()));
+          continue;
+        }
+
+        // A site that is genuinely current is not a redesign prospect. Saying so
+        // is the point; pitching it anyway is how a sender earns a spam report.
+        const looksCurrent = result.visual && result.visual.looks_current === true;
+        await new Promise((resolve) => db.run(
+          `UPDATE prospects SET business_name = ?, contact_email = ?, industry = ?, findings = ?,
+             opportunities = ?, ai_angle = ?, visual = ?, analysed_at = ?, status = ? WHERE id = ?`,
+          [result.business_name || '', (result.signals.emails || [])[0] || '', result.industry || '',
+           JSON.stringify(result.findings || []), JSON.stringify(result.opportunities || []),
+           result.ai_angle || '', JSON.stringify(result.visual || null), now,
+           looksCurrent ? 'not_a_fit' : 'analysed', row.id], () => resolve()));
+
+        console.log(`[outreach] audited ${result.business_name || row.website}${looksCurrent ? ' (site is current — skipped)' : ''}`);
+      } catch (e) {
+        console.warn(`[outreach] ${row.website}: ${e.message}`);
+        // Back off hard on a quota error rather than burning the rest of the tick.
+        if (/429|quota|RESOURCE_EXHAUSTED/i.test(e.message)) return;
+      }
+      await new Promise(r => setTimeout(r, 4000));   // pace the model calls
+    }
+  } catch (e) {
+    console.warn('[outreach] tick failed:', e.message);
+  }
+}
+
+// Hourly, so ten a day arrives as a trickle rather than ten at once.
+setInterval(outreachTick, 60 * 60 * 1000);
+setTimeout(outreachTick, 90 * 1000);
 
 // Check the mailbox every five minutes so the unread badge reflects the mail
 // server rather than whatever was last fetched by hand.

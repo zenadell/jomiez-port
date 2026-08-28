@@ -376,6 +376,41 @@
             <div class="field full"><label>Contact WhatsApp (Link or Number)</label><input type="text" id="contact_whatsapp" placeholder="https://wa.me/..."></div>
             <div class="field"><label>Outreach Sign-off Name</label><input type="text" id="outreach_signature" placeholder="Emmanuel"></div>
             <div class="field"><label>Outreach Job Title</label><input type="text" id="outreach_title" placeholder="Founder"></div>
+
+            <div class="field full" style="border-top:1px solid #2a2a2e;padding-top:14px;margin-top:6px;">
+              <label style="font-size:14px;color:#00e0ff;">Automation</label>
+              <p style="font-size:12px;color:#777;margin:2px 0 10px;">
+                How much Chaka does without asking you. Applies to replying to enquiries
+                and to finding new prospects.
+              </p>
+            </div>
+            <div class="field">
+              <label>Reply to enquiries</label>
+              <select id="lead_reply_mode">
+                <option value="manual">Manual — I write every reply myself</option>
+                <option value="semi">Semi — draft it, wait for me to approve</option>
+                <option value="auto">Auto — draft and send without asking</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Find new prospects</label>
+              <select id="outreach_mode">
+                <option value="manual">Manual — only when I press the buttons</option>
+                <option value="semi">Semi — find and audit daily, I press send</option>
+                <option value="auto">Auto — find, audit, draft and send daily</option>
+              </select>
+            </div>
+            <div class="field"><label>Businesses to audit per day</label><input type="number" id="outreach_daily_target" placeholder="10" min="1" max="40"></div>
+            <div class="field"><label>How many per hourly run</label><input type="number" id="outreach_per_tick" placeholder="2" min="1" max="5"></div>
+            <div class="field full"><label>Cities to search (comma separated)</label><input type="text" id="outreach_cities" placeholder="Los Angeles, Pasadena, Santa Monica"></div>
+            <div class="field full"><label>Trades to search (comma separated)</label><input type="text" id="outreach_categories" placeholder="contractors, dentists, salons, autoshops"></div>
+            <div class="field full">
+              <p style="font-size:12px;color:#ffb648;margin:0;">
+                Auto sends cold email in your name with no undo. Semi does all the work
+                and stops at the send button — that is the setting to leave it on unless
+                you have read a week of drafts and trust them.
+              </p>
+            </div>
             <div class="field full"><label>Site Default Description</label><textarea id="seo_desc" rows="3"></textarea></div>
             <div class="field full"><label>Resume/CV Overview (Used by AI as context)</label><textarea id="resume_text" rows="8" placeholder="Summarize your professional experience here for Chaka to read..."></textarea></div>
           </div>

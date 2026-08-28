@@ -2035,6 +2035,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                         opacity: 0; animation: chakaChipIn .4s var(--ck-out) forwards;
                     }
                     .chaka-chip:hover { border-color: rgba(254,129,46,.55); color: #fff; background: rgba(254,129,46,.1); }
+
+                    /* The two ways to carry on. Sized as real choices rather than
+                       suggestion chips, because this is the one moment voice gets
+                       advertised at all. */
+                    .chaka-mode-picker { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; width: 100%; }
+                    .chaka-mode-btn {
+                        display: inline-flex; align-items: center; gap: 9px;
+                        padding: 11px 16px; border-radius: var(--ck-r-s);
+                        background: rgba(255,255,255,.04); border: 1px solid var(--ck-line);
+                        color: #d4d4d8; font-size: 13.5px; font-weight: 500; font-family: inherit;
+                        cursor: pointer; transition: .18s ease; text-align: left;
+                    }
+                    .chaka-mode-btn:hover { border-color: rgba(254,129,46,.55); color: #fff; background: rgba(254,129,46,.1); }
+                    .chaka-mode-btn--voice {
+                        background: linear-gradient(180deg, rgba(254,129,46,.22), rgba(254,129,46,.1));
+                        border-color: rgba(254,129,46,.5); color: #fff;
+                    }
+                    .chaka-mode-btn--voice:hover { background: linear-gradient(180deg, rgba(254,129,46,.34), rgba(254,129,46,.16)); }
+                    @media (prefers-reduced-motion: reduce) { .chaka-mode-btn { transition: none; } }
                     @keyframes chakaChipIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 
                     /* ---- composer ---- */
@@ -2303,10 +2322,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('chaka-welcome-popup').style.pointerEvents = 'none';
                 sessionStorage.setItem('chakaVisited', 'true');
                 this.toggleChatWindow(true);
-                // Deliberately does NOT auto-connect voice. Demanding microphone access
-                // seconds into a first visit triggers a browser permission prompt most
-                // people reflexively deny — and a denied prompt is hard to recover from.
-                // The mic button in the composer makes voice a choice instead.
+                // Voice is offered here rather than started here. Auto-connecting fires
+                // a microphone prompt seconds into a first visit, which most people
+                // reflexively deny and which is awkward to recover from — but hiding
+                // voice behind a small mic icon meant almost nobody discovered that
+                // talking to Chaka is possible at all, which is the thing worth
+                // advertising. Asking costs one tap and answers both.
+                setTimeout(() => this.offerConversationMode(), 450);
             });
 
             document.getElementById('chaka-btn-no').addEventListener('click', () => {
@@ -2438,6 +2460,58 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </span>
                 </a>
             `;
+        }
+
+        /**
+         * Opens with a greeting and lets the visitor pick how they want to talk.
+         *
+         * Both routes stay one tap away: choosing voice is what triggers the
+         * microphone prompt, so the browser only asks someone who already said yes.
+         */
+        offerConversationMode() {
+            if (this._modeOffered) return;
+            this._modeOffered = true;
+
+            const name = (window.__chakaSiteName || 'Jomiez');
+            this.appendChatMessage('assistant',
+                `Hello, and welcome to ${name}.\n\nI can show you the work, explain what we build, or help you start a project. `
+                + `I can also talk with you out loud, if you would rather speak than type.\n\nHow would you like to carry on?`);
+
+            const history = document.getElementById('chaka-chat-history');
+            if (!history) return;
+
+            const row = document.createElement('div');
+            row.className = 'chaka-msg-wrapper user';
+            row.id = 'chaka-mode-choice';
+            row.innerHTML = `
+                <div class="chaka-mode-picker">
+                    <button type="button" class="chaka-mode-btn chaka-mode-btn--voice" data-mode="voice">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>
+                        Talk with me by voice
+                    </button>
+                    <button type="button" class="chaka-mode-btn" data-mode="chat">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Continue with chat
+                    </button>
+                </div>`;
+            history.appendChild(row);
+            history.scrollTop = history.scrollHeight;
+
+            row.addEventListener('click', (e) => {
+                const btn = e.target.closest('.chaka-mode-btn');
+                if (!btn) return;
+                const mode = btn.dataset.mode;
+                row.remove();
+                if (mode === 'voice') {
+                    this.appendChatMessage('user', 'Let us talk by voice.');
+                    this.toggleSession();
+                } else {
+                    const input = document.getElementById('chaka-chat-input');
+                    if (input) input.focus();
+                }
+            });
         }
 
         appendChatMessage(role, text, isRawHtml = false) {
