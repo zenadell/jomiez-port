@@ -2251,25 +2251,33 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
     const client = new GoogleGenerativeAI(await geminiKey());
     // A stalled model used to block the whole chain: one draft took 58 seconds
     // while another took 4, and from the panel that is indistinguishable from a
-    // dead button. Cap each attempt so a slow model is abandoned, not waited on.
+    // dead button. Cap each attempt so a slow model is abandoned, not waited on —
+    // but generously. A first cut at 20 seconds turned a merely slow afternoon
+    // into "All models unavailable" on every draft, which is a worse failure than
+    // waiting. The button's running clock is what makes the wait bearable.
     const withTimeout = (p, ms) => Promise.race([
       p,
       new Promise((_, reject) => setTimeout(() => reject(new Error('model timed out')), ms))
     ]);
 
+    let lastModelError = null;
     const generate = async (extra) => {
       for (const m of ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash']) {
         try {
           const out = await withTimeout(
-            client.getGenerativeModel({ model: m }).generateContent(prompt + (extra || '')), 20000);
+            client.getGenerativeModel({ model: m }).generateContent(prompt + (extra || '')), 45000);
           return out.response.text();
-        } catch (e) { /* try the next model */ }
+        } catch (e) { lastModelError = e.message; }
       }
       return null;
     };
 
     let raw = await generate();
-    if (!raw) return { ok: false, error: 'All models unavailable.' };
+    if (!raw) {
+      return { ok: false, error: lastModelError && /429|quota|RESOURCE_EXHAUSTED/i.test(lastModelError)
+        ? 'The Gemini quota is used up for now — try again shortly.'
+        : `No model answered in time${lastModelError ? ` (${lastModelError.slice(0, 90)})` : ''}.` };
+    }
 
     const parse = (t) => {
       try { return JSON.parse(t.replace(/^```(?:json)?|```$/gm, '').trim()); }
