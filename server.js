@@ -208,6 +208,9 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/dedupe$/ },
     { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ },
     { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
+    { m: 'GET',  p: /^\/api\/templates$/ },
+    { m: 'POST', p: /^\/api\/templates$/ },
+    { m: 'POST', p: /^\/api\/templates\/verify$/ },
     { m: 'POST', p: /^\/api\/prospects\/add$/ }
 ];
 
@@ -1014,6 +1017,19 @@ db.serialize(() => {
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS found_at TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS replied_at TEXT`);
 
+    // A library of real templates, matched to a prospect's trade at draft time.
+    //
+    // The model is never asked to recall or invent a template URL. It hallucinates
+    // plausible ones — an earlier placeholder, framer.com/templates/lawyer-pro,
+    // looked entirely real and did not exist. A dead link in cold outreach is worse
+    // than no link: it proves nobody checked. So the model may only choose from
+    // rows that were added here and confirmed to load.
+    db.run(`CREATE TABLE IF NOT EXISTS design_templates (
+      id SERIAL PRIMARY KEY, url TEXT UNIQUE, name TEXT, platform TEXT,
+      trades TEXT, notes TEXT, is_active TEXT DEFAULT '1',
+      last_checked TEXT, last_status TEXT, times_used INTEGER DEFAULT 0,
+      created_at TEXT)`);
+
     // Default User.
     //
     // This used to seed a password written in plain sight in this file, which is
@@ -1753,6 +1769,117 @@ app.post('/api/prospects/add', async (req, res) => {
  * unlinked phone number — and those rows are still carrying them. Anything
  * without a stored visual is stale by definition.
  */
+/** The template library. */
+app.get('/api/templates', (req, res) => {
+  db.all('SELECT * FROM design_templates ORDER BY trades ASC, id ASC', [], (e, rows) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json(rows || []);
+  });
+});
+
+app.post('/api/templates', async (req, res) => {
+  const url = String(req.body?.url || '').trim();
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) return res.status(400).json({ error: 'A full https:// link is required.' });
+
+  const trades = String(req.body?.trades || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  if (!trades.length) return res.status(400).json({ error: 'Name at least one trade this design suits.' });
+
+  // Confirm it loads before it can ever reach a prospect.
+  const check = await checkTemplateUrl(url);
+  await new Promise((resolve) => db.run(
+    `INSERT INTO design_templates (url, name, platform, trades, notes, is_active, last_checked, last_status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name, platform = EXCLUDED.platform,
+       trades = EXCLUDED.trades, notes = EXCLUDED.notes, last_checked = EXCLUDED.last_checked,
+       last_status = EXCLUDED.last_status`,
+    [url, String(req.body?.name || '').slice(0, 160), String(req.body?.platform || '').slice(0, 30),
+     trades.join(','), String(req.body?.notes || '').slice(0, 400),
+     check.ok ? '1' : '0', new Date().toISOString(), check.status, new Date().toISOString()],
+    () => resolve()));
+
+  res.json({ saved: true, live: check.ok, status: check.status });
+});
+
+app.delete('/api/templates/:id', (req, res) => {
+  db.run('DELETE FROM design_templates WHERE id = ?', [req.params.id], (e) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json({ deleted: true });
+  });
+});
+
+/** Re-checks every stored link. A template can be withdrawn at any time. */
+app.post('/api/templates/verify', async (req, res) => {
+  const rows = await new Promise((resolve) =>
+    db.all('SELECT id, url FROM design_templates', [], (e, r) => resolve(e || !r ? [] : r)));
+  let live = 0, dead = 0;
+  for (const r of rows) {
+    const c = await checkTemplateUrl(r.url);
+    c.ok ? live++ : dead++;
+    await new Promise((resolve) => db.run(
+      'UPDATE design_templates SET last_checked = ?, last_status = ?, is_active = ? WHERE id = ?',
+      [new Date().toISOString(), c.status, c.ok ? '1' : '0', r.id], () => resolve()));
+  }
+  res.json({ checked: rows.length, live, dead });
+});
+
+async function checkTemplateUrl(url) {
+  try {
+    const r = await fetch(url, {
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JomiezLinkCheck/1.0; +https://www.jomiez.com)' },
+      signal: AbortSignal.timeout(20000)
+    });
+    return { ok: r.ok, status: String(r.status) };
+  } catch (e) {
+    return { ok: false, status: e.name === 'TimeoutError' ? 'timeout' : 'unreachable' };
+  }
+}
+
+/**
+ * Picks the designs to show a given prospect.
+ *
+ * Narrowing happens in SQL by trade, so the model only ever sees a handful of
+ * real, checked rows and picks between them. It cannot reach for a URL that does
+ * not exist, because it is choosing an id from a list rather than writing a link.
+ */
+async function templatesForProspect(p, geminiK) {
+  const trade = String(p.industry || '').toLowerCase();
+  const rows = await new Promise((resolve) =>
+    db.all("SELECT id, url, name, platform, trades, notes FROM design_templates WHERE is_active = '1'",
+      [], (e, r) => resolve(e || !r ? [] : r)));
+  if (!rows.length) return [];
+
+  const scored = rows.map(r => {
+    const tags = String(r.trades || '').split(',').map(x => x.trim()).filter(Boolean);
+    const hit = tags.some(t => t && (trade.includes(t) || t.includes(trade)));
+    return { ...r, hit };
+  });
+  let pool = scored.filter(r => r.hit);
+  if (pool.length < 2) pool = scored;                 // better a general design than none
+  if (pool.length <= 2) return pool.slice(0, 2);
+
+  // Let the model choose which two suit this specific business, from real rows only.
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const client = new GoogleGenerativeAI(geminiK);
+    const prompt = `Choose the TWO designs that best suit this business.
+
+BUSINESS: ${p.business_name || p.website}${p.industry ? ` — ${p.industry}` : ''}
+What their current site is like: ${(safeParse(p.findings)[0] || 'dated')}
+
+DESIGNS (choose two of these ids, nothing else):
+${pool.map(r => `${r.id}: ${r.name}${r.notes ? ` — ${r.notes}` : ''} [suits: ${r.trades}]`).join('\n')}
+
+Return strict JSON only: {"ids": [id, id]}`;
+    const out = await client.getGenerativeModel({ model: 'gemini-3.5-flash-lite' }).generateContent(prompt);
+    const ids = JSON.parse(out.response.text().replace(/^```(?:json)?|```$/gm, '').trim()).ids || [];
+    const chosen = ids.map(id => pool.find(r => r.id === id)).filter(Boolean);
+    if (chosen.length) return chosen.slice(0, 2);
+  } catch (e) { /* fall through to the plain pick */ }
+
+  return pool.slice(0, 2);
+}
+
 app.get('/api/prospects/stale', (req, res) => {
   db.all(`SELECT id, website, business_name, status, analysed_at, visual FROM prospects
           WHERE status <> 'new' ORDER BY id ASC`, [], (e, rows) => {
@@ -1879,11 +2006,15 @@ function hostOf(url) {
   catch (e) { return String(url || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]; }
 }
 
-app.post('/api/prospects/:id/draft', async (req, res) => {
-  try {
-    const p = await new Promise((resolve) =>
-      db.get('SELECT * FROM prospects WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
-    if (!p) return res.status(404).json({ error: 'Prospect not found' });
+/**
+ * Writes the outreach email for one prospect and stores it.
+ *
+ * Extracted from the HTTP handler so the daily run can use exactly the same
+ * path. Two implementations would drift, and the one nobody watches would be
+ * the one that drifted.
+ */
+async function writeProspectDraft(p) {
+  {
 
     const cms = await getCmsData();
     const s = cms.settings || {};
@@ -1893,7 +2024,20 @@ app.post('/api/prospects/:id/draft', async (req, res) => {
     const signature = s.outreach_signature || 'Emmanuel';
     const jobTitle = s.outreach_title || 'Founder';
     const siteUrl = s.site_url || 'https://www.jomiez.com';
-    const templates = templateList(p.template_url);
+    let templates = templateList(p.template_url);
+    // Nothing chosen by hand: pick from the library, which only holds links that
+    // were checked. The model selects an id from a list; it never writes a URL.
+    if (!templates.length) {
+      try {
+        const picked = await templatesForProspect(p, await geminiKey());
+        templates = picked.map(t => t.url);
+        if (picked.length) {
+          await new Promise((resolve) => db.run(
+            'UPDATE design_templates SET times_used = COALESCE(times_used, 0) + 1 WHERE id IN (' +
+            picked.map(() => '?').join(',') + ')', picked.map(t => t.id), () => resolve()));
+        }
+      } catch (e) { /* a draft without a design still beats no draft */ }
+    }
     let visual = null;
     try { visual = p.visual ? JSON.parse(p.visual) : null; } catch (e) { visual = null; }
 
@@ -2010,7 +2154,7 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
     };
 
     let raw = await generate();
-    if (!raw) return res.status(502).json({ error: 'All models unavailable.' });
+    if (!raw) return { ok: false, error: 'All models unavailable.' };
 
     const parse = (t) => {
       try { return JSON.parse(t.replace(/^```(?:json)?|```$/gm, '').trim()); }
@@ -2032,9 +2176,20 @@ Return strict JSON: {"subject": "...", "body": "..."}`;
     await new Promise((resolve) => db.run(
       'UPDATE prospects SET draft_subject = ?, draft_body = ?, drafted_at = ?, status = ? WHERE id = ?',
       [d.subject || '', d.body || '', new Date().toISOString(),
-       p.status === 'sent' ? 'sent' : 'drafted', p.id], () => resolve()));
+       ['sent', 'replied', 'declined'].includes(p.status) ? p.status : 'drafted', p.id], () => resolve()));
 
-    res.json({ ...d, id: p.id, contact_email: p.contact_email });
+    return { ok: true, ...d, id: p.id, contact_email: p.contact_email };
+  }
+}
+
+app.post('/api/prospects/:id/draft', async (req, res) => {
+  try {
+    const p = await new Promise((resolve) =>
+      db.get('SELECT * FROM prospects WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!p) return res.status(404).json({ error: 'Prospect not found' });
+    const out = await writeProspectDraft(p);
+    if (!out.ok) return res.status(502).json({ error: out.error || 'Could not write a draft.' });
+    res.json(out);
   } catch (e) {
     console.error('[prospects/draft]', e.message);
     res.status(500).json({ error: e.message });
@@ -3401,7 +3556,13 @@ async function replenishProspects(cfg) {
   return added;
 }
 
+// A tick that audits, drafts and sends can easily outrun its own hour, and two
+// overlapping runs would both read the same day-count and both act on it.
+let outreachRunning = false;
+
 async function outreachTick() {
+  if (outreachRunning) { console.log('[outreach] previous run still going; skipping'); return; }
+  outreachRunning = true;
   try {
     const cfg = await outreachSettings();
     if (cfg.mode === 'manual') return;
@@ -3457,8 +3618,63 @@ async function outreachTick() {
       }
       await new Promise(r => setTimeout(r, 4000));   // pace the model calls
     }
+
+    // ── Draft ────────────────────────────────────────────────────────────────
+    // Auditing alone left every row parked at 'analysed' forever: both semi and
+    // auto promised a draft and neither produced one.
+    const toDraft = await new Promise((resolve) => db.all(
+      "SELECT * FROM prospects WHERE status = 'analysed' AND (draft_body IS NULL OR draft_body = '') " +
+      "AND contact_email IS NOT NULL AND contact_email <> '' ORDER BY id ASC LIMIT ?",
+      [cfg.perTick], (e, r) => resolve(e || !r ? [] : r)));
+
+    for (const p of toDraft) {
+      try {
+        const out = await writeProspectDraft(p);
+        console.log(`[outreach] drafted ${p.business_name || p.website}${out.ok ? '' : ' — failed: ' + out.error}`);
+      } catch (e) {
+        console.warn(`[outreach] draft ${p.website}: ${e.message}`);
+        if (/429|quota|RESOURCE_EXHAUSTED/i.test(e.message)) return;
+      }
+      await new Promise(r => setTimeout(r, 4000));
+    }
+
+    // ── Send ─────────────────────────────────────────────────────────────────
+    // Only in auto, only within the day's remaining allowance, and only to a
+    // prospect that has never been written to before.
+    if (cfg.mode !== 'auto') return;
+    const sendBudget = cfg.dailyTarget - done.sent;
+    if (sendBudget <= 0) return;
+    if (!mailerConfigured()) {
+      console.warn('[outreach] auto mode is on but email is not configured; nothing sent.');
+      return;
+    }
+
+    const toSend = await new Promise((resolve) => db.all(
+      "SELECT * FROM prospects WHERE status = 'drafted' AND draft_body <> '' " +
+      "AND contact_email <> '' AND sent_at IS NULL ORDER BY id ASC LIMIT ?",
+      [Math.min(cfg.perTick, sendBudget)], (e, r) => resolve(e || !r ? [] : r)));
+
+    for (const p of toSend) {
+      const footer = `\n\n—\n${(await getCmsData()).settings?.company_name || 'Jomiez Innovation'}\n`
+        + 'If you would rather not hear from me again, reply "no thanks" and I will not contact you.';
+      const result = await sendLeadReply({
+        to: p.contact_email, subject: p.draft_subject || `About ${p.website}`,
+        body: (p.draft_body || '') + footer, replyTo: process.env.LEAD_REPLY_TO
+      });
+      if (result.sent) {
+        await new Promise((resolve) => db.run(
+          "UPDATE prospects SET status = 'sent', sent_at = ? WHERE id = ?",
+          [new Date().toISOString(), p.id], () => resolve()));
+        console.log(`[outreach] SENT to ${p.business_name || p.website} <${p.contact_email}>`);
+      } else {
+        console.warn(`[outreach] send failed for ${p.website}: ${result.reason}`);
+      }
+      await new Promise(r => setTimeout(r, 15000));   // never a burst of cold email
+    }
   } catch (e) {
     console.warn('[outreach] tick failed:', e.message);
+  } finally {
+    outreachRunning = false;
   }
 }
 

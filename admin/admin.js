@@ -1002,7 +1002,7 @@ let prospectsCache = [];
 
 async function loadProspects() {
   try { prospectsCache = await (await fetch('/api/prospects')).json(); } catch (e) { prospectsCache = []; }
-  if (currentLeadTab === 'prospects') renderLeads();
+  if (currentLeadTab === 'prospects') { renderLeads(); renderTemplateList(); }
 }
 
 async function analyseProspect() {
@@ -1093,6 +1093,82 @@ function draftBoxHtml(id, subject, body, email, sent) {
 
 // The reference design is the strongest part of the pitch: an owner who can see
 // what their site could look like is deciding about a picture, not a paragraph.
+
+
+// ── Design library ────────────────────────────────────────────────────────────
+let templatesCache = [];
+
+async function loadTemplates() {
+  try { templatesCache = await (await fetch('/api/templates')).json(); }
+  catch (e) { templatesCache = []; }
+  renderTemplateList();
+}
+
+function toggleTemplateForm() {
+  const f = document.getElementById('tpl-form');
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderTemplateList() {
+  const el = document.getElementById('tpl-list');
+  if (!el) return;
+  if (!templatesCache.length) {
+    el.innerHTML = '<p style="color:#666;font-size:12px;margin:0;">No designs yet. Add a few and drafts will start including them.</p>';
+    return;
+  }
+  el.innerHTML = templatesCache.map(t => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #222;">
+      <div style="min-width:0;">
+        <div style="color:#ddd;font-size:12.5px;">${escAttr(t.name || t.url)}
+          <span style="color:${t.is_active === '1' ? '#35c66b' : '#ff6b6b'};font-size:11px;margin-left:6px;">
+            ${t.is_active === '1' ? 'live' : (t.last_status || 'dead')}</span></div>
+        <div style="font-size:11px;color:#666;">${escAttr(t.url)} · ${escAttr(t.trades || '')}</div>
+      </div>
+      <button class="btn btn-sm btn-outline" onclick="deleteTemplate(${t.id})">Remove</button>
+    </div>`).join('');
+}
+
+async function saveTemplateEntry() {
+  const msg = document.getElementById('tpl-msg');
+  const body = {
+    url: document.getElementById('tpl-url').value.trim(),
+    name: document.getElementById('tpl-name').value.trim(),
+    trades: document.getElementById('tpl-trades').value.trim(),
+    platform: document.getElementById('tpl-platform').value,
+    notes: document.getElementById('tpl-notes').value.trim()
+  };
+  msg.textContent = 'Checking the link…';
+  try {
+    const r = await (await fetch('/api/templates', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    })).json();
+    if (r.error) { msg.textContent = r.error; msg.style.color = '#ff6b6b'; return; }
+    msg.textContent = r.live ? 'Saved and the link loads.' : `Saved, but the link returned ${r.status} — it will not be used until it works.`;
+    msg.style.color = r.live ? '#35c66b' : '#ffb648';
+    ['tpl-url','tpl-name','tpl-trades','tpl-notes'].forEach(id => document.getElementById(id).value = '');
+    loadTemplates();
+  } catch (e) { msg.textContent = e.message; msg.style.color = '#ff6b6b'; }
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('Remove this design from the library?')) return;
+  await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+  loadTemplates();
+}
+
+/** A template can be withdrawn at any time; a dead link in outreach is fatal. */
+async function verifyTemplates() {
+  const msg = document.getElementById('tpl-msg');
+  if (msg) { msg.textContent = 'Checking every link…'; msg.style.color = '#888'; }
+  try {
+    const r = await (await fetch('/api/templates/verify', { method: 'POST' })).json();
+    if (msg) {
+      msg.textContent = `${r.live} live, ${r.dead} dead of ${r.checked}.`;
+      msg.style.color = r.dead ? '#ffb648' : '#35c66b';
+    }
+    loadTemplates();
+  } catch (e) { if (msg) msg.textContent = e.message; }
+}
 
 // ── Prospect pipeline ─────────────────────────────────────────────────────────
 //
@@ -1304,6 +1380,7 @@ function openProspecting() {
   document.getElementById('topbar-title').textContent = 'Find Clients';
   document.getElementById('topbar-sub').textContent = 'Search for businesses, audit their site, and send outreach';
   loadProspects();
+  loadTemplates();
 }
 
 async function discoverProspects() {
@@ -1410,6 +1487,39 @@ function renderProspects(container) {
       <button class="btn btn-sm" style="margin-top:6px;" onclick="analyseBulk()">Analyse all</button>
     </div>
     <div id="prospect-status" style="font-size:12px;color:#888;margin-bottom:16px;min-height:16px;"></div>
+
+    <div style="border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <strong style="color:#00e0ff;font-size:13px;">Design library</strong>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm btn-outline" onclick="verifyTemplates()">Check all links</button>
+          <button class="btn btn-sm btn-outline" onclick="toggleTemplateForm()">Add a design</button>
+        </div>
+      </div>
+      <p style="color:#777;font-size:12px;margin:6px 0 0;">
+        Real templates you have looked at, tagged by trade. Drafts pick two that suit the
+        business. Chaka is never asked to invent a link — it can only choose from these,
+        and every one is checked before it can be used.
+      </p>
+      <div id="tpl-form" style="display:none;margin-top:12px;display:none;">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+          <input id="tpl-url" placeholder="https://sometemplate.framer.website/"
+            style="background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+          <input id="tpl-name" placeholder="Name, e.g. Lumen Dental"
+            style="background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+          <input id="tpl-trades" placeholder="Trades: dentists, clinics"
+            style="background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+          <select id="tpl-platform" style="background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+            <option value="framer">Framer</option><option value="webflow">Webflow</option><option value="other">Other</option>
+          </select>
+        </div>
+        <input id="tpl-notes" placeholder="Optional note — e.g. warm, family practice feel"
+          style="width:100%;margin-top:8px;background:#141416;border:1px solid #333;color:#fff;padding:9px;border-radius:8px;">
+        <button class="btn btn-sm" style="margin-top:8px;" onclick="saveTemplateEntry()">Save design</button>
+        <span id="tpl-msg" style="font-size:12px;color:#888;margin-left:10px;"></span>
+      </div>
+      <div id="tpl-list" style="margin-top:12px;"></div>
+    </div>
   ` + prospectFolderBar() + (visibleProspects().length ? visibleProspects().map(p => `
       <div class="work-item" style="display:block;padding:14px;border:1px solid #333;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;gap:10px;">

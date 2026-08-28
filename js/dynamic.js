@@ -2395,6 +2395,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        /**
+         * Strips anything executable out of rendered markdown.
+         *
+         * marked does not sanitise — inline HTML passes through by design — and the
+         * result went straight into innerHTML, then into localStorage, then back
+         * through here on every page load. So one crafted message persisted as
+         * stored XSS for the life of the memory entry. Escaping everything would
+         * kill the formatting the assistant relies on, so this keeps a small
+         * allowlist of tags and attributes and discards the rest.
+         */
+        sanitizeHtml(html) {
+            const ALLOWED = {
+                p: [], br: [], strong: [], b: [], em: [], i: [], u: [], s: [],
+                ul: [], ol: [], li: [], blockquote: [], hr: [],
+                h1: [], h2: [], h3: [], h4: [], code: [], pre: [],
+                a: ['href', 'title'], span: []
+            };
+            const tpl = document.createElement('template');
+            tpl.innerHTML = String(html == null ? '' : html);
+
+            const walk = (node) => {
+                // Copy the list first: the loop mutates the tree as it goes.
+                for (const el of Array.from(node.children)) {
+                    const tag = el.tagName.toLowerCase();
+                    if (!Object.prototype.hasOwnProperty.call(ALLOWED, tag)) {
+                        // Keep the words, drop the element — a stripped <script>
+                        // should not silently delete surrounding text.
+                        const text = document.createTextNode(el.textContent || '');
+                        el.replaceWith(text);
+                        continue;
+                    }
+                    for (const attr of Array.from(el.attributes)) {
+                        const name = attr.name.toLowerCase();
+                        if (!ALLOWED[tag].includes(name)) { el.removeAttribute(attr.name); continue; }
+                        if (name === 'href') {
+                            const v = String(attr.value || '').trim();
+                            // javascript:, data: and vbscript: are all executable here.
+                            if (!/^(https?:|mailto:|tel:|#|\/)/i.test(v)) el.removeAttribute(attr.name);
+                        }
+                    }
+                    walk(el);
+                }
+            };
+            walk(tpl.content);
+            return tpl.innerHTML;
+        }
+
         escapeHtml(value = '') {
             return String(value)
                 .replace(/&/g, '&amp;')
@@ -2535,15 +2582,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render markdown (if marked.js loaded, else basic fallback) — skip if raw HTML
             let formattedText = '';
             if (isRawHtml) {
+                // Built by this file (contact cards, the WhatsApp handoff) and already
+                // escaped at construction. Never model output.
                 formattedText = text;
+            } else if (role === 'user') {
+                // Nothing a visitor types needs markdown, so it is escaped outright
+                // rather than parsed. This is also the path an attacker controls.
+                formattedText = '<p>' + this.escapeHtml(text).replace(/\n/g, '<br/>') + '</p>';
             } else if (window.marked) {
-                formattedText = marked.parse(text);
+                formattedText = this.sanitizeHtml(marked.parse(text));
             } else {
-                // Fallback basic formatting
-                formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                // Auto-link raw URLs if marked is not available
-                formattedText = formattedText.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
-                formattedText = '<p>' + formattedText.replace(/\n/g, '<br/>') + '</p>';
+                // The CDN script loads async, so this branch renders real messages
+                // before it lands and has to be just as safe.
+                formattedText = this.escapeHtml(text)
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+                formattedText = this.sanitizeHtml('<p>' + formattedText.replace(/\n/g, '<br/>') + '</p>');
             }
             
             if (role === 'user') {
