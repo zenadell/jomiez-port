@@ -1792,7 +1792,7 @@ app.post('/api/templates', async (req, res) => {
      ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name, platform = EXCLUDED.platform,
        trades = EXCLUDED.trades, notes = EXCLUDED.notes, last_checked = EXCLUDED.last_checked,
        last_status = EXCLUDED.last_status`,
-    [url, String(req.body?.name || '').slice(0, 160), String(req.body?.platform || '').slice(0, 30),
+    [url, (String(req.body?.name || '').trim() || check.title || '').slice(0, 160), String(req.body?.platform || '').slice(0, 30),
      trades.join(','), String(req.body?.notes || '').slice(0, 400),
      check.ok ? '1' : '0', new Date().toISOString(), check.status, new Date().toISOString()],
     () => resolve()));
@@ -1822,6 +1822,18 @@ app.post('/api/templates/verify', async (req, res) => {
   res.json({ checked: rows.length, live, dead });
 });
 
+/**
+ * Confirms a design link actually resolves to a design.
+ *
+ * A status check alone is not enough. Framer answers 200 for a template that
+ * does not exist, quietly redirecting to the marketplace index — the invented
+ * placeholder framer.com/templates/lawyer-pro passed a status check and would
+ * have gone out to a law firm. Webflow and Squarespace behave similarly. So the
+ * page is read: a soft 404 announces itself in the title or the first screenful.
+ */
+const GENERIC_TITLE = /(marketplace|create a free website|page not found|not found|404|browse templates|all templates|template directory)/i;
+const NOT_FOUND_TEXT = /(page not found|page you (?:are|were) looking for|doesn't exist|does not exist|no longer available|couldn't find that|could not be found)/i;
+
 async function checkTemplateUrl(url) {
   try {
     const r = await fetch(url, {
@@ -1829,7 +1841,21 @@ async function checkTemplateUrl(url) {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JomiezLinkCheck/1.0; +https://www.jomiez.com)' },
       signal: AbortSignal.timeout(20000)
     });
-    return { ok: r.ok, status: String(r.status) };
+    if (!r.ok) return { ok: false, status: String(r.status) };
+
+    const html = await r.text();
+    const title = (html.match(/<title[^>]*>([^<]{0,220})<\/title>/i) || [, ''])[1].trim();
+
+    if (GENERIC_TITLE.test(title)) {
+      return { ok: false, status: `soft 404 — lands on "${title.slice(0, 60)}"` };
+    }
+    const text = html
+      .replace(/<(script|style|noscript)[^>]*>[\s\S]*?<\/\1>/gi, '')
+      .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 2500);
+    if (NOT_FOUND_TEXT.test(text)) return { ok: false, status: 'soft 404 — page says it does not exist' };
+    if (html.length < 3000) return { ok: false, status: 'almost no content' };
+
+    return { ok: true, status: '200', title };
   } catch (e) {
     return { ok: false, status: e.name === 'TimeoutError' ? 'timeout' : 'unreachable' };
   }
