@@ -22,6 +22,7 @@ const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
 const { analyse: analyseProspect } = require('./lib/prospector');
 const { findBusinesses, CATEGORIES: discoverCategories } = require('./lib/discover');
+const { findForTrade: findTemplatesForTrade, TRADE_CATEGORIES } = require('./lib/templateFinder');
 const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig, configure: configureInbox } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
@@ -211,6 +212,8 @@ const AUTOMATION_ALLOWED = [
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates\/verify$/ },
+    { m: 'POST', p: /^\/api\/templates\/discover$/ },
+    { m: 'GET',  p: /^\/api\/templates\/discover\/status$/ },
     { m: 'POST', p: /^\/api\/prospects\/add$/ }
 ];
 
@@ -1769,6 +1772,65 @@ app.post('/api/prospects/add', async (req, res) => {
  * unlinked phone number — and those rows are still carrying them. Anything
  * without a stored visual is stale by definition.
  */
+/**
+ * Fills the design library from Framer's own marketplace categories.
+ *
+ * Runs detached, because reading a category listing and then verifying each
+ * demo takes a few minutes per trade — far longer than a request should hold
+ * open. Progress is polled instead.
+ */
+let templateFill = { running: false, trade: null, done: 0, total: 0, added: 0, log: [], finishedAt: null };
+
+async function runTemplateFill(trades) {
+  templateFill = { running: true, trade: null, done: 0, total: trades.length, added: 0, log: [], finishedAt: null };
+  try {
+    for (const trade of trades) {
+      templateFill.trade = trade;
+      const r = await findTemplatesForTrade(trade, 6);
+      if (!r.ok) { templateFill.log.push(`${trade}: ${r.reason}`); templateFill.done++; continue; }
+
+      let saved = 0;
+      for (const t of r.templates) {
+        await new Promise((resolve) => db.run(
+          `INSERT INTO design_templates (url, name, platform, trades, notes, is_active, last_checked, last_status, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (url) DO UPDATE SET trades =
+             CASE WHEN design_templates.trades LIKE '%' || EXCLUDED.trades || '%'
+                  THEN design_templates.trades
+                  ELSE design_templates.trades || ',' || EXCLUDED.trades END,
+             last_checked = EXCLUDED.last_checked, last_status = EXCLUDED.last_status, is_active = '1'`,
+          [t.demoUrl, t.name, 'framer', trade, (t.description || '').slice(0, 400),
+           '1', new Date().toISOString(), '200', new Date().toISOString()],
+          () => resolve()));
+        saved++;
+      }
+      templateFill.added += saved;
+      templateFill.log.push(`${trade}: ${saved} added${r.notes && r.notes.length ? ` (${r.notes.join('; ')})` : ''}`);
+      templateFill.done++;
+    }
+  } catch (e) {
+    templateFill.log.push(`failed: ${e.message}`);
+  } finally {
+    templateFill.running = false;
+    templateFill.trade = null;
+    templateFill.finishedAt = new Date().toISOString();
+  }
+}
+
+app.post('/api/templates/discover', (req, res) => {
+  if (templateFill.running) return res.status(409).json({ error: 'A search is already running.', status: templateFill });
+  const asked = String(req.body?.trade || '').trim();
+  const trades = asked && asked !== 'all'
+    ? [asked].filter(t => TRADE_CATEGORIES[t])
+    : Object.keys(TRADE_CATEGORIES);
+  if (!trades.length) return res.status(400).json({ error: `No Framer categories are mapped to "${asked}".` });
+
+  runTemplateFill(trades);          // detached on purpose
+  res.json({ started: true, trades });
+});
+
+app.get('/api/templates/discover/status', (req, res) => res.json(templateFill));
+
 /** The template library. */
 app.get('/api/templates', (req, res) => {
   db.all('SELECT * FROM design_templates ORDER BY trades ASC, id ASC', [], (e, rows) => {

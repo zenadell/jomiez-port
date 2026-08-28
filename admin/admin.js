@@ -1128,6 +1128,51 @@ function renderTemplateList() {
     </div>`).join('');
 }
 
+/**
+ * Reads Framer's marketplace categories to fill the library.
+ *
+ * Slow — a few minutes per trade, mostly spent opening each demo to confirm it
+ * loads — so the server runs it detached and this polls for progress.
+ */
+async function discoverTemplates() {
+  const box = document.getElementById('tpl-discover');
+  const trade = prompt(
+    'Which trade? Leave as "all" to do every one.\n\n'
+    + 'dentists, clinics, lawyers, vets, accountants, salons, autoshops, contractors, realestate, fitness',
+    'all');
+  if (!trade) return;
+
+  try {
+    const r = await (await fetch('/api/templates/discover', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trade: trade.trim() })
+    })).json();
+    if (r.error) { box.textContent = r.error; box.style.color = '#ff6b6b'; return; }
+    box.style.color = '#888';
+    pollTemplateDiscovery();
+  } catch (e) { box.textContent = e.message; box.style.color = '#ff6b6b'; }
+}
+
+async function pollTemplateDiscovery() {
+  const box = document.getElementById('tpl-discover');
+  if (!box) return;
+  try {
+    const s = await (await fetch('/api/templates/discover/status')).json();
+    if (s.running) {
+      box.innerHTML = `Searching Framer for <b>${escAttr(s.trade || '…')}</b> — ${s.done} of ${s.total} trades done, ${s.added} designs added so far.`
+        + '<br><span style="color:#666;">A few minutes per trade. You can leave this page.</span>';
+      setTimeout(pollTemplateDiscovery, 5000);
+      return;
+    }
+    if (s.finishedAt) {
+      box.innerHTML = `Finished — ${s.added} designs added.`
+        + (s.log && s.log.length ? `<br><span style="color:#666;">${s.log.map(escAttr).join('<br>')}</span>` : '');
+      box.style.color = s.added ? '#35c66b' : '#ffb648';
+      loadTemplates();
+    }
+  } catch (e) { /* polling is cosmetic */ }
+}
+
 async function saveTemplateEntry() {
   const msg = document.getElementById('tpl-msg');
   const body = {
@@ -1381,6 +1426,7 @@ function openProspecting() {
   document.getElementById('topbar-sub').textContent = 'Search for businesses, audit their site, and send outreach';
   loadProspects();
   loadTemplates();
+  pollTemplateDiscovery();
 }
 
 async function discoverProspects() {
@@ -1492,15 +1538,19 @@ function renderProspects(container) {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <strong style="color:#00e0ff;font-size:13px;">Design library</strong>
         <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="discoverTemplates()">Find designs automatically</button>
           <button class="btn btn-sm btn-outline" onclick="verifyTemplates()">Check all links</button>
-          <button class="btn btn-sm btn-outline" onclick="toggleTemplateForm()">Add a design</button>
+          <button class="btn btn-sm btn-outline" onclick="toggleTemplateForm()">Add one by hand</button>
         </div>
       </div>
       <p style="color:#777;font-size:12px;margin:6px 0 0;">
-        Real templates you have looked at, tagged by trade. Drafts pick two that suit the
-        business. Chaka is never asked to invent a link — it can only choose from these,
-        and every one is checked before it can be used.
+        Real templates tagged by trade. Drafts pick two that suit the business.
+        "Find designs automatically" reads Framer's own marketplace categories — dental,
+        legal, veterinary, car-and-auto — so the match comes from how the template's own
+        author classified it, not from a model guessing. No AI, no tokens. Every demo is
+        opened and checked before it can be used.
       </p>
+      <div id="tpl-discover" style="font-size:12px;color:#888;margin-top:8px;min-height:16px;"></div>
       <div id="tpl-form" style="display:none;margin-top:12px;display:none;">
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
           <input id="tpl-url" placeholder="https://sometemplate.framer.website/"
