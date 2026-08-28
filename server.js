@@ -22,7 +22,7 @@ const { scoreLead } = require('./lib/leadTriage');
 const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
 const { analyse: analyseProspect } = require('./lib/prospector');
 const { findBusinesses, CATEGORIES: discoverCategories } = require('./lib/discover');
-const { findForTrade: findTemplatesForTrade, TRADE_CATEGORIES } = require('./lib/templateFinder');
+const { findForTrade: findTemplatesForTrade, classifyTrade, TRADE_CATEGORIES } = require('./lib/templateFinder');
 const { fetchRecent: fetchInbox, isConfigured: inboxConfigured, missingConfig: missingInboxConfig, configure: configureInbox } = require('./lib/inbox');
 const { syncDatabaseToVectorDB, upsertDocument, deleteDocument, searchVectorDB } = require('./ai/vectorDB');
 
@@ -1931,19 +1931,22 @@ async function checkTemplateUrl(url) {
  * not exist, because it is choosing an id from a list rather than writing a link.
  */
 async function templatesForProspect(p, geminiK) {
-  const trade = String(p.industry || '').toLowerCase();
+  // The audit records free text ("auto repair shop"); the library is tagged with
+  // trade keys ("autoshops"). Comparing them directly matched nothing, so this
+  // classifies the text first — otherwise a dentist gets shown a law firm.
+  const trade = classifyTrade(`${p.industry || ''} ${p.business_name || ''}`);
   const rows = await new Promise((resolve) =>
     db.all("SELECT id, url, name, platform, trades, notes FROM design_templates WHERE is_active = '1'",
       [], (e, r) => resolve(e || !r ? [] : r)));
   if (!rows.length) return [];
 
-  const scored = rows.map(r => {
-    const tags = String(r.trades || '').split(',').map(x => x.trim()).filter(Boolean);
-    const hit = tags.some(t => t && (trade.includes(t) || t.includes(trade)));
-    return { ...r, hit };
-  });
-  let pool = scored.filter(r => r.hit);
-  if (pool.length < 2) pool = scored;                 // better a general design than none
+  const pool = trade
+    ? rows.filter(r => String(r.trades || '').split(',').map(x => x.trim()).includes(trade))
+    : [];
+
+  // Showing an unrelated design is worse than showing none: it says plainly that
+  // nobody looked at what this business does.
+  if (!pool.length) return [];
   if (pool.length <= 2) return pool.slice(0, 2);
 
   // Let the model choose which two suit this specific business, from real rows only.
