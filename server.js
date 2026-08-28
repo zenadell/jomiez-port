@@ -1965,6 +1965,13 @@ Return strict JSON only: {"ids": [id, id]}`;
     const out = await client.getGenerativeModel({ model: 'gemini-3.5-flash-lite' }).generateContent(prompt);
     const ids = JSON.parse(out.response.text().replace(/^```(?:json)?|```$/gm, '').trim()).ids || [];
     const chosen = ids.map(id => pool.find(r => r.id === id)).filter(Boolean);
+    // An id it invented or repeated leaves fewer than asked for, and one design
+    // loses the "which of these feels closer" close — the easiest reply in the
+    // whole email. Top up from the same pool rather than shipping a single link.
+    for (const r of pool) {
+      if (chosen.length >= 2) break;
+      if (!chosen.some(c => c.id === r.id)) chosen.push(r);
+    }
     if (chosen.length) return chosen.slice(0, 2);
   } catch (e) { /* fall through to the plain pick */ }
 
