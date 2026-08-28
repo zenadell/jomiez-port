@@ -1339,9 +1339,12 @@ async function saveTemplate(id) {
     body: JSON.stringify({ template_url: url })
   })).json();
   if (r.error) { showToast(r.error); return; }
-  showToast(r.count
+  const dropped = (r.dropped || []).length
+    ? ` ${r.dropped.length} rejected: ${r.dropped.map(d => d.why).join(', ')}.`
+    : '';
+  showToast((r.count
     ? `${r.count} link${r.count > 1 ? 's' : ''} saved — now click Rewrite draft to write ${r.count > 1 ? 'them' : 'it'} in.`
-    : 'Links cleared.');
+    : 'Links cleared.') + dropped);
   loadProspects();
 }
 

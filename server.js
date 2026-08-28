@@ -1717,7 +1717,7 @@ function templateList(v) {
 }
 
 /** The reference designs to show this prospect. Set before drafting. */
-app.patch('/api/prospects/:id', (req, res) => {
+app.patch('/api/prospects/:id', async (req, res) => {
   const raw = String(req.body?.template_url || '');
   const links = templateList(raw);
 
@@ -1727,10 +1727,27 @@ app.patch('/api/prospects/:id', (req, res) => {
     return res.status(400).json({ error: 'No usable links found. Each one needs to start with http:// or https://, one per line.' });
   }
 
-  const stored = links.join('\n');
+  // Hand-entered links skipped the checking the library does, so a typo or a
+  // withdrawn template went straight into an email. A fabricated placeholder
+  // sat on a real prospect this way for days.
+  const checks = [];
+  for (const l of links) checks.push({ url: l, ...(await checkTemplateUrl(l)) });
+  const dead = checks.filter(c => !c.ok);
+  const good = checks.filter(c => c.ok).map(c => c.url);
+
+  if (dead.length && !good.length) {
+    return res.status(400).json({
+      error: `That link does not load (${dead[0].status}). Nothing was saved — a dead link in outreach is worse than none.`
+    });
+  }
+
+  const stored = good.join('\n');
   db.run('UPDATE prospects SET template_url = ? WHERE id = ?', [stored, req.params.id], (e) => {
     if (e) return res.status(500).json({ error: e.message });
-    res.json({ saved: true, template_url: stored, count: links.length });
+    res.json({
+      saved: true, template_url: stored, count: good.length,
+      dropped: dead.map(d => ({ url: d.url, why: d.status }))
+    });
   });
 });
 
