@@ -210,6 +210,7 @@ const AUTOMATION_ALLOWED = [
     { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ },
     { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
     { m: 'GET',  p: /^\/api\/leads\/delivery-status$/ },
+    { m: 'GET',  p: /^\/api\/leads\/resend-account$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates\/verify$/ },
@@ -2687,6 +2688,52 @@ app.post('/api/leads/:id/send', async (req, res) => {
  * the Resend API never passes through the Hostinger mailbox, so it cannot appear
  * there. The two systems are unrelated, and the absence is expected.
  */
+/**
+ * Reports what the Resend account looks like, using the key already in the
+ * environment rather than a dashboard login.
+ *
+ * Useful on its own — it says whether the sending domain is actually verified,
+ * which is the difference between mail leaving and mail being refused — and it
+ * removes the need to remember which address the account was opened with.
+ */
+app.get('/api/leads/resend-account', async (req, res) => {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
+
+  const call = async (path) => {
+    try {
+      const r = await fetch(`https://api.resend.com${path}`, {
+        headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(20000)
+      });
+      const body = await r.text();
+      let json = null;
+      try { json = JSON.parse(body); } catch (e) { /* not json */ }
+      return { path, status: r.status, ok: r.ok, json, raw: json ? null : body.slice(0, 200) };
+    } catch (e) {
+      return { path, status: 0, ok: false, error: e.message };
+    }
+  };
+
+  const domains = await call('/domains');
+  const keys = await call('/api-keys');
+  // Not every Resend plan exposes a listing of past emails; ask and report what
+  // comes back rather than assuming either way.
+  const emails = await call('/emails');
+
+  res.json({
+    from: process.env.LEAD_FROM_EMAIL || null,
+    replyTo: process.env.LEAD_REPLY_TO || null,
+    notifyTo: process.env.ADMIN_NOTIFY_EMAIL || null,
+    domains: domains.ok ? (domains.json && domains.json.data) : { failed: domains.status, detail: domains.json || domains.raw },
+    apiKeys: keys.ok ? (keys.json && keys.json.data || []).map(k => ({ name: k.name, created_at: k.created_at })) : { failed: keys.status },
+    emailListing: emails.ok
+      ? { supported: true, count: (emails.json && emails.json.data || []).length,
+          recent: (emails.json && emails.json.data || []).slice(0, 25).map(e => ({
+            id: e.id, to: e.to, subject: e.subject, created_at: e.created_at, last_event: e.last_event })) }
+      : { supported: false, status: emails.status, detail: (emails.json && emails.json.message) || emails.raw }
+  });
+});
+
 app.get('/api/leads/delivery-status', async (req, res) => {
   const key = process.env.RESEND_API_KEY;
   if (!key) return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
