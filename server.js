@@ -1625,7 +1625,11 @@ app.post('/api/prospects/analyze', async (req, res) => {
     // the fact that must not be lost.
     const existing = matches.find(p => ['sent', 'replied', 'declined'].includes(p.status)) || matches[0];
 
-    const email = (result.signals.emails || [])[0] || '';
+    // Take the first address that can actually receive mail, not just the first
+    // one found. GH Remodeling publishes info@ghremodeling.com — a domain with no
+    // mail server — right above a working Gmail address, and taking [0] stored
+    // the dead one and bounced.
+    const email = await pickDeliverable(result.signals.emails || []);
     const now = new Date().toISOString();
     let id;
 
@@ -2155,6 +2159,17 @@ function humanise(text) {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/(^|\n)\s*([a-z])/g, (m, br, c) => br + c.toUpperCase())
     .trim();
+}
+
+/** The first harvested address whose domain accepts mail, or nothing. */
+async function pickDeliverable(emails) {
+  for (const raw of emails) {
+    const e = String(raw || '').trim();
+    if (!/^[^@\s%]+@[^@\s%]+\.[^@\s%]+$/.test(e)) continue;
+    const mx = await domainAcceptsMail(e.split('@')[1]);
+    if (mx.ok) return e;
+  }
+  return '';
 }
 
 /** Same business, however the address was typed. */
