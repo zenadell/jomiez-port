@@ -209,6 +209,7 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/dedupe$/ },
     { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ },
     { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
+    { m: 'GET',  p: /^\/api\/leads\/delivery-status$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates\/verify$/ },
@@ -1019,6 +1020,11 @@ db.serialize(() => {
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS drafted_at TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS found_at TEXT`);
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS replied_at TEXT`);
+    // Resend hands back an id for every accepted message and it was being
+    // discarded, so there was no way to ask afterwards whether anything actually
+    // arrived — only that Resend had accepted it, which is not the same thing.
+    db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS resend_id TEXT`);
+    db.run(`ALTER TABLE lead_replies ADD COLUMN IF NOT EXISTS resend_id TEXT`);
 
     // A library of real templates, matched to a prospect's trade at draft time.
     //
@@ -2353,8 +2359,8 @@ app.post('/api/prospects/:id/send', async (req, res) => {
 
     if (result.sent) {
       await new Promise((resolve) => db.run(
-        "UPDATE prospects SET status = 'sent', sent_at = ?, contact_email = ? WHERE id = ?",
-        [new Date().toISOString(), recipient, p.id], () => resolve()));
+        "UPDATE prospects SET status = 'sent', sent_at = ?, contact_email = ?, resend_id = ? WHERE id = ?",
+        [new Date().toISOString(), recipient, result.id || null, p.id], () => resolve()));
     }
     res.json(result);
   } catch (e) {
@@ -2669,6 +2675,59 @@ app.post('/api/leads/:id/send', async (req, res) => {
 });
 
 // Lets the panel show whether sending is even possible before offering the button.
+/**
+ * Asks Resend what actually happened to the mail we sent.
+ *
+ * "Sent" in this panel has only ever meant "Resend accepted it", which is a much
+ * weaker claim than delivered — a message can be accepted and then bounce, or be
+ * dropped as spam, and nothing here would have known. Resend keeps the outcome
+ * against the message id, so this asks per id.
+ *
+ * Note for anyone confused by an empty Sent folder in webmail: mail sent through
+ * the Resend API never passes through the Hostinger mailbox, so it cannot appear
+ * there. The two systems are unrelated, and the absence is expected.
+ */
+app.get('/api/leads/delivery-status', async (req, res) => {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
+
+  const rows = await new Promise((resolve) => db.all(
+    "SELECT id, business_name, contact_email, sent_at, resend_id FROM prospects WHERE status IN ('sent','replied') ORDER BY sent_at DESC LIMIT 60",
+    [], (e, r) => resolve(e || !r ? [] : r)));
+
+  const withId = rows.filter(r => r.resend_id);
+  const withoutId = rows.filter(r => !r.resend_id);
+
+  const results = [];
+  for (const r of withId.slice(0, 40)) {
+    try {
+      const resp = await fetch(`https://api.resend.com/emails/${r.resend_id}`, {
+        headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15000)
+      });
+      if (!resp.ok) { results.push({ ...r, state: `lookup failed (${resp.status})` }); continue; }
+      const d = await resp.json();
+      results.push({
+        id: r.id, business_name: r.business_name, contact_email: r.contact_email,
+        sent_at: r.sent_at,
+        state: d.last_event || 'unknown',
+        to: Array.isArray(d.to) ? d.to.join(', ') : d.to,
+        from: d.from
+      });
+    } catch (e) {
+      results.push({ ...r, state: `lookup error: ${e.message}` });
+    }
+  }
+
+  res.json({
+    checked: results.length,
+    unknown: withoutId.length,
+    note: withoutId.length
+      ? `${withoutId.length} message(s) were sent before delivery ids were recorded, so their outcome can only be seen in the Resend dashboard at resend.com/emails.`
+      : null,
+    results
+  });
+});
+
 app.get('/api/leads/mail-status', async (req, res) => {
   const cms = await getCmsData();
   res.json({
@@ -3786,8 +3845,8 @@ async function outreachTick() {
       });
       if (result.sent) {
         await new Promise((resolve) => db.run(
-          "UPDATE prospects SET status = 'sent', sent_at = ? WHERE id = ?",
-          [new Date().toISOString(), p.id], () => resolve()));
+          "UPDATE prospects SET status = 'sent', sent_at = ?, resend_id = ? WHERE id = ?",
+          [new Date().toISOString(), result.id || null, p.id], () => resolve()));
         console.log(`[outreach] SENT to ${p.business_name || p.website} <${p.contact_email}>`);
       } else {
         console.warn(`[outreach] send failed for ${p.website}: ${result.reason}`);
