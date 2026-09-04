@@ -19,7 +19,7 @@ const db = require('./lib/supabaseAdapter');
 const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
-const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig } = require('./lib/mailer');
+const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig, domainAcceptsMail } = require('./lib/mailer');
 const { analyse: analyseProspect } = require('./lib/prospector');
 const { findBusinesses, CATEGORIES: discoverCategories } = require('./lib/discover');
 const { findForTrade: findTemplatesForTrade, classifyTrade, TRADE_CATEGORIES } = require('./lib/templateFinder');
@@ -209,6 +209,7 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/dedupe$/ },
     { m: 'PATCH', p: /^\/api\/prospects\/\d+$/ },
     { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
+    { m: 'POST', p: /^\/api\/prospects\/verify-emails$/ },
     { m: 'GET',  p: /^\/api\/leads\/delivery-status$/ },
     { m: 'GET',  p: /^\/api\/leads\/resend-account$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
@@ -2001,6 +2002,40 @@ Return strict JSON only: {"ids": [id, id]}`;
 
   return pool.slice(0, 2);
 }
+
+/**
+ * Clears stored addresses that can never receive mail.
+ *
+ * Five of thirty-nine were undeliverable — a domain with no mail server, an
+ * encoded space, and an image filename that happened to match the address
+ * pattern. Every one of those was a guaranteed bounce, and bounces cost
+ * deliverability on the mail that would have worked.
+ */
+app.post('/api/prospects/verify-emails', async (req, res) => {
+  const rows = await new Promise((resolve) => db.all(
+    "SELECT id, business_name, contact_email, status FROM prospects WHERE contact_email <> ''",
+    [], (e, r) => resolve(e || !r ? [] : r)));
+
+  const cleared = [];
+  for (const r of rows) {
+    const e = String(r.contact_email || '').trim();
+    let bad = null;
+
+    if (!/^[^@\s%]+@[^@\s%]+\.[^@\s%]+$/.test(e)) bad = 'malformed';
+    else if (/\.(png|jpe?g|gif|svg|webp|avif|css|js|pdf)$/i.test(e)) bad = 'an asset filename, not an address';
+    else {
+      const mx = await domainAcceptsMail(e.split('@')[1]);
+      if (!mx.ok) bad = mx.reason;
+    }
+
+    if (bad) {
+      await new Promise((resolve) => db.run(
+        "UPDATE prospects SET contact_email = '' WHERE id = ?", [r.id], () => resolve()));
+      cleared.push({ id: r.id, business_name: r.business_name, was: e, why: bad, status: r.status });
+    }
+  }
+  res.json({ checked: rows.length, cleared: cleared.length, details: cleared });
+});
 
 app.get('/api/prospects/stale', (req, res) => {
   db.all(`SELECT id, website, business_name, status, analysed_at, visual FROM prospects
