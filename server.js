@@ -211,6 +211,7 @@ const AUTOMATION_ALLOWED = [
     { m: 'GET',  p: /^\/api\/prospects\/stale$/ },
     { m: 'POST', p: /^\/api\/prospects\/verify-emails$/ },
     { m: 'GET',  p: /^\/api\/leads\/delivery-status$/ },
+    { m: 'POST', p: /^\/api\/leads\/sync-bounces$/ },
     { m: 'GET',  p: /^\/api\/leads\/resend-account$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
@@ -2781,6 +2782,67 @@ app.get('/api/leads/resend-account', async (req, res) => {
           recent: (emails.json && emails.json.data || []).slice(0, 25).map(e => ({
             id: e.id, to: e.to, subject: e.subject, created_at: e.created_at, last_event: e.last_event })) }
       : { supported: false, status: emails.status, detail: (emails.json && emails.json.message) || emails.raw }
+  });
+});
+
+/**
+ * Pulls what actually happened from Resend and stops retrying what failed.
+ *
+ * DNS can only ever guess. It said helectricconnection.com was undeliverable
+ * when Resend had already delivered to it, and it said GREGSSWERDRAINS@GMAIL.COM
+ * was fine when the mailbox does not exist — Gmail's MX records are perfect
+ * either way. The bounce record is the only ground truth, so it is fed back:
+ * an address Resend bounced or suppressed is cleared and never tried again.
+ */
+app.post('/api/leads/sync-bounces', async (req, res) => {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
+
+  let listing;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(25000)
+    });
+    if (!r.ok) {
+      const detail = await r.text();
+      return res.status(400).json({
+        error: r.status === 401
+          ? 'This Resend key cannot read past emails. Give it full access in Resend.'
+          : `Resend returned ${r.status}: ${detail.slice(0, 140)}`
+      });
+    }
+    listing = await r.json();
+  } catch (e) {
+    return res.status(502).json({ error: `Could not reach Resend: ${e.message}` });
+  }
+
+  const failed = (listing.data || []).filter(e => ['bounced', 'suppressed', 'complained'].includes(e.last_event));
+  const addresses = new Map();
+  for (const e of failed) {
+    for (const a of (Array.isArray(e.to) ? e.to : [e.to])) {
+      if (a) addresses.set(String(a).toLowerCase(), e.last_event);
+    }
+  }
+
+  const cleared = [];
+  for (const [addr, event] of addresses) {
+    const rows = await new Promise((resolve) => db.all(
+      'SELECT id, business_name, contact_email FROM prospects WHERE LOWER(contact_email) = ?',
+      [addr], (e, r) => resolve(e || !r ? [] : r)));
+    for (const row of rows) {
+      await new Promise((resolve) => db.run(
+        "UPDATE prospects SET contact_email = '', status = 'undeliverable' WHERE id = ?",
+        [row.id], () => resolve()));
+      cleared.push({ id: row.id, business_name: row.business_name, address: addr, event });
+    }
+  }
+
+  res.json({
+    inspected: (listing.data || []).length,
+    failures: addresses.size,
+    cleared: cleared.length,
+    details: cleared,
+    addresses: [...addresses.entries()].map(([a, e]) => ({ address: a, event: e }))
   });
 });
 
