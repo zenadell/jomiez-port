@@ -2738,6 +2738,18 @@ app.get('/api/leads/delivery-status', async (req, res) => {
   const key = process.env.RESEND_API_KEY;
   if (!key) return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
 
+  // Probe once rather than repeating the same failure for every row.
+  const probe = await fetch('https://api.resend.com/domains', {
+    headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15000)
+  }).catch(() => null);
+  if (probe && probe.status === 401) {
+    return res.json({
+      checked: 0, unknown: 0, results: [],
+      error: 'This Resend API key is restricted to sending only, so delivery outcomes cannot be read. '
+           + 'The key is valid and mail can go out — but to see delivered/bounced here, create a key with full access in Resend and set it as RESEND_API_KEY.'
+    });
+  }
+
   const rows = await new Promise((resolve) => db.all(
     "SELECT id, business_name, contact_email, sent_at, resend_id FROM prospects WHERE status IN ('sent','replied') ORDER BY sent_at DESC LIMIT 60",
     [], (e, r) => resolve(e || !r ? [] : r)));
@@ -2751,7 +2763,15 @@ app.get('/api/leads/delivery-status', async (req, res) => {
       const resp = await fetch(`https://api.resend.com/emails/${r.resend_id}`, {
         headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15000)
       });
-      if (!resp.ok) { results.push({ ...r, state: `lookup failed (${resp.status})` }); continue; }
+      if (!resp.ok) {
+        // A send-only key authenticates but cannot read outcomes, which looks
+        // identical to a broken key unless it is named.
+        const why = resp.status === 401
+          ? 'the API key is send-only, so delivery outcomes cannot be read — create a full-access key in Resend'
+          : `lookup failed (${resp.status})`;
+        results.push({ ...r, state: why });
+        continue;
+      }
       const d = await resp.json();
       results.push({
         id: r.id, business_name: r.business_name, contact_email: r.contact_email,
