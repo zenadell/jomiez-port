@@ -1894,7 +1894,9 @@ function openLead(id, isObject) {
       <div style="padding:14px 20px;border-top:1px solid #262626;">
         <div id="reply-modal-${l.id}"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          ${String(l.id).startsWith('inbox-') ? '' : `<button class="btn btn-sm" onclick="draftReply(${l.id}, true)">Draft reply</button>`}
+          ${String(l.id).startsWith('inbox-')
+            ? `<button class="btn btn-sm" onclick="openInboxReply('${String(l.id).replace('inbox-','')}', '${escAttr(l.email)}', '${escAttr(l.name)}')">Reply</button>`
+            : `<button class="btn btn-sm" onclick="draftReply(${l.id}, true)">Draft reply</button>`}
           <button class="btn btn-sm btn-outline" onclick="closeLead()">Done</button>
         </div>
       </div>
@@ -1946,6 +1948,55 @@ async function sendMailTest() {
     }
   } catch (e) {
     if (el) { el.textContent = `Test failed: ${e.message}`; el.style.color = '#ff6b6b'; }
+  }
+}
+
+/**
+ * Writes back to someone who emailed in.
+ *
+ * The modal previously hid the reply button for inbox rows entirely, so a real
+ * reply from a prospect could be read and never answered from here.
+ */
+function openInboxReply(id, to, name) {
+  const box = document.getElementById('reply-modal-inbox-' + id);
+  if (!box) return;
+  box.innerHTML = `
+    <div style="border:1px solid #333;border-radius:8px;padding:12px;background:#0d0d0f;">
+      <input id="ibto-${id}" value="${escAttr(to)}"
+        style="width:100%;background:#141416;border:1px solid #333;color:#fff;padding:8px;border-radius:6px;margin-bottom:8px;">
+      <textarea id="ibbody-${id}" rows="10" placeholder="Write your reply…"
+        style="width:100%;background:#141416;border:1px solid #333;color:#ddd;padding:8px;border-radius:6px;font-family:inherit;line-height:1.55;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-sm" id="ibsend-${id}" onclick="sendInboxReply('${id}')">Send reply</button>
+        <span id="ibmsg-${id}" style="font-size:12px;color:#777;">Their message is quoted underneath automatically.</span>
+      </div>
+    </div>`;
+  const ta = document.getElementById('ibbody-' + id);
+  if (ta) ta.focus();
+}
+
+async function sendInboxReply(id) {
+  const to = document.getElementById('ibto-' + id).value.trim();
+  const body = document.getElementById('ibbody-' + id).value.trim();
+  const msg = document.getElementById('ibmsg-' + id);
+  const btn = document.getElementById('ibsend-' + id);
+  if (!body) { msg.textContent = 'Write something first.'; msg.style.color = '#ffb648'; return; }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await (await fetch(`/api/inbox/${id}/reply`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, body })
+    })).json();
+    if (r.error) { msg.textContent = r.error; msg.style.color = '#ff6b6b'; return; }
+    msg.textContent = `Sent to ${r.to}.`;
+    msg.style.color = '#35c66b';
+    document.getElementById('ibbody-' + id).value = '';
+    loadInbox();
+  } catch (e) {
+    msg.textContent = e.message; msg.style.color = '#ff6b6b';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send reply';
   }
 }
 

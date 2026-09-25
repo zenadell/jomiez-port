@@ -1046,6 +1046,9 @@ db.serialize(() => {
     // been. The outreach footer promises "I will not contact you" and until now
     // nothing in the code could keep that promise — a later run would happily
     // write to them again.
+    db.run(`ALTER TABLE inbox_messages ADD COLUMN IF NOT EXISTS replied_at TEXT`);
+    db.run(`ALTER TABLE inbox_messages ADD COLUMN IF NOT EXISTS reply_body TEXT`);
+
     db.run(`CREATE TABLE IF NOT EXISTS suppressions (
       id SERIAL PRIMARY KEY, address TEXT UNIQUE, domain TEXT,
       reason TEXT, added_at TEXT)`);
@@ -2991,6 +2994,50 @@ app.get('/api/leads/delivery-status', async (req, res) => {
       : null,
     results
   });
+});
+
+/**
+ * Replies to a message in the inbox.
+ *
+ * This did not exist. The panel could fetch a reply, triage it and show it, and
+ * then offered no way to answer — the Draft reply button was explicitly hidden
+ * for inbox rows. So the one thing the whole outreach system exists to produce,
+ * a reply from a real business, arrived in a dead end.
+ *
+ * Quotes the original beneath the response the way a mail client does, so the
+ * recipient sees their own message and the thread reads normally.
+ */
+app.post('/api/inbox/:id/reply', async (req, res) => {
+  try {
+    const msg = await new Promise((resolve) =>
+      db.get('SELECT * FROM inbox_messages WHERE id = ?', [req.params.id], (e, r) => resolve(r || null)));
+    if (!msg) return res.status(404).json({ error: 'Message not found.' });
+
+    const to = String(req.body?.to || msg.from_email || '').trim();
+    const body = String(req.body?.body || '').trim();
+    if (!to) return res.status(400).json({ error: 'No recipient address on that message.' });
+    if (!body) return res.status(400).json({ error: 'Write something first.' });
+
+    const subject = String(req.body?.subject || '').trim()
+      || (/^re:/i.test(msg.subject || '') ? msg.subject : `Re: ${msg.subject || 'your message'}`);
+
+    // A direct reply to someone who wrote to us is correspondence, not a cold
+    // email, so it carries no unsubscribe footer — only the quoted original.
+    const quoted = String(msg.body || '').split('\n').map(l => '> ' + l).join('\n');
+    const full = `${body}\n\n\nOn ${msg.received_at || 'an earlier date'}, ${msg.from_name || to} wrote:\n${quoted}`;
+
+    const result = await sendLeadReply({ to, subject, body: full, replyTo: process.env.LEAD_REPLY_TO });
+    if (!result.sent) return res.status(502).json({ error: result.reason || 'Could not send.' });
+
+    await new Promise((resolve) => db.run(
+      'UPDATE inbox_messages SET replied_at = ?, reply_body = ?, is_read = ? WHERE id = ?',
+      [new Date().toISOString(), body, '1', msg.id], () => resolve()));
+
+    res.json({ sent: true, id: result.id, to, subject });
+  } catch (e) {
+    console.error('[inbox/reply]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.get('/api/leads/mail-status', async (req, res) => {
