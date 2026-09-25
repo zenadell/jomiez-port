@@ -224,6 +224,7 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/leads\/sync-bounces$/ },
     { m: 'GET',  p: /^\/api\/suppressions$/ },
     { m: 'POST', p: /^\/api\/suppressions$/ },
+    { m: 'DELETE', p: /^\/api\/suppressions\/.+$/ },
     { m: 'GET',  p: /^\/api\/leads\/resend-account$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
@@ -2231,6 +2232,24 @@ app.post('/api/suppressions', async (req, res) => {
     [raw], () => resolve()));
 
   res.json({ suppressed: raw, wholeDomain, domain });
+});
+
+/**
+ * Lifts a suppression.
+ *
+ * Needed because a suppression can be added on a misreading: a question like
+ * "how did you get this address" is not the same as "stop contacting me", and
+ * treating the two alike throws away a prospect who only wanted an answer.
+ * A real opt-out should never be lifted.
+ */
+app.delete('/api/suppressions/:address', (req, res) => {
+  const a = String(req.params.address || '').toLowerCase();
+  db.run('DELETE FROM suppressions WHERE address = ?', [a], (e) => {
+    if (e) return res.status(500).json({ error: e.message });
+    // Put the prospect back in play; the address itself is unchanged.
+    db.run("UPDATE prospects SET status = 'sent' WHERE LOWER(contact_email) = ? AND status = 'do_not_contact'",
+      [a], () => res.json({ lifted: a }));
+  });
 });
 
 app.get('/api/suppressions', (req, res) => {
