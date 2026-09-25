@@ -19,7 +19,17 @@ const db = require('./lib/supabaseAdapter');
 const { renderContent } = require('./lib/ssr');
 const { buildGraph } = require('./lib/schema');
 const { scoreLead } = require('./lib/leadTriage');
-const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig, domainAcceptsMail } = require('./lib/mailer');
+const { sendLeadReply, notifyOwner, isConfigured: mailerConfigured, missingConfig: missingMailConfig, domainAcceptsMail, setSuppressionLookup } = require('./lib/mailer');
+
+// Wire the suppression check into the sender. Doing it here rather than at each
+// send site means a future caller cannot forget it.
+setSuppressionLookup(async (address) => {
+  const a = String(address || '').toLowerCase();
+  const domain = a.split('@')[1] || '';
+  return new Promise((resolve) => db.get(
+    'SELECT reason FROM suppressions WHERE address = ? OR (domain <> \'\' AND domain = ?)',
+    [a, domain], (e, r) => resolve(r ? (r.reason || 'asked not to be contacted') : null)));
+});
 const { analyse: analyseProspect } = require('./lib/prospector');
 const { findBusinesses, CATEGORIES: discoverCategories } = require('./lib/discover');
 const { findForTrade: findTemplatesForTrade, classifyTrade, TRADE_CATEGORIES } = require('./lib/templateFinder');
@@ -212,6 +222,8 @@ const AUTOMATION_ALLOWED = [
     { m: 'POST', p: /^\/api\/prospects\/verify-emails$/ },
     { m: 'GET',  p: /^\/api\/leads\/delivery-status$/ },
     { m: 'POST', p: /^\/api\/leads\/sync-bounces$/ },
+    { m: 'GET',  p: /^\/api\/suppressions$/ },
+    { m: 'POST', p: /^\/api\/suppressions$/ },
     { m: 'GET',  p: /^\/api\/leads\/resend-account$/ },
     { m: 'GET',  p: /^\/api\/templates$/ },
     { m: 'POST', p: /^\/api\/templates$/ },
@@ -1029,6 +1041,14 @@ db.serialize(() => {
     db.run(`ALTER TABLE prospects ADD COLUMN IF NOT EXISTS resend_id TEXT`);
     db.run(`ALTER TABLE lead_replies ADD COLUMN IF NOT EXISTS resend_id TEXT`);
 
+    // Anyone who asked not to be contacted, and anyone who should never have
+    // been. The outreach footer promises "I will not contact you" and until now
+    // nothing in the code could keep that promise — a later run would happily
+    // write to them again.
+    db.run(`CREATE TABLE IF NOT EXISTS suppressions (
+      id SERIAL PRIMARY KEY, address TEXT UNIQUE, domain TEXT,
+      reason TEXT, added_at TEXT)`);
+
     // A library of real templates, matched to a prospect's trade at draft time.
     //
     // The model is never asked to recall or invent a template URL. It hallucinates
@@ -1089,6 +1109,9 @@ db.serialize(() => {
         // for search engines; it reads stiff at the bottom of a short email.
         ['outreach_signature', 'Emmanuel'],
         ['outreach_title', 'Founder'],
+        // Required in commercial email by CAN-SPAM and its equivalents. Sending
+        // without one is a violation on its own, regardless of anything else.
+        ['postal_address', ''],
         ['outreach_mode', 'manual'],
         ['outreach_daily_target', '10'],
         ['outreach_per_tick', '2'],
@@ -2173,6 +2196,50 @@ async function pickDeliverable(emails) {
   return '';
 }
 
+/**
+ * The footer every cold email must carry.
+ *
+ * A postal address is not optional decoration — CAN-SPAM and its equivalents
+ * require a physical mailing address in commercial email, and its absence is a
+ * violation by itself whatever else the message does right.
+ */
+async function outreachFooter() {
+  const s = (await getCmsData()).settings || {};
+  const company = s.company_name || 'Jomiez Innovation';
+  const postal = (s.postal_address || '').trim();
+  return `\n\n—\n${company}`
+    + (postal ? `\n${postal}` : '')
+    + '\nIf you would rather not hear from us again, reply "no thanks" and we will not contact you again.';
+}
+
+/** Add an address, or a whole domain, to the never-contact list. */
+app.post('/api/suppressions', async (req, res) => {
+  const raw = String(req.body?.address || '').trim().toLowerCase();
+  const wholeDomain = !!req.body?.wholeDomain;
+  if (!raw || !raw.includes('@')) return res.status(400).json({ error: 'An email address is required.' });
+
+  const domain = wholeDomain ? (raw.split('@')[1] || '') : '';
+  await new Promise((resolve) => db.run(
+    `INSERT INTO suppressions (address, domain, reason, added_at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (address) DO UPDATE SET domain = EXCLUDED.domain, reason = EXCLUDED.reason`,
+    [raw, domain, String(req.body?.reason || 'asked not to be contacted').slice(0, 200),
+     new Date().toISOString()], () => resolve()));
+
+  // Clear it from any prospect so nothing queues it again.
+  await new Promise((resolve) => db.run(
+    "UPDATE prospects SET contact_email = '', status = 'do_not_contact' WHERE LOWER(contact_email) = ?",
+    [raw], () => resolve()));
+
+  res.json({ suppressed: raw, wholeDomain, domain });
+});
+
+app.get('/api/suppressions', (req, res) => {
+  db.all('SELECT * FROM suppressions ORDER BY id DESC LIMIT 200', [], (e, rows) => {
+    if (e) return res.status(500).json({ error: e.message });
+    res.json(rows || []);
+  });
+});
+
 /** Same business, however the address was typed. */
 function hostOf(url) {
   try { return new URL(url).hostname.replace(/^www\./i, '').toLowerCase(); }
@@ -2402,7 +2469,7 @@ app.post('/api/prospects/:id/send', async (req, res) => {
     // Cold outreach must carry an unsubscribe line. Beyond being the law in most
     // of the world, a missing one is a spam-report magnet and reports are what
     // destroy a sending domain.
-    const footer = `\n\n—\n${(await getCmsData()).settings?.company_name || 'Jomiez Innovation'}\nIf you would rather not hear from me again, reply "no thanks" and I will not contact you.`;
+    const footer = await outreachFooter();
 
     const result = await sendLeadReply({
       to: recipient, subject, body: body + footer,
@@ -4016,8 +4083,7 @@ async function outreachTick() {
       [Math.min(cfg.perTick, sendBudget)], (e, r) => resolve(e || !r ? [] : r)));
 
     for (const p of toSend) {
-      const footer = `\n\n—\n${(await getCmsData()).settings?.company_name || 'Jomiez Innovation'}\n`
-        + 'If you would rather not hear from me again, reply "no thanks" and I will not contact you.';
+      const footer = await outreachFooter();
       const result = await sendLeadReply({
         to: p.contact_email, subject: p.draft_subject || `About ${p.website}`,
         body: (p.draft_body || '') + footer, replyTo: process.env.LEAD_REPLY_TO
